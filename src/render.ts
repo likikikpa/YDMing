@@ -1,6 +1,6 @@
 import { floodFill } from "./flood";
 import { terrainView } from "./terrain";
-import { drawLandscape } from "./terrain-render";
+import { drawLandscape, seaColor } from "./terrain-render";
 import type { CellRect } from "./terrain-render";
 import { hash } from "./random";
 import { drawStamp, path } from "./stamps";
@@ -57,16 +57,18 @@ function smoothPath(
   const last = points.at(-1)!;
   ctx.lineTo(last.x, last.y);
 }
-function drawRiver(ctx: CanvasRenderingContext2D, p: MapPath) {
+function drawRiver(ctx: CanvasRenderingContext2D, p: MapPath, map: MapData) {
+  const water = seaColor(map.settings.style),
+    bank = "#93aaa1";
   const pts = p.points,
     widths =
       p.widths && p.widths.length === pts.length ? p.widths : undefined;
   if (!widths) {
     smoothPath(ctx, pts);
-    ctx.strokeStyle = "#d1dfd5";
-    ctx.lineWidth = p.width + 2.5;
+    ctx.strokeStyle = bank;
+    ctx.lineWidth = p.width + 1.6;
     ctx.stroke();
-    ctx.strokeStyle = "#789b9a";
+    ctx.strokeStyle = water;
     ctx.lineWidth = p.width;
     ctx.stroke();
     return;
@@ -80,8 +82,8 @@ function drawRiver(ctx: CanvasRenderingContext2D, p: MapPath) {
     else runs.push({ from: i - 1, to: i, width: w });
   }
   for (const [color, extra] of [
-    ["#d1dfd5", 2.2],
-    ["#789b9a", 0],
+    [bank, 1.4],
+    [water, 0],
   ] as const) {
     ctx.strokeStyle = color;
     for (const run of runs) {
@@ -98,7 +100,7 @@ function drawPath(ctx: CanvasRenderingContext2D, p: MapPath, map: MapData) {
   ctx.save();
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  if (p.kind === "river") drawRiver(ctx, p);
+  if (p.kind === "river") drawRiver(ctx, p, map);
   else if (p.kind === "wall") {
     path(ctx, p.points);
     ctx.strokeStyle = "#594f3d";

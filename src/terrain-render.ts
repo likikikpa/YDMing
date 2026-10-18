@@ -57,6 +57,12 @@ const atlas = [
   [94, 149, 164],
 ];
 
+/** Open-water colour of a map style, so rivers can match the sea exactly. */
+export function seaColor(style: string) {
+  const [r, g, b] = (style === "parchment" ? parchment : style === "painted" ? painted : atlas)[12];
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
 // One texel covers a third of a terrain cell, so coastlines and biome edges
 // stay soft without storing a full-resolution height field.
 const SUPER = 3;
