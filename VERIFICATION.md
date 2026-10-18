@@ -44,3 +44,13 @@ Browser checks used an isolated production origin on port 5174 so the editable d
 - Browser checks confirmed island drawing in a city and around a generated dungeon, river placement on dungeon terrain, undo, and landscape persistence after reload. The dungeon retained all five room keys. The final production build also restored the saved terrain and full tool list.
 - Fixed terrain texture invalidation after island, ridge, and room drawing so edits appear immediately.
 - Production build, all 22 automated tests (19 editor/data tests plus three production-server tests), and all 284 import/asset casing checks pass.
+
+## Performance, tools, generation and hosting pass
+
+- Sculpting cost per frame (headless Chromium, software rendering, 1200 × 850 world map): about 1.8 ms with the incremental repaint, compared with 150 ms or more for the previous full-map redraw on every pointer move. An 80-dab mix of raise, dig, smooth, flatten, roughen and biome strokes produced a landscape bitmap identical to a full rebuild, with and without contour lines.
+- With 300 painted strokes already on a layer, a frame that draws a new live stroke costs about 15 ms; redrawing the unchanged map costs about 1 ms.
+- Rivers are checked by unit tests on three seeds: they end at the sea or a lake, tributaries join the river they flow into, widths grow downstream, and no turn between consecutive points exceeds 100°. Roads stay on land; kingdom borders are a few continuous lines.
+- Every press of **Generate map** now uses a new seed unless **Lock seed** is ticked. Cities vary with the seed (site, size, gates, rings, street grid, wall, buildings along the streets).
+- Image search was exercised against live Wikimedia Commons and Openverse: search, thumbnails, import into the *Make it fit* dialog. The proxy is covered by unit tests with a fake upstream (licence filtering, caching, per-client rate limit, only searched images are relayed).
+- `npm ci --omit=dev` in a clean directory installs only Express (4.4 MB) and the production server starts and passes `/healthz`.
+- Docker was not run: this environment has the Docker client but no daemon. `docker compose config` validates `docker-compose.yml`; the image build steps (check, build, `npm ci --omit=dev`, start) were run by hand.

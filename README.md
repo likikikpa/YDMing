@@ -2,6 +2,18 @@
 
 A browser map studio with a tavern-inspired walnut, brass, and parchment interface. Built from the attached D&D Map Maker product plan. All artwork is procedural or openly licensed; no AI-generated images are used.
 
+## Host it for other people
+
+On a fresh Debian/Ubuntu VPS with ports 80 and 443 open:
+
+```sh
+git clone https://github.com/likikikpa/atlasforge.git
+cd atlasforge
+sh deploy/install.sh maps.example.com   # omit the domain to serve plain HTTP on the IP
+```
+
+This installs Docker if needed, builds the app and starts it behind Caddy with an automatic HTTPS certificate. Nothing to configure, no accounts and no database: each visitor's maps are saved in their own browser. See [docs/HOSTING.md](docs/HOSTING.md) for DNS, updates, settings, image-search privacy and running without Docker.
+
 ## Start on Windows
 
 Install Node.js 24 LTS with npm. Open PowerShell in the `atlasforge` folder and run:
@@ -32,7 +44,7 @@ npm run build
 npm start
 ```
 
-`PORT` overrides the production server port. `HOST` overrides the bind address; the default is `127.0.0.1`. Generation, editing, saves, the built-in sprite library, and exports run entirely in the browser. An installed production build works offline after its first successful load; image search needs the local server and a network connection. Development mode does not install an offline service worker.
+`PORT` overrides the production server port. `HOST` overrides the bind address; the default is `127.0.0.1`. `TRUST_PROXY=1` tells the server a reverse proxy sits in front of it (per-visitor rate limits then use the real address), and `ATLASFORGE_SEARCH=off` disables the image-search proxy; `ATLASFORGE_CONTACT` is an email or URL sent to Wikimedia with searches. Generation, editing, saves, the built-in sprite library, and exports run entirely in the browser. An installed production build works offline after its first successful load; image search needs the local server and a network connection. Development mode does not install an offline service worker.
 
 ## Linux setup
 
@@ -68,18 +80,21 @@ docker build -t atlasforge .
 docker run --rm --name atlasforge -p 127.0.0.1:5173:5173 atlasforge
 ```
 
-Open http://127.0.0.1:5173. The container binds internally to `0.0.0.0`; the command publishes it only on your computer's loopback address. `/healthz` reports readiness. No volume is needed for map saves because maps remain in IndexedDB in your browser.
+Open http://127.0.0.1:5173. The container binds internally to `0.0.0.0`; the command publishes it only on your computer's loopback address. `/healthz` reports readiness. No volume is needed for map saves because maps remain in IndexedDB in your browser. The runtime image contains only the small Express server (the editor is bundled during the build), so it stays tiny.
+
+For a public server use `docker compose up -d --build` instead, which adds Caddy and automatic HTTPS (see above).
 
 The source works on Linux x64 and ARM64; native dependency selection is handled by npm. The Dockerfile uses the architecture selected by Docker. The included Ubuntu CI workflow checks Node 22 and 24, filename casing, shell syntax, tests, builds, production startup from another directory, and the Docker image. Linux/Docker CI results are available after this source is pushed to a GitHub repository with Actions enabled.
 
 ## Implemented
 
 - Seeded world, city, and dungeon generation in a Web Worker, with editable settings and targeted rerolls for water, settlements, city buildings, and dungeon contents.
-- New maps start empty, including the first map on a fresh launch. Choose settings and press **Generate map** to populate them.
-- World height fields, climate-driven biomes, rain shadows, hill shading, priority-flood river routing, lakes, settlement pins, kingdom boundaries, and three map styles.
-- Raise, dig, smooth, flatten, roughen, biome override, mountain ridge, island, and river tools. Biomes and colours follow terrain edits.
+- New maps start empty, including the first map on a fresh launch. Choose settings and press **Generate map** to populate them. Each press rolls a new seed; tick **Lock seed** to regenerate the same map.
+- World height fields with seed-dependent continents, climate-driven biomes, rain shadows, hill shading, inland lakes and river systems. Rivers follow priority-flood drainage, begin where enough water gathers, gain tributaries where large streams meet, widen towards the sea and are smoothed into flowing curves. Settlement pins, kingdom boundaries and three map styles complete the world.
+- Terrain tools in the style of Inkarnate: the **mountain** tool raises land and the **shovel** digs it away with a soft round brush that works continuously while you hold the pointer, so ground rises out of the sea and sinks back into it. Smooth, flatten, roughen and biome brushes, freehand mountain ranges, islands with ragged coasts and one-click rivers complete the set. Only the changed part of the map is repainted, so sculpting stays responsive. Biomes and colours follow terrain edits.
+- Every tool shows its name, a short description and its shortcut the moment you point at it, and the *More tools* panel lists what each one does.
 - All map types share the same toolbar and full **More tools** list. Terrain and rivers work in worlds, cities, and dungeons; dungeon landscapes are separate from room floors so sculpting preserves room geometry.
-- Cities with streets, lots, buildings, walls, districts, generated business names, owners, and GM notes. World settlement pins open linked cities that inherit the surrounding terrain and river positions.
+- Cities that differ with every seed: a river, coast or hill site, gate roads, ring roads and side streets (or a street grid), an irregular wall broken by water, a keep, districts, and buildings that line the streets, with generated business names, owners and GM notes. Rerolling buildings keeps the streets. World settlement pins open linked cities that inherit the surrounding terrain, climate and river positions.
 - Connected BSP dungeons with several corridor layouts, irregular rooms, doors, GM markers, stairs, editable room keys, SRD monsters, and level-filtered magic items. The room tool merges touching floor regions and redraws walls. Room deletion updates numbering.
 - PixiJS WebGL map display, cursor-centred wheel zoom, Space/middle-button panning, fit, square/hex grids, contours, and snapping.
 - Brush, pencil, eraser, contiguous raster fill, line, rectangle, ellipse, text, eyedropper, and stamp/scatter tools. Painting is isolated from terrain. Tablet pressure adjusts terrain strength.

@@ -1,5 +1,6 @@
 import { drainage } from "./drainage";
-import { worldPeople, worldWater } from "./generation-parts";
+import { cityBuildings, generateCity } from "./city";
+import { worldLakes, worldPeople, worldWater } from "./generation-parts";
 import { clamp, fbm, hash, random } from "./random";
 import { defaultSettings, makeLayers } from "./types";
 import type {
@@ -65,14 +66,38 @@ export function settlementName(r: () => number) {
     suffixes[Math.floor(r() * suffixes.length)]
   );
 }
+// Moisture noise depends only on the seed and grid size, never on edited
+// heights, so it is computed once instead of for every biome lookup.
+const moistureGrids = new Map<string, Float32Array>();
+function moistureNoise(map: MapData) {
+  const key = `${map.settings.seed}:${map.cols}x${map.rows}`;
+  let grid = moistureGrids.get(key);
+  if (!grid) {
+    const seed = hash(map.settings.seed) + 9;
+    grid = new Float32Array(map.cols * map.rows);
+    for (let y = 0; y < map.rows; y++)
+      for (let x = 0; x < map.cols; x++)
+        grid[y * map.cols + x] = fbm(x / 30, y / 30, seed) * 0.25;
+    if (moistureGrids.size >= 6)
+      moistureGrids.delete(moistureGrids.keys().next().value!);
+    moistureGrids.set(key, grid);
+  }
+  return grid;
+}
 export function biomeAt(map: MapData, x: number, y: number) {
-  const i = Math.max(0, Math.min(map.heights.length - 1, y * map.cols + x)),
+  x = Math.max(0, Math.min(map.cols - 1, x));
+  y = Math.max(0, Math.min(map.rows - 1, y));
+  const i = y * map.cols + x,
     h = map.heights[i],
     s = map.settings;
   if (map.biomes[i] > 0) return map.biomes[i];
   if (h < s.seaLevel) return 12;
   if (h < s.seaLevel + 0.025) return 11;
-  const latitude = (Math.abs(y / map.rows - 0.5) * s.latitude) / 65;
+  // Only a world map spans latitudes; a city or dungeon sits at one temperate latitude.
+  const latitude =
+    map.kind === "world"
+      ? (Math.abs(y / map.rows - 0.5) * s.latitude) / 65
+      : 0.35;
   const temp =
     0.9 - latitude * 0.8 - (h - s.seaLevel) * 0.9 + s.temperature / 100;
   const upwind =
@@ -82,7 +107,7 @@ export function biomeAt(map: MapData, x: number, y: number) {
     ] || h;
   const moisture =
     s.rainfall / 100 +
-    fbm(x / 30, y / 30, hash(s.seed) + 9) * 0.25 -
+    moistureNoise(map)[i] -
     Math.max(0, upwind - h) * 1.8;
   if (temp < 0.12 || h > 0.87) return 1;
   if (h > 0.74) return 2;
@@ -140,7 +165,7 @@ export function generateMap(
   else generateDungeon(map, r);
   return map;
 }
-function object(
+export function object(
   id: string,
   kind: MapObject["kind"],
   x: number,
@@ -166,39 +191,40 @@ function generateWorld(map: MapData, r: () => number) {
   const s = map.settings,
     seed = hash(s.seed),
     { cols, rows } = map;
-  const blobs = Array.from(
-    {
-      length:
-        s.template === "archipelago"
-          ? 14
-          : s.template === "pangaea" || s.template === "island"
-            ? 1
-            : 5,
-    },
-    (_, i) => ({
-      x: i === 0 ? 0.48 : 0.16 + r() * 0.68,
-      y: i === 0 ? 0.5 : 0.17 + r() * 0.66,
-      rx:
-        s.template === "archipelago"
-          ? 0.1 + r() * 0.11
-          : s.template === "island"
-            ? 0.32
-            : 0.25 + r() * 0.17,
-      ry: s.template === "archipelago" ? 0.1 + r() * 0.14 : 0.32 + r() * 0.15,
-    }),
-  );
+  // Every seed lays out its own landmasses; nothing is pinned to the centre.
+  const jitter = (v: number, amount: number) => v + (r() - 0.5) * amount;
+  const blobs: { x: number; y: number; rx: number; ry: number }[] = [];
+  const addBlob = (x: number, y: number, rx: number, ry: number) =>
+    blobs.push({ x, y, rx, ry });
+  if (s.template === "archipelago") {
+    for (let i = 0, n = 10 + Math.floor(r() * 8); i < n; i++)
+      addBlob(0.12 + r() * 0.76, 0.14 + r() * 0.72, 0.06 + r() * 0.12, 0.07 + r() * 0.13);
+  } else if (s.template === "island") {
+    addBlob(jitter(0.5, 0.14), jitter(0.5, 0.14), 0.24 + r() * 0.1, 0.26 + r() * 0.12);
+    for (let i = 0, n = 2 + Math.floor(r() * 4); i < n; i++)
+      addBlob(0.12 + r() * 0.76, 0.14 + r() * 0.72, 0.03 + r() * 0.04, 0.03 + r() * 0.05);
+  } else if (s.template === "pangaea") {
+    addBlob(jitter(0.5, 0.12), jitter(0.5, 0.12), 0.28 + r() * 0.12, 0.3 + r() * 0.14);
+    for (let i = 0, n = 2 + Math.floor(r() * 3); i < n; i++)
+      addBlob(0.15 + r() * 0.7, 0.18 + r() * 0.64, 0.06 + r() * 0.08, 0.06 + r() * 0.1);
+  } else {
+    for (let i = 0, n = 3 + Math.floor(r() * 4); i < n; i++)
+      addBlob(0.16 + r() * 0.68, 0.17 + r() * 0.66, 0.14 + r() * 0.2, 0.18 + r() * 0.22);
+  }
+  const warpFrequency = 3 + r() * 2.5,
+    warpStrength = 0.12 + r() * 0.1;
   for (let y = 0; y < rows; y++)
     for (let x = 0; x < cols; x++) {
       const nx = x / cols,
         ny = y / rows,
-        warp = fbm(nx * 4, ny * 4, seed, 4) - 0.5;
+        warp = fbm(nx * warpFrequency, ny * warpFrequency, seed, 4) - 0.5;
       let shape = Math.max(
         ...blobs.map(
           (b) =>
             1 -
             Math.sqrt(
-              ((nx - b.x + warp * 0.16) / b.rx) ** 2 +
-                ((ny - b.y + warp * 0.12) / b.ry) ** 2,
+              ((nx - b.x + warp * warpStrength * 1.3) / b.rx) ** 2 +
+                ((ny - b.y + warp * warpStrength) / b.ry) ** 2,
             ),
         ),
       );
@@ -223,47 +249,9 @@ function generateWorld(map: MapData, r: () => number) {
         base + mountains - Math.max(0, 0.065 - edge) * 7,
       );
     }
-  // Repeated lowest-neighbour descent creates continuous watercourses.
-  for (let n = 0; n < s.rivers; n++) {
-    let start = -1;
-    for (let a = 0; a < 500; a++) {
-      const i = Math.floor(r() * map.heights.length);
-      if (map.heights[i] > s.seaLevel + 0.15 && map.heights[i] < 0.85) {
-        start = i;
-        break;
-      }
-    }
-    if (start < 0) continue;
-    const cells = traceRiver(map, start);
-    if (cells.length > 5)
-      map.paths.push({
-        id: `river-${n}`,
-        points: cells.map((i) => ({
-          x: ((i % cols) + 0.5) * 5,
-          y: (Math.floor(i / cols) + 0.5) * 5,
-        })),
-        kind: "river",
-        width: 1.6 + r() * 1.7,
-        layer: "Water",
-      });
-  }
-  for (let n = 0; n < s.lakes; n++) {
-    for (let a = 0; a < 200; a++) {
-      const x = 20 + Math.floor(r() * (cols - 40)),
-        y = 20 + Math.floor(r() * (rows - 40)),
-        i = y * cols + x;
-      if (
-        map.heights[i] > s.seaLevel + 0.03 &&
-        map.heights[i] < s.seaLevel + 0.12
-      ) {
-        for (let dy = -2; dy <= 2; dy++)
-          for (let dx = -3; dx <= 3; dx++)
-            if ((dx * dx) / 9 + (dy * dy) / 4 < 1)
-              map.heights[(y + dy) * cols + x + dx] = s.seaLevel - 0.015;
-        break;
-      }
-    }
-  }
+  // Lakes first, so rivers drain into them; rivers then follow the water.
+  worldLakes(map, s.seed);
+  worldWater(map, s.seed);
   worldPeople(map, s.seed);
 }
 export function traceRiver(map: MapData, start: number): number[] {
@@ -285,151 +273,6 @@ export function traceRiver(map: MapData, start: number): number[] {
   return path;
 }
 
-function generateCity(map: MapData, r: () => number) {
-  const s = map.settings,
-    seed = hash(s.seed),
-    sizes: Record<string, number> = {
-      hamlet: 45,
-      village: 100,
-      town: 240,
-      city: 430,
-      capital: 700,
-    },
-    count = sizes[s.citySize] || 240;
-  for (let y = 0; y < map.rows; y++)
-    for (let x = 0; x < map.cols; x++) {
-      const riverX = 130 + Math.sin(y / 28) * 12;
-      map.heights[y * map.cols + x] =
-        s.site === "river" && Math.abs(x - riverX) < 7
-          ? 0.32
-          : s.site === "coast" && x > 185 + Math.sin(y / 15) * 8
-            ? 0.3
-            : 0.55 + fbm(x / 50, y / 50, seed) * 0.1;
-    }
-  const center = { x: 560, y: 430 };
-  const gates = [
-    { x: 240, y: 220 },
-    { x: 900, y: 270 },
-    { x: 870, y: 650 },
-    { x: 270, y: 670 },
-  ];
-  gates.forEach((p, n) =>
-    map.paths.push({
-      id: `main-road-${n}`,
-      kind: "road",
-      points: [
-        p,
-        {
-          x: (p.x + center.x) / 2,
-          y:
-            (p.y + center.y) / 2 +
-            (s.layout === "organic" ? (r() - 0.5) * 70 : 0),
-        },
-        center,
-      ],
-      width: 12,
-      layer: "Objects",
-    }),
-  );
-  for (let n = 0; n < 8; n++) {
-    const a = (n / 8) * Math.PI * 2,
-      b = ((n + 1) / 8) * Math.PI * 2;
-    map.paths.push({
-      id: `ring-road-${n}`,
-      kind: "road",
-      points: [
-        { x: center.x + Math.cos(a) * 230, y: center.y + Math.sin(a) * 210 },
-        { x: center.x + Math.cos(b) * 230, y: center.y + Math.sin(b) * 210 },
-      ],
-      width: 7,
-      layer: "Objects",
-    });
-  }
-  for (let n = 0; n < count; n++) {
-    let x = 230 + r() * 660,
-      y = 170 + r() * 520;
-    if (s.layout === "grid") {
-      x = Math.round(x / 28) * 28;
-      y = Math.round(y / 28) * 28;
-    }
-    const dx = (x - center.x) / 340,
-      dy = (y - center.y) / 270;
-    if (dx * dx + dy * dy > 1 || Math.hypot(x - center.x, y - center.y) < 45)
-      continue;
-    const gx = Math.floor(x / 5),
-      gy = Math.floor(y / 5);
-    if (map.heights[gy * map.cols + gx] < s.seaLevel) continue;
-    if (
-      map.paths.some((p) =>
-        p.points
-          .slice(1)
-          .some(
-            (b, i) =>
-              pointSegmentDistance({ x, y }, p.points[i], b) < p.width + 9,
-          ),
-      )
-    )
-      continue;
-    const kind =
-        n % 41 === 0
-          ? "temple"
-          : n % 29 === 0
-            ? "tavern"
-            : n % 61 === 0
-              ? "tower"
-              : "house",
-      o = object(
-        `building-${n}`,
-        kind,
-        x,
-        y,
-        kind === "tavern"
-          ? `The ${["Copper", "Wandering", "Silver", "Drunken"][n % 4]} ${["Stag", "Griffin", "Dragon", "Fox"][n % 4]}`
-          : kind === "house"
-            ? `${["Weaver", "Baker", "Merchant", "Blacksmith"][n % 4]}'s house`
-            : kind,
-        10 + r() * 11,
-        14 + r() * 12,
-      );
-    o.rotation = s.layout === "grid" ? 0 : r() * 360;
-    o.owner = settlementName(r);
-    map.objects.push(o);
-  }
-  if (s.defense !== "none") {
-    const pts = Array.from({ length: 25 }, (_, n) => {
-      const a = (n / 24) * Math.PI * 2;
-      return {
-        x: center.x + Math.cos(a) * 360,
-        y: center.y + Math.sin(a) * 290,
-      };
-    });
-    map.paths.push({
-      id: "city-wall",
-      kind: "wall",
-      points: pts,
-      width: s.defense === "stone" ? 8 : 4,
-      layer: "Objects",
-    });
-  }
-  map.objects.push(
-    object("citadel", "castle", 470, 230, "The High Keep", 65, 65),
-    object("plaza", "well", 560, 430, "Market Square", 24, 24),
-  );
-  ["THE OLD QUARTER", "MARKET WARD", "THE LOWS", "TEMPLE DISTRICT"].forEach(
-    (label, i) =>
-      map.objects.push(
-        object(
-          `district-${i}`,
-          "label",
-          410 + (i % 2) * 270,
-          350 + Math.floor(i / 2) * 210,
-          label,
-          185,
-          15,
-        ),
-      ),
-  );
-}
 export function pointSegmentDistance(p: Point, a: Point, b: Point) {
   const dx = b.x - a.x,
     dy = b.y - a.y,
@@ -723,9 +566,11 @@ export function rerollGroup(
           layer: room.type === "trap" ? "GM-only" : "Objects",
         });
   } else {
-    const next = generateMap(map.kind, settings, map.name, map.id);
-    if (group === "buildings") out.objects = next.objects;
-    else {
+    if (group === "buildings" && out.plan) {
+      // Streets and terrain stay; only houses and district names are re-drawn.
+      cityBuildings(out, random(seed + "buildings"));
+    } else {
+      const next = generateMap(map.kind, settings, map.name, map.id);
       out.heights = next.heights;
       out.biomes = next.biomes;
       out.paths = next.paths;

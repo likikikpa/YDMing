@@ -1,11 +1,19 @@
 import type { MapData } from "./types";
-const cache = new WeakMap<number[], Int32Array>();
-/** Priority-flood drainage routes enclosed basins through their lowest spill point. */
-export function drainage(map: MapData) {
+interface Model {
+  parent: Int32Array;
+  /** Cells in the order the flood reached them: every cell follows its downstream neighbour. */
+  order: Int32Array;
+  seaLevel: number;
+  accumulation?: Float32Array;
+}
+const cache = new WeakMap<number[], Model>();
+function model(map: MapData): Model {
   const cached = cache.get(map.heights);
-  if (cached) return cached;
+  if (cached && cached.seaLevel === map.settings.seaLevel) return cached;
   const size = map.cols * map.rows,
     parent = new Int32Array(size).fill(-1),
+    order = new Int32Array(size),
+    visited: number[] = [],
     seen = new Uint8Array(size),
     heap: { i: number; h: number }[] = [];
   const push = (node: { i: number; h: number }) => {
@@ -51,8 +59,9 @@ export function drainage(map: MapData) {
       }
     }
   while (heap.length) {
-    const current = pop(),
-      x = current.i % map.cols,
+    const current = pop();
+    visited.push(current.i);
+    const x = current.i % map.cols,
       y = Math.floor(current.i / map.cols);
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++) {
@@ -71,6 +80,27 @@ export function drainage(map: MapData) {
         push({ i, h: Math.max(map.heights[i], current.h + 0.00001) });
       }
   }
-  cache.set(map.heights, parent);
-  return parent;
+  order.set(visited);
+  const result = { parent, order, seaLevel: map.settings.seaLevel };
+  cache.set(map.heights, result);
+  return result;
+}
+/** Downstream neighbour of every cell (-1 for outlets). */
+export function drainage(map: MapData) {
+  return model(map).parent;
+}
+/** Number of land cells whose water passes through each cell, itself included. */
+export function flowAccumulation(map: MapData) {
+  const m = model(map);
+  if (m.accumulation) return m.accumulation;
+  const acc = new Float32Array(m.parent.length);
+  for (let i = 0; i < acc.length; i++)
+    acc[i] = map.heights[i] >= map.settings.seaLevel ? 1 : 0;
+  for (let k = m.order.length - 1; k >= 0; k--) {
+    const cell = m.order[k],
+      down = m.parent[cell];
+    if (down >= 0) acc[down] += acc[cell];
+  }
+  m.accumulation = acc;
+  return acc;
 }
