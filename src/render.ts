@@ -57,51 +57,64 @@ function smoothPath(
   const last = points.at(-1)!;
   ctx.lineTo(last.x, last.y);
 }
-function drawRiver(ctx: CanvasRenderingContext2D, p: MapPath, map: MapData) {
+/**
+ * Rivers are drawn in two passes, all banks first and then all water, so a
+ * river's bank line never cuts across another river where they join.
+ */
+function drawRivers(
+  ctx: CanvasRenderingContext2D,
+  rivers: MapPath[],
+  map: MapData,
+) {
   const water = seaColor(map.settings.style),
     bank = "#93aaa1";
-  const pts = p.points,
-    widths =
-      p.widths && p.widths.length === pts.length ? p.widths : undefined;
-  if (!widths) {
-    smoothPath(ctx, pts);
-    ctx.strokeStyle = bank;
-    ctx.lineWidth = p.width + 1.6;
-    ctx.stroke();
-    ctx.strokeStyle = water;
-    ctx.lineWidth = p.width;
-    ctx.stroke();
-    return;
-  }
-  // Rivers widen towards the mouth: runs of similar width share one stroke.
-  const runs: { from: number; to: number; width: number }[] = [];
-  for (let i = 1; i < pts.length; i++) {
-    const w = Math.max(0.6, Math.round(((widths[i - 1] + widths[i]) / 2) * 3) / 3),
-      last = runs.at(-1);
-    if (last && last.width === w) last.to = i;
-    else runs.push({ from: i - 1, to: i, width: w });
-  }
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
   for (const [color, extra] of [
     [bank, 1.4],
     [water, 0],
   ] as const) {
     ctx.strokeStyle = color;
-    for (const run of runs) {
-      ctx.beginPath();
-      ctx.moveTo(pts[run.from].x, pts[run.from].y);
-      for (let i = run.from + 1; i <= run.to; i++) ctx.lineTo(pts[i].x, pts[i].y);
-      ctx.lineWidth = run.width + extra;
-      ctx.stroke();
+    for (const p of rivers) {
+      const pts = p.points,
+        widths =
+          p.widths && p.widths.length === pts.length ? p.widths : undefined;
+      if (!widths) {
+        smoothPath(ctx, pts);
+        ctx.lineWidth = p.width + (extra ? 1.6 : 0);
+        ctx.stroke();
+        continue;
+      }
+      // Rivers widen towards the mouth: runs of similar width share one stroke.
+      const runs: { from: number; to: number; width: number }[] = [];
+      for (let i = 1; i < pts.length; i++) {
+        const w = Math.max(
+            0.6,
+            Math.round(((widths[i - 1] + widths[i]) / 2) * 3) / 3,
+          ),
+          last = runs.at(-1);
+        if (last && last.width === w) last.to = i;
+        else runs.push({ from: i - 1, to: i, width: w });
+      }
+      for (const run of runs) {
+        ctx.beginPath();
+        ctx.moveTo(pts[run.from].x, pts[run.from].y);
+        for (let i = run.from + 1; i <= run.to; i++)
+          ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.lineWidth = run.width + extra;
+        ctx.stroke();
+      }
     }
   }
+  ctx.restore();
 }
 function drawPath(ctx: CanvasRenderingContext2D, p: MapPath, map: MapData) {
   if (p.kind === "corridor") return;
   ctx.save();
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  if (p.kind === "river") drawRiver(ctx, p, map);
-  else if (p.kind === "wall") {
+  if (p.kind === "wall") {
     path(ctx, p.points);
     ctx.strokeStyle = "#594f3d";
     ctx.lineWidth = p.width + 2;
@@ -347,7 +360,11 @@ export function drawMap(
     ctx.globalCompositeOperation = l.blend;
     const paths = map.paths.filter((p) => p.layer === l.id),
       borders = paths.filter((p) => p.kind === "border");
-    paths.filter((p) => p.kind !== "border").forEach((p) => drawPath(ctx, p, map));
+    const rivers = paths.filter((p) => p.kind === "river");
+    if (rivers.length) drawRivers(ctx, rivers, map);
+    paths
+      .filter((p) => p.kind !== "border" && p.kind !== "river")
+      .forEach((p) => drawPath(ctx, p, map));
     if (borders.length) {
       // Kingdom borders share one style, so they are stroked in a single pass.
       ctx.save();

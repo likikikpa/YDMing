@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generateMap } from "./generator";
-import { buildRiverNetwork, riverFromCells } from "./rivers";
+import { buildRiverNetwork, mergeRivers, riverFromCells } from "./rivers";
 import { traceRiver } from "./generator";
 import { random } from "./random";
 import { defaultSettings } from "./types";
@@ -58,6 +58,37 @@ describe("river networks", () => {
       }
       expect(mains.length).toBeLessThanOrEqual(defaultSettings.rivers);
     }
+  });
+  it("never lets two rivers lie on top of each other", () => {
+    const near = (p: { x: number; y: number }, line: { x: number; y: number }[]) => {
+      let best = Infinity;
+      for (let i = 1; i < line.length; i++) {
+        const dx = line[i].x - line[i - 1].x,
+          dy = line[i].y - line[i - 1].y,
+          t = Math.max(0, Math.min(1, ((p.x - line[i - 1].x) * dx + (p.y - line[i - 1].y) * dy) / (dx * dx + dy * dy || 1)));
+        best = Math.min(best, Math.hypot(p.x - line[i - 1].x - dx * t, p.y - line[i - 1].y - dy * t));
+      }
+      return best;
+    };
+    for (const map of maps) {
+      const rivers = map.paths.filter((p) => p.kind === "river");
+      for (const river of rivers)
+        for (const other of rivers) {
+          if (other === river) continue;
+          // Two rivers touch only where one joins the other (a handful of points);
+          // a long shared stretch would mean they lie on top of each other.
+          const shared = river.points.filter((p) => near(p, other.points) < 1.6).length;
+          expect(shared).toBeLessThanOrEqual(8);
+        }
+    }
+  });
+  it("trims a river that runs into another one", () => {
+    const base = maps[0].paths.find((p) => p.kind === "river")!,
+      copy = { ...base, id: "dup", points: base.points.map((p) => ({ ...p })), widths: [...base.widths!] };
+    expect(mergeRivers(copy, [base])).toBeNull();
+    const branch = { ...base, id: "branch", points: [{ x: base.points[8].x + 30, y: base.points[8].y - 30 }, { x: base.points[8].x + 20, y: base.points[8].y - 20 }, { x: base.points[8].x + 10, y: base.points[8].y - 10 }, { x: base.points[8].x + 4, y: base.points[8].y - 4 }, base.points[8], base.points[9]], widths: [1, 1, 1, 1, 1, 1] };
+    const merged = mergeRivers(branch, [base])!;
+    expect(merged.points.length).toBeLessThan(branch.points.length);
   });
   it("smooths away the grid staircase: no sharp turns between points", () => {
     for (const map of maps)

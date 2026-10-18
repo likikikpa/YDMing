@@ -9,7 +9,7 @@ import { Application, Sprite, Texture } from "pixi.js";
 import { drawMap, loadImage } from "./render";
 import { hitObject, navigationTarget } from "./hit-test";
 import { biomeAt, keyRoom, traceRiver } from "./generator";
-import { riverFromCells } from "./rivers";
+import { mergeRivers, riverFromCells } from "./rivers";
 import { clamp, random } from "./random";
 import {
   SCULPT_TOOLS,
@@ -145,6 +145,8 @@ export const Editor = forwardRef<EditorHandle, Props>(
       [renderError, setRenderError] = useState("");
     const lastPaint = useRef<Point | null>(null);
     const lastStatus = useRef({ zoom: 100, x: 0, y: 0, height: 0, biome: 0 });
+    const detail = useRef<HTMLCanvasElement>(null);
+    const detailTimer = useRef(0);
     const queued = useRef<Frame | null>(null);
     const frame = useRef(0);
     const statusFrame = useRef(0);
@@ -203,7 +205,38 @@ export const Editor = forwardRef<EditorHandle, Props>(
       }
       drawOverlay();
       reportStatus();
+      // The 1x bitmap is only a stand-in while the view moves; once it settles
+      // the visible part is redrawn at screen resolution.
+      if (detail.current) detail.current.style.display = "none";
+      window.clearTimeout(detailTimer.current);
+      detailTimer.current = window.setTimeout(renderDetail, 220);
     };
+    /** Redraws the visible part of the map as vectors at the current zoom. */
+    function renderDetail() {
+      const canvas = detail.current;
+      if (!canvas || drag.current || !sprite.current) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2),
+        v = view.current;
+      if (v.scale * dpr < 1.1) return;
+      const m = latest.current.map,
+        w = Math.round(size.current.w * dpr),
+        h = Math.round(size.current.h * dpr);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      const ctx = canvas.getContext("2d")!;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      ctx.setTransform(v.scale * dpr, 0, 0, v.scale * dpr, v.x * dpr, v.y * dpr);
+      ctx.imageSmoothingQuality = "high";
+      drawMap(ctx, m, {
+        contours: latest.current.contours,
+        player: latest.current.player,
+        vector: true,
+      });
+      canvas.style.display = "block";
+    }
     /** Draws the map now and uploads it to the GPU. */
     const render = (f: Frame) => {
       const canvas = mapCanvas.current;
@@ -462,6 +495,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
         window.removeEventListener("keyup", up);
         cancelAnimationFrame(frame.current);
         clearTimeout(statusFrame.current);
+        window.clearTimeout(detailTimer.current);
         if (sculpt.current) cancelAnimationFrame(sculpt.current.frame);
         frame.current = statusFrame.current = 0;
         queued.current = null;
@@ -769,7 +803,12 @@ export const Editor = forwardRef<EditorHandle, Props>(
               { id: uid() },
             );
             void relaxed;
-            m.paths.push(river);
+            // A river that runs into an existing one ends there instead of overlapping it.
+            const merged = mergeRivers(
+              river,
+              m.paths.filter((p) => p.kind === "river"),
+            );
+            if (merged) m.paths.push(merged);
           }
         }
         refresh(m);
@@ -1075,6 +1114,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
         ref={host}
         onContextMenu={(e) => e.preventDefault()}
       >
+        <canvas ref={detail} className="detail-canvas" aria-hidden="true" />
         <canvas
           ref={overlay}
           className="interaction-canvas"
