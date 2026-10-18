@@ -1,0 +1,23 @@
+# Optional: run without Docker. Copy to /etc/systemd/system/atlasforge.service,
+# adjust the paths, then: systemctl enable --now atlasforge
+[Unit]
+Description=Atlasforge map studio
+After=network.target
+
+[Service]
+Type=simple
+User=atlasforge
+WorkingDirectory=/opt/atlasforge
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=5173
+Environment=TRUST_PROXY=1
+ExecStart=/usr/bin/node server.mjs
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

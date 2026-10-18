@@ -1,8 +1,8 @@
 import { createApp, readServerConfig } from "./server-app.mjs";
 
 try {
-  const { host, port } = readServerConfig();
-  const app = createApp();
+  const { host, port, trustProxy, search } = readServerConfig();
+  const app = createApp({ trustProxy, search });
   const server = app.listen(port, host, () => {
     const address = server.address();
     const displayHost =

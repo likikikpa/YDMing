@@ -20,20 +20,20 @@
     "import:srd": "node scripts/import-srd.mjs"
   },
   "dependencies": {
-    "express": "^5.1.0",
-    "fflate": "^0.8.2",
-    "idb-keyval": "^6.2.2",
-    "jspdf": "^4.2.1",
-    "lucide-react": "^0.468.0",
-    "pixi.js": "^8.14.0",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "express": "^5.1.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^5.0.4",
+    "fflate": "^0.8.2",
+    "idb-keyval": "^6.2.2",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^0.468.0",
+    "pixi.js": "^8.14.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
     "typescript": "~5.9.3",
     "vite": "^7.1.12",
     "vite-plugin-pwa": "^1.1.0",
