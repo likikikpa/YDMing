@@ -1,0 +1,71 @@
+import { expect, it } from "vitest";
+import { validateProject } from "./storage";
+import { generateMap } from "./generator";
+import { defaultSettings } from "./types";
+import type { Project } from "./types";
+it("round-trips project geometry, linked maps, layer masks, and embedded images through a portable file", () => {
+  const world = generateMap("world", defaultSettings),
+    city = generateMap("city", { ...defaultSettings, seed: "LINKED" });
+  world.objects[0].linkedMap = city.id;
+  city.parentId = world.id;
+  world.layers[0].mask = [
+    {
+      id: "mask",
+      points: [{ x: 10, y: 20 }],
+      tool: "brush",
+      color: "#ffffff",
+      size: 20,
+      opacity: 1,
+      hardness: 1,
+      layer: "Terrain",
+    },
+  ];
+  world.objects.push({
+    id: "asset",
+    kind: "image",
+    name: "Asset",
+    x: 5,
+    y: 5,
+    width: 10,
+    height: 10,
+    rotation: 0,
+    layer: "Objects",
+    color: "#000000",
+    image: "data:image/png;base64,iVBORw0KGgo=",
+  });
+  const project: Project = {
+    version: 1,
+    id: "project",
+    name: "World",
+    maps: [world, city],
+    activeMapId: city.id,
+    credits: [],
+    commercial: false,
+    updatedAt: "2026-10-18",
+  };
+  expect(validateProject(JSON.parse(JSON.stringify(project)))).toEqual(project);
+});
+it("rejects malformed geometry and external image references in imported projects", () => {
+  const map = generateMap("dungeon", defaultSettings);
+  const project = {
+    version: 1,
+    id: "x",
+    name: "Invalid",
+    maps: [map],
+    activeMapId: map.id,
+    credits: [],
+    commercial: false,
+    updatedAt: "",
+  };
+  expect(() =>
+    validateProject({ ...project, maps: [{ ...map, heights: [] }] }),
+  ).toThrow("invalid map data");
+  expect(() =>
+    validateProject({
+      ...project,
+      maps: [
+        { ...map, objects: [{ image: "https://example.com/private.png" }] },
+      ],
+    }),
+  ).toThrow("embedded");
+});

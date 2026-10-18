@@ -1,0 +1,39 @@
+name: Linux compatibility
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run check:runtime
+      - run: npm run check:paths
+      - run: sh -n scripts/start.sh
+      - run: npm test
+      - run: npm run build
+      - run: node scripts/smoke-server.mjs
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --tag atlasforge:test .
+      - run: |
+          docker run --detach --name atlasforge --publish 127.0.0.1:5173:5173 atlasforge:test
+          for attempt in $(seq 1 30); do
+            if curl --fail http://127.0.0.1:5173/healthz; then exit 0; fi
+            sleep 1
+          done
+          docker logs atlasforge
+          exit 1
+      - if: always()
+        run: docker rm --force atlasforge || true
