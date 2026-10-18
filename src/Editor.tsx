@@ -145,6 +145,13 @@ export const Editor = forwardRef<EditorHandle, Props>(
       [renderError, setRenderError] = useState("");
     const lastPaint = useRef<Point | null>(null);
     const lastStatus = useRef({ zoom: 100, x: 0, y: 0, height: 0, biome: 0 });
+    // Fingers currently on the map and the pinch that two of them start.
+    const touches = useRef(new Map<number, Point>());
+    const pinch = useRef<{
+      distance: number;
+      centre: Point;
+      view: View;
+    } | null>(null);
     const detail = useRef<HTMLCanvasElement>(null);
     const detailTimer = useRef(0);
     const queued = useRef<Frame | null>(null);
@@ -552,10 +559,14 @@ export const Editor = forwardRef<EditorHandle, Props>(
         m = draft.current;
       if (!s || !m) return;
       // A long frame must not make the terrain jump, so time per step is capped.
-      const dt = Math.min(0.1, Math.max(0.001, (now - s.time) / 1000)),
-        b = latest.current.brush,
+      const b = latest.current.brush,
         tool = latest.current.tool,
         distance = Math.hypot(s.pos.x - s.last.x, s.pos.y - s.last.y),
+        // Sweeping the brush counts as time spent on that ground, so a quick
+        // swipe of a finger still shapes the land and not only a slow press.
+        dt =
+          Math.min(0.1, Math.max(0.001, (now - s.time) / 1000)) +
+          Math.min(0.1, distance / (b.size * 12)),
         steps = Math.max(1, Math.ceil(distance / Math.max(2, b.size * 0.18))),
         amount = sculptAmount(b.strength, dt, s.pressure) / steps;
       let dirty: CellRect | undefined;
@@ -612,7 +623,53 @@ export const Editor = forwardRef<EditorHandle, Props>(
         color: b.color,
       });
     }
+    /** Two fingers zoom and pan the map, like any map app. */
+    function pinchStart() {
+      const [a, b] = [...touches.current.values()];
+      pinch.current = {
+        distance: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+        centre: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+        view: { ...view.current },
+      };
+    }
+    function pinchMove() {
+      const g = pinch.current,
+        [a, b] = [...touches.current.values()];
+      if (!g || !a || !b) return;
+      const centre = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+        scale = clamp(
+          (g.view.scale * (Math.hypot(a.x - b.x, a.y - b.y) || 1)) / g.distance,
+          0.12,
+          5,
+        ),
+        // Keep the map point that was under the starting midpoint under the fingers.
+        anchor = {
+          x: (g.centre.x - g.view.x) / g.view.scale,
+          y: (g.centre.y - g.view.y) / g.view.scale,
+        };
+      view.current = {
+        scale,
+        x: centre.x - anchor.x * scale,
+        y: centre.y - anchor.y * scale,
+      };
+      position();
+    }
     function pointerDown(e: React.PointerEvent) {
+      if (e.pointerType === "touch") {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        touches.current.set(e.pointerId, getPoint(e));
+        if (touches.current.size >= 2) {
+          // A second finger turns the touch into a gesture: drop what the
+          // first finger had started instead of committing a stray mark.
+          endSculpt();
+          drag.current = null;
+          draft.current = null;
+          refresh();
+          pinchStart();
+          drawOverlay();
+          return;
+        }
+      }
       if (e.button !== 0 && e.button !== 1) return;
       e.currentTarget.setPointerCapture(e.pointerId);
       const p = latest.current,
@@ -729,7 +786,9 @@ export const Editor = forwardRef<EditorHandle, Props>(
             e.pointerType === "pen" && p.brush.pressure ? e.pressure * 2 : 1,
           frame: 0,
         };
-        // Paints the first dab at once; the loop then keeps going every frame.
+        // Paints the first dab at once (a tap already leaves a visible mark);
+        // the loop then keeps going every frame.
+        sculpt.current.time = performance.now() - 120;
         sculptFrame(performance.now());
         drawOverlay(screen);
         return;
@@ -818,6 +877,13 @@ export const Editor = forwardRef<EditorHandle, Props>(
       drawOverlay(screen);
     }
     function pointerMove(e: React.PointerEvent) {
+      if (e.pointerType === "touch" && touches.current.has(e.pointerId)) {
+        touches.current.set(e.pointerId, getPoint(e));
+        if (touches.current.size >= 2) {
+          pinchMove();
+          return;
+        }
+      }
       const p = latest.current,
         screen = getPoint(e),
         world = worldPoint(screen),
@@ -975,6 +1041,15 @@ export const Editor = forwardRef<EditorHandle, Props>(
       drawOverlay(screen);
     }
     function pointerUp(e: React.PointerEvent) {
+      if (e.pointerType === "touch") {
+        const wasPinching = touches.current.size >= 2;
+        touches.current.delete(e.pointerId);
+        if (wasPinching) {
+          pinch.current = null;
+          // The remaining finger must lift and touch again before it draws.
+          return;
+        }
+      }
       const d = drag.current;
       if (!d) return;
       endSculpt();

@@ -277,6 +277,8 @@ function TooltipLayer() {
       timer = window.setTimeout(() => setTip(next), 120);
     };
     const over = (e: Event) => {
+      // Fingers have no hover; a tooltip after a tap would just get in the way.
+      if ((e as PointerEvent).pointerType === "touch") return;
       const el = (e.target as HTMLElement | null)?.closest?.(
         "[data-tip],[title]",
       ) as HTMLElement | null;
@@ -452,6 +454,8 @@ export default function App() {
     [contours, setContours] = useState(false),
     [player, setPlayer] = useState(false),
     [hidePanels, setHidePanels] = useState(false),
+    // On a phone the side panel is a sheet that slides up over the map.
+    [sheet, setSheet] = useState(false),
     [status, setStatus] = useState({
       zoom: 100,
       x: 0,
@@ -1235,7 +1239,9 @@ export default function App() {
     );
   const currentRoom = map.rooms.find((r) => r.id === roomDetail);
   return (
-    <div className={`app ${hidePanels ? "panels-hidden" : ""}`}>
+    <div
+      className={`app ${hidePanels ? "panels-hidden" : ""} ${sheet ? "sheet-open" : ""}`}
+    >
       <TooltipLayer />
       <header className="topbar wood">
         <button
@@ -1602,6 +1608,13 @@ export default function App() {
               onClick={() => editor.current?.fit()}
             />
           </div>
+          <button
+            className="sheet-toggle button brass"
+            aria-label={sheet ? t("Close") : t("Tool settings")}
+            onClick={() => setSheet((v) => !v)}
+          >
+            {sheet ? <X size={18} /> : <SlidersHorizontal size={18} />}
+          </button>
           <div className="map-signature">
             <Compass size={15} />
             <span>
