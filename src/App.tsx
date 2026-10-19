@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   Mountain,
@@ -7,6 +7,7 @@ import {
   DoorOpen,
   ChevronDown,
   ChevronUp,
+  PaintRoller,
   ChevronRight,
   Undo2,
   Redo2,
@@ -80,6 +81,17 @@ import type { LucideIcon } from "lucide-react";
 import { get, set } from "idb-keyval";
 import { inheritCityTerrain } from "./inherit";
 import { isMovable, moveLayer, placeLayer } from "./layers";
+import {
+  BUILTIN_MATERIALS,
+  defaultTextures,
+  PATTERNS,
+  replaceMaterial,
+} from "./materials";
+import {
+  setTextureLayers,
+  textureColour,
+  texturePreview,
+} from "./terrain-render";
 import { Editor } from "./Editor";
 import type { EditorHandle, BrushSettings } from "./Editor";
 import { BIOMES, createEmptyMap, SRD } from "./generator";
@@ -95,6 +107,7 @@ import type {
   SrdEntry,
   StampKind,
   Tool,
+  TextureLayer,
 } from "./types";
 import { translate } from "./i18n";
 import { loadProject, saveProject, validateProject } from "./storage";
@@ -124,6 +137,7 @@ const toolInfo: Record<Tool, [string, LucideIcon, string]> = {
   flatten: ["Flatten", Equal, "F"],
   roughen: ["Roughen", Activity, "Y"],
   biome: ["Biome override", Sprout, "C"],
+  terrain: ["Terrain paint", PaintRoller, ""],
   stamp: ["Place stamp", Trees, "S"],
   river: ["River", Waves, "W"],
   ridge: ["Mountain range", MountainSnow, "M"],
@@ -423,6 +437,7 @@ export default function App() {
       hardness: 85,
       color: "#344a39",
       biome: 6,
+      material: "sand",
       stamp: "tree",
       sprite: { src: "/assets/cartography/treePine.png", name: "Pine tree" },
       snap: false,
@@ -442,6 +457,7 @@ export default function App() {
         Record<Tool, Pick<BrushSettings, "size" | "strength" | "opacity" | "hardness">>
       >
     >({}),
+    [textureVersion, setTextureVersion] = useState(0),
     [secondary, setSecondary] = useState("#eee6ce"),
     [recentColors, setRecentColors] = useState<string[]>([]),
     [contours, setContours] = useState(false),
@@ -509,6 +525,7 @@ export default function App() {
   const editor = useRef<EditorHandle>(null),
     fileInput = useRef<HTMLInputElement>(null),
     imageInput = useRef<HTMLInputElement>(null),
+    textureInput = useRef<HTMLInputElement>(null),
     toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const t = (s: string) => translate(lang, s);
   const historyRef = useRef(history),
@@ -516,6 +533,56 @@ export default function App() {
   historyRef.current = history;
   indexRef.current = historyIndex;
   const map = project?.maps.find((m) => m.id === project.activeMapId);
+  const textures = useMemo(
+    () => project?.textures ?? defaultTextures(),
+    [project?.textures],
+  );
+  useEffect(() => {
+    let active = true;
+    void setTextureLayers(textures).then(() => {
+      if (active) setTextureVersion((v) => v + 1);
+    });
+    return () => {
+      active = false;
+    };
+  }, [textures]);
+  /** Shrinks an image to one seamless-size tile and uses it for a texture layer. */
+  async function uploadTexture(id: string, file: File) {
+    try {
+      const bitmap = await createImageBitmap(file),
+        canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 128;
+      canvas.getContext("2d")!.drawImage(bitmap, 0, 0, 128, 128);
+      const image = canvas.toDataURL("image/png");
+      changeTextures((list) => {
+        list.find((n) => n.id === id)!.image = image;
+      }, "Texture image");
+    } catch {
+      notify(t("That image could not be read."));
+    }
+  }
+  /** Deletes a texture layer; ground painted with it on every map becomes `to`. */
+  function deleteTexture(id: string, to: string | null) {
+    if (!project) return;
+    const next = structuredClone(project);
+    next.textures = (next.textures ?? defaultTextures()).filter(
+      (l) => l.id !== id,
+    );
+    for (const m of next.maps) replaceMaterial(m, id, to);
+    commit(next, "Delete texture layer");
+    setActiveTexture("grass");
+    if (brush.material === id) setBrush((b) => ({ ...b, material: to ?? "" }));
+  }
+  /** Replaces the project's texture layers as one undo step. */
+  const changeTextures = (
+    change: (layers: TextureLayer[]) => void,
+    label: string,
+  ) => {
+    if (!project) return;
+    const next = structuredClone(textures);
+    change(next);
+    commit({ ...project, textures: next }, label);
+  };
   const selection = map?.objects.filter((o) => selected.includes(o.id)) || [];
   projectRef.current = project;
   const notify = (message: string) => {
@@ -1200,11 +1267,14 @@ export default function App() {
   const primaryTools: Tool[][] = [
     ["select", "hand"],
     ["brush", "eraser", "rectangle", "text", "eyedropper"],
-    ["raise", "dig", "smooth", "ridge"],
+    ["raise", "dig", "smooth", "ridge", "terrain"],
     ["stamp", "river"],
   ];
   const [activeLayer, setActiveLayer] = useState("Objects");
   const [dragLayer, setDragLayer] = useState<string | null>(null);
+  const [dragTexture, setDragTexture] = useState<string | null>(null);
+  const [activeTexture, setActiveTexture] = useState("grass");
+  const [replaceWith, setReplaceWith] = useState("grass");
   if (!project || !map)
     return (
       <div className="loading-screen wood">
@@ -1575,6 +1645,7 @@ export default function App() {
             onRiverPoints={setRiverCount}
             contours={contours}
             player={player}
+            textureVersion={textureVersion}
             onStatus={setStatus}
           />
           <div className="map-corner-note">
@@ -1819,6 +1890,58 @@ export default function App() {
                           min={5}
                         />
                       )
+                    )}
+                    {tool === "terrain" && (
+                      <>
+                        <Slider
+                          label={t("Edge hardness")}
+                          value={brush.hardness}
+                          onChange={(v) =>
+                            setBrush((b) => ({ ...b, hardness: v }))
+                          }
+                          min={0}
+                        />
+                        <div className="material-swatches" role="radiogroup">
+                          {[
+                            ...textures.filter(
+                              (l) => !l.id.endsWith("water"),
+                            ),
+                          ]
+                            .reverse()
+                            .map((l) => (
+                              <button
+                                key={l.id}
+                                role="radio"
+                                aria-checked={brush.material === l.id}
+                                className={
+                                  brush.material === l.id ? "active" : ""
+                                }
+                                title={t(l.name)}
+                                onClick={() =>
+                                  setBrush((b) => ({ ...b, material: l.id }))
+                                }
+                              >
+                                <img
+                                  alt=""
+                                  src={texturePreview(l, map.settings.style)}
+                                />
+                                <span>{t(l.name)}</span>
+                              </button>
+                            ))}
+                          <button
+                            role="radio"
+                            aria-checked={brush.material === ""}
+                            className={`auto ${brush.material === "" ? "active" : ""}`}
+                            title={t("Back to the biome's own ground")}
+                            onClick={() =>
+                              setBrush((b) => ({ ...b, material: "" }))
+                            }
+                          >
+                            <span className="auto-swatch">A</span>
+                            <span>{t("Auto")}</span>
+                          </button>
+                        </div>
+                      </>
                     )}
                     {tool === "biome" && (
                       <Field label={t("Biome")}>
@@ -2517,6 +2640,246 @@ export default function App() {
                   />
                   {t("Player view")}
                 </label>
+                <div className="panel-heading texture-heading">
+                  <span className="section-kicker">{t("Texture layers")}</span>
+                  <p className="panel-footnote">
+                    {t(
+                      "The ground every map is painted with. Where two meet, the higher one wins the edge.",
+                    )}
+                  </p>
+                </div>
+                <div className="layers-list">
+                  {[...textures].reverse().map((l) => (
+                    <div
+                      className={`layer-row ${activeTexture === l.id ? "selected" : ""} ${dragTexture && dragTexture !== l.id ? "drop-target" : ""}`}
+                      key={l.id}
+                      draggable
+                      onDragStart={(e) => {
+                        setDragTexture(l.id);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragEnd={() => setDragTexture(null)}
+                      onDragOver={(e) => {
+                        if (dragTexture) e.preventDefault();
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const id = dragTexture;
+                        setDragTexture(null);
+                        if (id && id !== l.id)
+                          changeTextures(
+                            (list) => placeLayer(list, id, l.id, []),
+                            "Reorder texture layers",
+                          );
+                      }}
+                    >
+                      <IconButton
+                        icon={l.visible ? Eye : EyeOff}
+                        title={t(
+                          l.visible ? "Hide texture" : "Show texture",
+                        )}
+                        active={!l.visible}
+                        onClick={() =>
+                          changeTextures((list) => {
+                            const n = list.find((n) => n.id === l.id)!;
+                            n.visible = !n.visible;
+                          }, "Texture visibility")
+                        }
+                      />
+                      <button
+                        className="layer-name"
+                        onClick={() => setActiveTexture(l.id)}
+                      >
+                        <img
+                          className="layer-thumbnail texture-thumbnail"
+                          alt=""
+                          src={texturePreview(l, map.settings.style)}
+                        />
+                        <span>{t(l.name)}</span>
+                      </button>
+                      <span className="layer-order">
+                        <IconButton
+                          icon={ChevronUp}
+                          title={t("Move layer up")}
+                          onClick={() =>
+                            changeTextures(
+                              (list) => moveLayer(list, l.id, 1, []),
+                              "Reorder texture layers",
+                            )
+                          }
+                        />
+                        <IconButton
+                          icon={ChevronDown}
+                          title={t("Move layer down")}
+                          onClick={() =>
+                            changeTextures(
+                              (list) => moveLayer(list, l.id, -1, []),
+                              "Reorder texture layers",
+                            )
+                          }
+                        />
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {(() => {
+                  const l =
+                    textures.find((l) => l.id === activeTexture) ||
+                    textures[0];
+                  const edit = (change: (n: TextureLayer) => void, label: string) =>
+                    changeTextures(
+                      (list) => change(list.find((n) => n.id === l.id)!),
+                      label,
+                    );
+                  const custom = !BUILTIN_MATERIALS.includes(l.id);
+                  return (
+                    <div className="layer-settings texture-settings">
+                      <Field label={t("Name")}>
+                        <input
+                          value={l.name}
+                          onChange={(e) =>
+                            edit((n) => (n.name = e.target.value), "Rename texture")
+                          }
+                        />
+                      </Field>
+                      <Field label={t("Pattern")}>
+                        <select
+                          value={l.pattern}
+                          disabled={!!l.image}
+                          onChange={(e) =>
+                            edit(
+                              (n) =>
+                                (n.pattern = e.target.value as TextureLayer["pattern"]),
+                              "Texture pattern",
+                            )
+                          }
+                        >
+                          {PATTERNS.map((p) => (
+                            <option key={p} value={p}>
+                              {t(p[0].toUpperCase() + p.slice(1))}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      <div className="texture-actions">
+                        <button
+                          className="button subtle"
+                          onClick={() => textureInput.current?.click()}
+                        >
+                          <ImagePlus size={13} />
+                          {t(l.image ? "Replace image" : "Use an image")}
+                        </button>
+                        {l.image && (
+                          <button
+                            className="button subtle"
+                            onClick={() =>
+                              edit((n) => delete n.image, "Remove texture image")
+                            }
+                          >
+                            <X size={13} />
+                            {t("Remove image")}
+                          </button>
+                        )}
+                      </div>
+                      <Field label={t("Colour")}>
+                        <div className="texture-tint">
+                          <input
+                            type="color"
+                            aria-label={t("Colour")}
+                            disabled={!!l.image}
+                            value={textureColour(l, map.settings.style)}
+                            onChange={(e) =>
+                              edit((n) => (n.tint = e.target.value), "Texture colour")
+                            }
+                          />
+                          <button
+                            className="button subtle"
+                            disabled={!l.tint || !!l.image}
+                            onClick={() => edit((n) => delete n.tint, "Texture colour")}
+                          >
+                            {t("Map style colour")}
+                          </button>
+                        </div>
+                      </Field>
+                      <Slider
+                        label={t("Tile size")}
+                        value={l.scale}
+                        min={25}
+                        max={400}
+                        suffix="%"
+                        onChange={(v) => edit((n) => (n.scale = v), "Texture size")}
+                      />
+                      <Slider
+                        label={t("Pattern strength")}
+                        value={l.strength}
+                        min={0}
+                        onChange={(v) =>
+                          edit((n) => (n.strength = v), "Texture strength")
+                        }
+                      />
+                      {custom && (
+                        <div className="texture-delete">
+                          <Field label={t("Replace painted ground with")}>
+                            <select
+                              value={replaceWith}
+                              onChange={(e) => setReplaceWith(e.target.value)}
+                            >
+                              <option value="">{t("Auto")}</option>
+                              {textures
+                                .filter((o) => o.id !== l.id && !o.id.endsWith("water"))
+                                .map((o) => (
+                                  <option key={o.id} value={o.id}>
+                                    {t(o.name)}
+                                  </option>
+                                ))}
+                            </select>
+                          </Field>
+                          <button
+                            className="button subtle full"
+                            onClick={() => deleteTexture(l.id, replaceWith || null)}
+                          >
+                            <Trash2 size={13} />
+                            {t("Delete texture layer")}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+                <button
+                  className="button subtle full"
+                  onClick={() => {
+                    const id = uid();
+                    changeTextures(
+                      (list) =>
+                        list.push({
+                          id,
+                          name: `${t("Texture")} ${list.length - BUILTIN_MATERIALS.length + 1}`,
+                          pattern: "mud",
+                          tint: "#6f5a43",
+                          scale: 100,
+                          strength: 60,
+                          visible: true,
+                        }),
+                      "Add texture layer",
+                    );
+                    setActiveTexture(id);
+                  }}
+                >
+                  <Plus size={15} />
+                  {t("Add texture layer")}
+                </button>
+                <input
+                  ref={textureInput}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (file) void uploadTexture(activeTexture, file);
+                  }}
+                />
               </>
             )}
             {panel === "library" && (

@@ -26,6 +26,8 @@ export const toolDescriptions: Record<Tool, string> = {
   roughen: "Adds bumps and crags for rocky, broken ground.",
   biome:
     "Repaint the climate zone (forest, desert, snow…) under the brush. Choose the biome in the side panel.",
+  terrain:
+    "Paint one exact ground material where you drag: pick sand and it paints sand, pick grass and it paints grass. Auto returns the ground to what its climate grows. Heights stay as they are.",
   stamp:
     "Place symbols from the library: trees, buildings, markers. Drag to scatter trees.",
   river:
@@ -67,6 +69,8 @@ export const toolDescriptionsRu: Record<string, string> = {
   [toolDescriptions.roughen]: "Добавляет бугры и скалы.",
   [toolDescriptions.biome]:
     "Перекрашивает климатическую зону (лес, пустыня, снег…) под кистью. Биом выбирается в боковой панели.",
+  [toolDescriptions.terrain]:
+    "Рисует точным материалом земли там, где ведёте: выберите песок — будет песок, траву — будет трава. «Авто» возвращает землю к её климату. Высоты не меняются.",
   [toolDescriptions.stamp]:
     "Ставит символы из библиотеки: деревья, здания, метки. Деревья можно «рассыпать», ведя мышь.",
   [toolDescriptions.river]:

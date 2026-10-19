@@ -1,4 +1,5 @@
 import { get, set } from "idb-keyval";
+import { BUILTIN_MATERIALS, PATTERNS } from "./materials";
 import type { Project } from "./types";
 const key = "atlasforge-project-v1";
 export async function loadProject(): Promise<Project | undefined> {
@@ -55,6 +56,16 @@ export function validateProject(value: unknown): Project {
         !m.terrain.biomes.every((v) => Number.isInteger(v) && v >= 0 && v <= 13))
     )
       throw new Error("The project contains invalid landscape data.");
+    for (const t of [m, m.terrain])
+      if (
+        t?.materials !== undefined &&
+        (!Array.isArray(t.materials) ||
+          t.materials.length !== m.cols * m.rows ||
+          !t.materials.every((v) => Number.isInteger(v) && v >= 0) ||
+          !Array.isArray(m.materialKeys) ||
+          !m.materialKeys.every((k) => typeof k === "string"))
+      )
+        throw new Error("The project contains invalid ground materials.");
     for (const path of m.paths)
       if (
         !Array.isArray(path.points) ||
@@ -76,6 +87,24 @@ export function validateProject(value: unknown): Project {
         );
     }
   }
+  if (
+    p.textures !== undefined &&
+    (!Array.isArray(p.textures) ||
+      !p.textures.every(
+        (t) =>
+          t &&
+          typeof t.id === "string" &&
+          typeof t.name === "string" &&
+          PATTERNS.includes(t.pattern) &&
+          Number.isFinite(t.scale) &&
+          Number.isFinite(t.strength) &&
+          (t.image === undefined ||
+            /^data:image\/(png|jpeg|webp);base64,/.test(t.image)) &&
+          (t.tint === undefined || /^#[0-9a-f]{6}$/i.test(t.tint)),
+      ) ||
+      !BUILTIN_MATERIALS.every((id) => p.textures!.some((t) => t.id === id)))
+  )
+    throw new Error("The project contains invalid texture layers.");
   if (!p.maps.some((m) => m.id === p.activeMapId)) p.activeMapId = p.maps[0].id;
   return p;
 }

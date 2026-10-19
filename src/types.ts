@@ -8,6 +8,7 @@ export type Tool =
   | "flatten"
   | "roughen"
   | "biome"
+  | "terrain"
   | "brush"
   | "pencil"
   | "eraser"
@@ -149,6 +150,35 @@ export interface GeneratorSettings {
 export interface TerrainData {
   heights: number[];
   biomes: number[];
+  /**
+   * Hand-painted ground material per cell: 0 follows the biome, n uses the
+   * texture layer whose id is `MapData.materialKeys[n - 1]`.
+   */
+  materials?: number[];
+}
+export type TexturePattern =
+  | "grass"
+  | "dirt"
+  | "sand"
+  | "rock"
+  | "snow"
+  | "water"
+  | "mud"
+  | "cobble";
+/** A ground material the map, the generator and the terrain tools paint with. */
+export interface TextureLayer {
+  id: string;
+  name: string;
+  pattern: TexturePattern;
+  /** An uploaded tile (PNG data URL) used instead of the generated pattern. */
+  image?: string;
+  /** Base colour; without one the map style decides. */
+  tint?: string;
+  /** Tile size in percent of the default (48 map px). */
+  scale: number;
+  /** How strongly the pattern shows, 0–100. */
+  strength: number;
+  visible: boolean;
 }
 export interface MapData {
   id: string;
@@ -167,6 +197,9 @@ export interface MapData {
   layers: Layer[];
   settings: GeneratorSettings;
   terrain?: TerrainData;
+  materials?: number[];
+  /** Texture layer ids that `materials` values point at (value n → entry n - 1). */
+  materialKeys?: string[];
   parentId?: string;
   parentPosition?: Point;
   /** City layout (centre, size, gates) kept so buildings can be rerolled on the same streets. */
@@ -193,6 +226,8 @@ export interface Project {
   maps: MapData[];
   activeMapId: string;
   credits: Credit[];
+  /** Ground materials shared by every map, drawn lowest first. */
+  textures?: TextureLayer[];
   commercial: boolean;
   updatedAt: string;
 }

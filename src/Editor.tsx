@@ -40,6 +40,8 @@ export interface BrushSettings {
   hardness: number;
   color: string;
   biome: number;
+  /** Texture layer id for the terrain paint tool; empty means back to the biome. */
+  material: string;
   stamp: StampKind;
   /** A bundled sprite to place with the stamp tool; wins over `stamp`. */
   sprite?: { src: string; name: string };
@@ -72,6 +74,8 @@ interface Props {
   onRiverPoints?: (count: number) => void;
   contours: boolean;
   player: boolean;
+  /** Changes whenever the project's texture layers were reloaded. */
+  textureVersion?: number;
   onStatus: (status: {
     zoom: number;
     x: number;
@@ -113,10 +117,13 @@ function beginDraft(m: MapData, tool: Tool): MapData {
   if (TERRAIN_TOOLS.includes(tool)) {
     draft.heights = m.heights.slice();
     draft.biomes = m.biomes.slice();
+    draft.materials = m.materials?.slice();
+    draft.materialKeys = m.materialKeys?.slice();
     if (m.terrain)
       draft.terrain = {
         heights: m.terrain.heights.slice(),
         biomes: m.terrain.biomes.slice(),
+        materials: m.terrain.materials?.slice(),
       };
   }
   return draft;
@@ -599,7 +606,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
       return () => {
         active = false;
       };
-    }, [props.map, props.contours, props.player, ready]);
+    }, [props.map, props.contours, props.player, props.textureVersion, ready]);
     useEffect(() => {
       if (ready) fit();
     }, [props.map.id, ready]);
