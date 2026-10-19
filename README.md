@@ -16,7 +16,7 @@ This installs Docker if needed, builds the app and starts it behind Caddy with a
 
 ## Start on Windows
 
-Install Node.js 24 LTS with npm. Open PowerShell in the `atlasforge` folder and run:
+Install Node.js 24 LTS with npm, then double-click `start.bat` in the `atlasforge` folder. It runs the PowerShell launcher below without changing your execution policy and accepts the same options (for example `start.bat -Port 5174`). Or open PowerShell in the folder and run:
 
 ```powershell
 .\Start-Atlasforge.ps1
@@ -59,7 +59,7 @@ npm start
 
 Open http://127.0.0.1:5173 in a browser with WebGL support. The Linux browser version needs no Wine, Python, or Windows-specific runtime dependency.
 
-Alternatively, `sh scripts/start.sh` installs dependencies if missing, builds the app, and starts it. This launcher works from other directories and paths containing spaces. Invoking it with `sh` avoids needing an executable permission bit when unpacking a ZIP.
+Alternatively, `sh start.sh` installs dependencies if missing, builds the app, starts it on http://127.0.0.1:5173 (or `PORT`), and opens your browser; press **Ctrl+C** to stop it. `sh scripts/start.sh` does the same without opening a browser: it installs dependencies if missing, builds the app, and starts it. This launcher works from other directories and paths containing spaces. Invoking it with `sh` avoids needing an executable permission bit when unpacking a ZIP.
 
 When moving the project from Windows, copy the source, `package-lock.json`, `public/`, and bundled data, but do not copy `node_modules/`. Run `npm ci` on Linux so npm installs the correct native build tools. No case-insensitive filesystem is required. `npm run check:paths` checks the exact casing of local imports and bundled assets even when run on Windows; shell scripts are stored with LF line endings.
 

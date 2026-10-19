@@ -11,3 +11,5 @@
 Dockerfile text eol=lf
 *.png binary
 *.ttf binary
+*.bat text eol=crlf
+*.cmd text eol=crlf
