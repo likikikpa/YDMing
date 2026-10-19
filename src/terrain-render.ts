@@ -61,6 +61,12 @@ const atlas = [
   [160, 128, 92],
 ];
 
+// Every green biome shares one ground colour, the dark forest grass (index 6).
+// Biomes still differ in what grows on them: pines, broadleaf trees, palms.
+const GREEN_BIOMES = [4, 5, 7, 9, 10];
+for (const palette of [parchment, painted, atlas])
+  for (const b of GREEN_BIOMES) palette[b] = palette[6];
+
 /** Open-water colour of a map style, so rivers can match the sea exactly. */
 export function seaColor(style: string) {
   const [r, g, b] = (style === "parchment" ? parchment : style === "painted" ? painted : atlas)[12];
