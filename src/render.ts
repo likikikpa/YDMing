@@ -1,6 +1,11 @@
 import { floodFill } from "./flood";
 import { terrainView } from "./terrain";
-import { drawLandscape, seaColor } from "./terrain-render";
+import {
+  drawLandscape,
+  seaColor,
+  shallowWaterPattern,
+} from "./terrain-render";
+import { landRuns, trimEnd } from "./water";
 import type { CellRect } from "./terrain-render";
 import { hash } from "./random";
 import { drawStamp, path } from "./stamps";
@@ -60,50 +65,65 @@ function smoothPath(
 }
 /**
  * Rivers are drawn in two passes, all banks first and then all water, so a
- * river's bank line never cuts across another river where they join.
+ * river's bank line never cuts across another river where they join. Only the
+ * stretches over land are drawn: where a river reaches a lake or the sea it
+ * stops at the shoreline, and its water uses the same shallow-water texture as
+ * the shore, so the two read as one body of water.
  */
 function drawRivers(
   ctx: CanvasRenderingContext2D,
   rivers: MapPath[],
   map: MapData,
 ) {
-  const water = seaColor(map.settings.style),
-    bank = "#93aaa1";
+  const water =
+      (map.kind !== "dungeon" && shallowWaterPattern(ctx, map)) ||
+      seaColor(map.settings.style),
+    bank = "#93aaa1",
+    runs = rivers.flatMap((p) =>
+      landRuns(
+        map,
+        p.points,
+        p.widths && p.widths.length === p.points.length
+          ? p.widths
+          : p.points.map(() => p.width),
+      ),
+    );
   ctx.save();
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   for (const [color, extra] of [
-    [bank, 1.4],
+    [bank, 1.6],
     [water, 0],
   ] as const) {
     ctx.strokeStyle = color;
-    for (const p of rivers) {
-      const pts = p.points,
-        widths =
-          p.widths && p.widths.length === pts.length ? p.widths : undefined;
-      if (!widths) {
-        smoothPath(ctx, pts);
-        ctx.lineWidth = p.width + (extra ? 1.6 : 0);
-        ctx.stroke();
-        continue;
+    for (const run of runs) {
+      let pts = run.points;
+      // A bank stops short of the shore, so its round end does not poke into open water.
+      if (extra) {
+        const cap = (Math.max(...run.widths) + extra) / 2;
+        if (run.shoreEnd) pts = trimEnd(pts, cap);
+        if (run.shoreStart) pts = trimEnd(pts.slice().reverse(), cap).reverse();
+        if (pts.length < 2) continue;
       }
       // Rivers widen towards the mouth: runs of similar width share one stroke.
-      const runs: { from: number; to: number; width: number }[] = [];
+      const groups: { from: number; to: number; width: number }[] = [];
       for (let i = 1; i < pts.length; i++) {
         const w = Math.max(
             0.6,
-            Math.round(((widths[i - 1] + widths[i]) / 2) * 3) / 3,
+            Math.round(
+              (((run.widths[i - 1] ?? run.widths.at(-1)!) +
+                (run.widths[i] ?? run.widths.at(-1)!)) /
+                2) *
+                3,
+            ) / 3,
           ),
-          last = runs.at(-1);
+          last = groups.at(-1);
         if (last && last.width === w) last.to = i;
-        else runs.push({ from: i - 1, to: i, width: w });
+        else groups.push({ from: i - 1, to: i, width: w });
       }
-      for (const run of runs) {
-        ctx.beginPath();
-        ctx.moveTo(pts[run.from].x, pts[run.from].y);
-        for (let i = run.from + 1; i <= run.to; i++)
-          ctx.lineTo(pts[i].x, pts[i].y);
-        ctx.lineWidth = run.width + extra;
+      for (const group of groups) {
+        smoothPath(ctx, pts.slice(group.from, group.to + 1));
+        ctx.lineWidth = group.width + extra;
         ctx.stroke();
       }
     }

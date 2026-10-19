@@ -831,3 +831,35 @@ export function texturePreview(layer: TextureLayer, style: string, size = 48) {
   previews.set(key, url);
   return url;
 }
+
+const waterTiles = new WeakMap<Entry, HTMLCanvasElement>();
+/**
+ * A fill that paints exactly what the terrain paints at the shore of a lake
+ * or the sea, so rivers drawn with it join open water without a seam.
+ */
+export function shallowWaterPattern(
+  ctx: CanvasRenderingContext2D,
+  map: MapData,
+) {
+  const entry = entryFor(map),
+    material = entry.layers[entry.shallow];
+  let tile = waterTiles.get(entry);
+  if (!tile) {
+    tile = document.createElement("canvas");
+    tile.width = tile.height = TILE;
+    const c = tile.getContext("2d")!,
+      image = c.createImageData(TILE, TILE),
+      rgb = material.levels[0];
+    for (let i = 0; i < TILE * TILE; i++) {
+      image.data[i * 4] = rgb[i * 3];
+      image.data[i * 4 + 1] = rgb[i * 3 + 1];
+      image.data[i * 4 + 2] = rgb[i * 3 + 2];
+      image.data[i * 4 + 3] = 255;
+    }
+    c.putImageData(image, 0, 0);
+    waterTiles.set(entry, tile);
+  }
+  const pattern = ctx.createPattern(tile, "repeat");
+  pattern?.setTransform(new DOMMatrix().scale(1 / material.density));
+  return pattern;
+}
