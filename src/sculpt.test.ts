@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createEmptyMap } from "./generator";
+import { biomeAt, createEmptyMap } from "./generator";
 import {
+  DIRT,
+  GRASS,
+  SAND_TOP,
   raiseIsland,
   raiseRange,
   resample,
@@ -39,12 +42,6 @@ describe("sculpting", () => {
         expect(y).toBeLessThanOrEqual(dirty.y1);
       }
     });
-  });
-  it("lifts land out of the sea after about a second of holding the brush", () => {
-    const map = flatWorld(0.3);
-    for (let frame = 0; frame < 60; frame++)
-      sculptDab(map, "raise", { x: 600, y: 425 }, sculptAmount(55, 1 / 60), 0, brush);
-    expect(at(map, 600, 425)).toBeGreaterThan(map.settings.seaLevel);
   });
   it("digs back below the sea line and never leaves the 0–1 range", () => {
     const map = flatWorld(0.6);
@@ -104,19 +101,57 @@ describe("freehand helpers", () => {
     expect(points).toHaveLength(11);
     expect(points[5].x).toBeCloseTo(50);
   });
-  it("makes a plain click or a short drag change the ground visibly", () => {
-    const map = flatWorld(0.6),
-      before = map.heights.slice();
-    // The first dab of a press covers 0.1s; the editor then adds a few frames.
-    for (let frame = 0; frame < 7; frame++)
-      sculptDab(
-        map,
-        "raise",
-        { x: 600, y: 425 },
-        sculptAmount(55, frame ? 1 / 60 : 0.1, 1, "raise"),
-        0,
-        brush,
-      );
-    expect(at(map, 600, 425) - before[Math.round(425 / 5) * map.cols + 120]).toBeGreaterThan(0.12);
+  describe("pouring terrain", () => {
+    const centre = (map: ReturnType<typeof flatWorld>) => 85 * map.cols + 120;
+    const pour = (map: ReturnType<typeof flatWorld>, frames: number) => {
+      for (let f = 0; f < frames; f++)
+        sculptDab(
+          map,
+          "raise",
+          { x: 600, y: 425 },
+          sculptAmount(55, 1 / 60, 1, "raise"),
+          0,
+          brush,
+        );
+      return map.heights[centre(map)] - map.settings.seaLevel;
+    };
+    it("turns open water into sand at once, only where the brush is", () => {
+      const map = flatWorld(0.2);
+      sculptDab(map, "raise", { x: 600, y: 425 }, sculptAmount(55, 0.01, 1, "raise"), 0, brush);
+      const above = map.heights[centre(map)] - map.settings.seaLevel;
+      expect(above).toBeGreaterThan(0);
+      expect(above).toBeLessThan(SAND_TOP);
+      expect(biomeAt(map, 120, 85)).toBe(11);
+      expect(map.heights[85 * map.cols + 160]).toBe(0.2);
+    });
+    it("climbs from sand to dirt to grass to rock to snow as the pile grows", () => {
+      const map = flatWorld(0.2),
+        stage = () => biomeAt(map, 120, 85);
+      pour(map, 1);
+      expect(stage()).toBe(11);
+      pour(map, 14);
+      expect(stage()).toBe(DIRT);
+      // Half a second of holding is past dirt and onto grass, wherever the map sits.
+      pour(map, 15);
+      expect(stage()).toBe(GRASS);
+      pour(map, 80);
+      expect(stage()).toBe(2);
+      pour(map, 120);
+      expect(stage()).toBe(1);
+    });
+    it("lets digging lower the pile back through the same materials", () => {
+      const map = flatWorld(0.2);
+      pour(map, 40);
+      for (let f = 0; f < 200 && biomeAt(map, 120, 85) !== 11; f++)
+        sculptDab(map, "dig", { x: 600, y: 425 }, sculptAmount(55, 1 / 60, 1, "dig"), 0, brush);
+      expect(biomeAt(map, 120, 85)).toBe(11);
+      expect(map.biomes[centre(map)]).toBe(0);
+    });
+    it("leaves biomes painted by hand alone", () => {
+      const map = flatWorld(0.2);
+      map.biomes[centre(map)] = 8;
+      pour(map, 20);
+      expect(map.biomes[centre(map)]).toBe(8);
+    });
   });
 });

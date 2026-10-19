@@ -2690,11 +2690,14 @@ export default function App() {
                         setBrush((b) => ({ ...b, biome: +e.target.value }))
                       }
                     >
-                      {BIOMES.slice(0, 12).map((name, i) => (
-                        <option key={name} value={i}>
-                          {name}
-                        </option>
-                      ))}
+                      {BIOMES.map((name, i) =>
+                        // Sea (12) is decided by height, so it is not paintable.
+                        i === 12 ? null : (
+                          <option key={name} value={i}>
+                            {name}
+                          </option>
+                        ),
+                      )}
                     </select>
                   </Field>
                 )}

@@ -26,6 +26,7 @@ const parchment = [
   [122, 153, 106],
   [222, 214, 178],
   [190, 210, 207],
+  [190, 164, 118],
 ];
 const painted = [
   [238, 244, 235],
@@ -41,6 +42,7 @@ const painted = [
   [42, 117, 76],
   [224, 214, 162],
   [62, 122, 150],
+  [172, 130, 88],
 ];
 const atlas = [
   [241, 244, 236],
@@ -56,6 +58,7 @@ const atlas = [
   [78, 138, 103],
   [218, 214, 175],
   [94, 149, 164],
+  [160, 128, 92],
 ];
 
 /** Open-water colour of a map style, so rivers can match the sea exactly. */

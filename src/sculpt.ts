@@ -1,7 +1,7 @@
 import { clamp, hash, noise } from "./random";
 import { editableTerrain } from "./terrain";
 import type { CellRect } from "./terrain-render";
-import type { MapData, Point, Tool } from "./types";
+import type { MapData, Point, TerrainData, Tool } from "./types";
 
 export const SCULPT_TOOLS: Tool[] = [
   "raise",
@@ -13,6 +13,43 @@ export const SCULPT_TOOLS: Tool[] = [
 ];
 /** Height change per second at full strength, in height units (0–1 range). */
 export const SCULPT_SPEED = 0.5;
+
+/**
+ * Raise works like pouring material from a bag: the higher a pile gets, the
+ * further up the ladder it climbs. Heights are measured above sea level.
+ * Sand is the beach band `biomeAt` already paints just above the water, dirt
+ * comes next, and above that the climate picks grass or forest, then rock and
+ * finally snow, exactly as it does on a generated map.
+ */
+export const SAND_TOP = 0.025;
+export const DIRT_TOP = 0.09;
+/** Where `biomeAt` starts painting bare rock; snow follows higher up. */
+export const ROCK_FROM = 0.74;
+/** Biome indices of the two materials that sculpting lays down itself. */
+export const DIRT = 13;
+export const GRASS = 5;
+
+/**
+ * Keeps the material of a cell in step with its height after raising or
+ * digging. Sand, rock and snow are left to `biomeAt`, which already follows
+ * height, so a cell only carries an explicit biome while it is dirt or grass.
+ * Land the generator made keeps its climate biome until a pile passes through
+ * the dirt band; other biomes painted by hand are never touched.
+ */
+function settle(terrain: TerrainData, i: number, sea: number) {
+  const b = terrain.biomes[i];
+  if (b !== 0 && b !== DIRT && b !== GRASS) return;
+  const h = terrain.heights[i],
+    above = h - sea;
+  terrain.biomes[i] =
+    above < SAND_TOP
+      ? 0
+      : above < DIRT_TOP
+        ? DIRT
+        : h < ROCK_FROM && b !== 0
+          ? GRASS
+          : 0;
+}
 
 export interface SculptBrush {
   /** Brush diameter in map pixels. */
@@ -69,6 +106,7 @@ export function sculptDab(
   if (x1 < x0 || y1 < y0) return null;
   const heights = terrain.heights,
     seed = hash(m.settings.seed),
+    sea = m.settings.seaLevel,
     bw = x1 - x0 + 3;
   let before: Float32Array | null = null;
   if (tool === "smooth") {
@@ -84,8 +122,12 @@ export function sculptDab(
       if (d >= 1) continue;
       const w = falloff(d),
         i = y * m.cols + x;
-      if (tool === "raise") heights[i] = clamp(heights[i] + amount * w);
-      else if (tool === "dig") heights[i] = clamp(heights[i] - amount * w);
+      if (tool === "raise") {
+        // Pouring onto open water lays sand at once; a soft rim is left alone.
+        if (heights[i] < sea) {
+          if (w > 0.2) heights[i] = sea + 0.006 + 0.012 * w;
+        } else heights[i] = clamp(heights[i] + amount * w);
+      } else if (tool === "dig") heights[i] = clamp(heights[i] - amount * w);
       else if (tool === "flatten")
         heights[i] += (flat - heights[i]) * Math.min(1, amount * 14 * w);
       else if (tool === "roughen")
@@ -103,16 +145,18 @@ export function sculptDab(
             6;
         heights[i] += (avg - heights[i]) * Math.min(1, amount * 16 * w);
       } else if (tool === "biome" && w > 0.2) terrain.biomes[i] = brush.biome;
+      if (tool === "raise" || tool === "dig") settle(terrain, i, sea);
     }
   return { x0: x0 - 1, y0: y0 - 1, x1: x1 + 1, y1: y1 + 1 };
 }
 
 /**
  * Raise and dig move height directly, while smooth, flatten and roughen apply
- * their own multipliers in `sculptDab`. Without this gain a click or a short
- * drag changed the ground by about a tenth of the land's height: invisible.
+ * their own multipliers in `sculptDab`. At the default strength this pours
+ * about 0.18 of height per second, so half a second of holding takes sand to
+ * grass, and rock and snow follow as the pile keeps growing.
  */
-export const RAISE_DIG_GAIN = 3;
+export const RAISE_DIG_GAIN = 0.65;
 
 /** Height change a single frame of `dt` seconds applies at the brush centre. */
 export const sculptAmount = (

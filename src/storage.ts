@@ -52,7 +52,7 @@ export function validateProject(value: unknown): Project {
         !m.terrain.heights.every((v) => Number.isFinite(v) && v >= 0 && v <= 1) ||
         !Array.isArray(m.terrain.biomes) ||
         m.terrain.biomes.length !== m.cols * m.rows ||
-        !m.terrain.biomes.every((v) => Number.isInteger(v) && v >= 0 && v <= 12))
+        !m.terrain.biomes.every((v) => Number.isInteger(v) && v >= 0 && v <= 13))
     )
       throw new Error("The project contains invalid landscape data.");
     for (const path of m.paths)

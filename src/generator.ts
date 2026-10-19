@@ -28,6 +28,7 @@ export const BIOMES = [
   "Jungle",
   "Beach",
   "Sea",
+  "Dirt",
 ];
 const syllables = [
   "Ash",
