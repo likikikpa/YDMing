@@ -1070,6 +1070,20 @@ input[type="range"]::-webkit-slider-thumb {
   padding: 5px 2px;
   margin: 3px 0;
 }
+.layer-row[draggable="true"] {
+  cursor: grab;
+}
+.layer-row.drop-target {
+  border-style: dashed;
+  border-color: #b7944b33;
+}
+.layer-order {
+  display: flex;
+  flex-direction: column;
+}
+.layer-row .layer-order .icon-button {
+  height: 15px;
+}
 .layer-row.selected {
   background: #b8954a13;
   border-color: #b7944b42;
@@ -1383,20 +1397,59 @@ input[type="range"]::-webkit-slider-thumb {
   border: 0;
   padding: 0;
 }
-.tool-settings {
-  border-top: 1px solid #b18e4c33;
-  margin-top: 26px;
-  padding-top: 20px;
+/* The picked tool comes first in the sidebar, above the panel tabs. */
+.tool-card {
+  flex-shrink: 0;
+  max-height: 48%;
+  overflow: auto;
+  border-bottom: 1px solid #b997582b;
+  background: #120e0a25;
+  scrollbar-width: thin;
+  scrollbar-color: #705a3822 transparent;
 }
-.tool-settings .section-kicker {
-  margin-bottom: 20px;
+.tool-card-title {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+  width: 100%;
+  padding: 14px 22px 12px;
+  text-align: left;
+  color: #e2cfaa;
 }
-.tool-settings .section-kicker > span {
+.tool-card-title .section-kicker {
+  grid-column: 1 / -1;
+}
+.tool-card-title strong {
+  font:
+    normal 17px Georgia,
+    serif;
+  font-weight: normal;
+}
+.tool-card-title kbd {
   color: #7f6947;
   border: 1px solid #9f7e4233;
   padding: 2px 5px;
   border-radius: 2px;
   font-size: 8px;
+}
+.tool-card-title svg {
+  color: #8e7e65;
+  transition: transform 0.15s ease;
+}
+.tool-card.collapsed .tool-card-title svg {
+  transform: rotate(-90deg);
+}
+.tool-card-body {
+  padding: 0 22px 18px;
+}
+.tool-card-body .tool-hint {
+  margin: 0 0 16px;
+}
+.tool-card .selection-panel {
+  margin-bottom: 16px;
 }
 .colour-palette {
   display: grid;

@@ -6,6 +6,7 @@ import {
   Castle,
   DoorOpen,
   ChevronDown,
+  ChevronUp,
   ChevronRight,
   Undo2,
   Redo2,
@@ -78,6 +79,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { get, set } from "idb-keyval";
 import { inheritCityTerrain } from "./inherit";
+import { isMovable, moveLayer, placeLayer } from "./layers";
 import { Editor } from "./Editor";
 import type { EditorHandle, BrushSettings } from "./Editor";
 import { BIOMES, createEmptyMap, SRD } from "./generator";
@@ -427,6 +429,19 @@ export default function App() {
       pressure: true,
       layer: "Objects",
     }),
+    [toolCardOpen, setToolCardOpen] = useState(() => {
+      try {
+        return localStorage.getItem("atlasforge-tool-card") !== "closed";
+      } catch {
+        return true;
+      }
+    }),
+    // Each tool keeps its own size, strength and opacity between switches.
+    toolBrushes = useRef<
+      Partial<
+        Record<Tool, Pick<BrushSettings, "size" | "strength" | "opacity" | "hardness">>
+      >
+    >({}),
     [secondary, setSecondary] = useState("#eee6ce"),
     [recentColors, setRecentColors] = useState<string[]>([]),
     [contours, setContours] = useState(false),
@@ -550,6 +565,10 @@ export default function App() {
     setSelected([]);
   }
   function chooseTool(next: Tool) {
+    const { size, strength, opacity, hardness } = brush;
+    toolBrushes.current[tool] = { size, strength, opacity, hardness };
+    const saved = toolBrushes.current[next];
+    if (saved) setBrush((b) => ({ ...b, ...saved }));
     setTool(next);
     if (
       [
@@ -1185,6 +1204,7 @@ export default function App() {
     ["stamp", "river"],
   ];
   const [activeLayer, setActiveLayer] = useState("Objects");
+  const [dragLayer, setDragLayer] = useState<string | null>(null);
   if (!project || !map)
     return (
       <div className="loading-screen wood">
@@ -1635,6 +1655,265 @@ export default function App() {
           )}
         </section>
         <aside className="sidebar wood">
+          <section
+            className={`tool-card ${toolCardOpen ? "" : "collapsed"}`}
+            aria-label={t("Current tool")}
+          >
+            <button
+              className="tool-card-title"
+              aria-expanded={toolCardOpen}
+              title={t(toolCardOpen ? "Collapse" : "Expand")}
+              onClick={() => {
+                const open = !toolCardOpen;
+                setToolCardOpen(open);
+                try {
+                  localStorage.setItem("atlasforge-tool-card", open ? "open" : "closed");
+                } catch {
+                  // Storage can be unavailable (private mode); the card still works.
+                }
+              }}
+            >
+              <span className="section-kicker">{t("Current tool")}</span>
+              <strong>{t(toolInfo[tool][0])}</strong>
+              {toolInfo[tool][2] && <kbd>{toolInfo[tool][2]}</kbd>}
+              <ChevronDown size={13} />
+            </button>
+            {toolCardOpen && (
+              <div className="tool-card-body">
+                <p className="tool-hint">{t(toolDescriptions[tool])}</p>
+                {selection.length > 0 && (
+                  <section className="selection-panel">
+                    <div className="section-kicker">
+                      {t("Selected object")}{" "}
+                      <button
+                        className="plain-button"
+                        onClick={() => setSelected([])}
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                    <input
+                      className="object-name"
+                      aria-label={t("Name")}
+                      value={selection[0].name}
+                      onChange={(e) => updateSelected({ name: e.target.value })}
+                    />
+                    <div className="transform-fields">
+                      {(["x", "y", "width", "height", "rotation"] as const).map(
+                        (key, i) => (
+                          <label key={key}>
+                            {["X", "Y", "W", "H", "°"][i]}
+                            <input
+                              aria-label={`Object ${key}`}
+                              type="number"
+                              value={Math.round(selection[0][key])}
+                              min={
+                                key === "width" || key === "height" ? 4 : undefined
+                              }
+                              onChange={(e) =>
+                                updateSelected({ [key]: Number(e.target.value) })
+                              }
+                            />
+                          </label>
+                        ),
+                      )}
+                    </div>
+                    <div className="object-actions">
+                      {(
+                        [
+                          [
+                            FlipHorizontal2,
+                            "Flip horizontal",
+                            () => updateSelected({ flipX: !selection[0].flipX }),
+                          ],
+                          [
+                            FlipVertical2,
+                            "Flip vertical",
+                            () => updateSelected({ flipY: !selection[0].flipY }),
+                          ],
+                          [Copy, "Duplicate", duplicate],
+                          [Trash2, "Delete", deleteObjects],
+                          [Group, "Group", groupObjects],
+                          [AlignStartVertical, "Align left", () => arrange("left")],
+                          [AlignStartHorizontal, "Align top", () => arrange("top")],
+                          [
+                            ArrowLeftRight,
+                            "Distribute horizontally",
+                            () => arrange("distribute"),
+                          ],
+                          [ArrowUpToLine, "Bring forward", () => arrange("front")],
+                          [ArrowDownToLine, "Send backward", () => arrange("back")],
+                        ] as [LucideIcon, string, () => void][]
+                      ).map(([icon, title, fn]) => (
+                        <IconButton
+                          key={title}
+                          icon={icon}
+                          title={t(title)}
+                          onClick={fn}
+                        />
+                      ))}
+                    </div>
+                    {map.kind === "city" && (
+                      <>
+                        <Field label={t("Owner")}>
+                          <input
+                            value={selection[0].owner || ""}
+                            onChange={(e) =>
+                              updateSelected({ owner: e.target.value })
+                            }
+                          />
+                        </Field>
+                        <Field label={t("Notes for the GM")}>
+                          <textarea
+                            rows={2}
+                            value={selection[0].notes || ""}
+                            onChange={(e) =>
+                              updateSelected({ notes: e.target.value })
+                            }
+                          />
+                        </Field>
+                      </>
+                    )}
+                    {["city", "village", "castle", "dungeon"].includes(
+                      selection[0].kind,
+                    ) && (
+                      <button
+                        className="button subtle full"
+                        onClick={() => openObject(selection[0])}
+                      >
+                        {t("Open linked map")}
+                        <ChevronRight size={14} />
+                      </button>
+                    )}
+                  </section>
+                )}
+                {tool !== "select" && tool !== "hand" && (
+                  <div className="tool-settings">
+                    {!["river", "island", "room", "text", "eyedropper", "fill"].includes(
+                      tool,
+                    ) && (
+                      <Slider
+                        label={t("Brush size")}
+                        value={brush.size}
+                        onChange={(v) => setBrush((b) => ({ ...b, size: v }))}
+                        min={4}
+                        max={200}
+                        suffix=" px"
+                      />
+                    )}
+                    {["raise", "dig", "smooth", "flatten", "roughen", "ridge"].includes(
+                      tool,
+                    ) ? (
+                      <Slider
+                        label={t("Strength")}
+                        value={brush.strength}
+                        onChange={(v) => setBrush((b) => ({ ...b, strength: v }))}
+                        min={5}
+                      />
+                    ) : (
+                      paintTools.includes(tool) && (
+                        <Slider
+                          label={t("Opacity")}
+                          value={brush.opacity}
+                          onChange={(v) => setBrush((b) => ({ ...b, opacity: v }))}
+                          min={5}
+                        />
+                      )
+                    )}
+                    {tool === "biome" && (
+                      <Field label={t("Biome")}>
+                        <select
+                          value={brush.biome}
+                          onChange={(e) =>
+                            setBrush((b) => ({ ...b, biome: +e.target.value }))
+                          }
+                        >
+                          {BIOMES.map((name, i) =>
+                            // Sea (12) is decided by height, so it is not paintable.
+                            i === 12 ? null : (
+                              <option key={name} value={i}>
+                                {name}
+                              </option>
+                            ),
+                          )}
+                        </select>
+                      </Field>
+                    )}
+                    {colourTools.includes(tool) && (
+                      <>
+                        <div className="colour-palette">
+                          {MAP_COLORS.map((c) => (
+                            <button
+                              aria-label={`Colour ${c}`}
+                              title={c}
+                              key={c}
+                              style={{ background: c }}
+                              className={brush.color === c ? "active" : ""}
+                              onClick={() => color(c)}
+                            />
+                          ))}
+                        </div>
+                        {recentColors.length > 0 && (
+                          <div className="recent-colors">
+                            {recentColors.map((c) => (
+                              <button
+                                key={c}
+                                title={c}
+                                aria-label={`Recent colour ${c}`}
+                                style={{ background: c }}
+                                onClick={() => color(c)}
+                              />
+                            ))}
+                          </div>
+                        )}
+                        <div className="hex-input">
+                          <input
+                            aria-label="Colour picker"
+                            type="color"
+                            value={brush.color}
+                            onChange={(e) => color(e.target.value)}
+                          />
+                          <HexColorField value={brush.color} onChange={color} />
+                          <span>HEX</span>
+                        </div>
+                      </>
+                    )}
+                    {layerTools.includes(tool) && (
+                      <Field label={t("Active layer")}>
+                        <select
+                          value={brush.layer}
+                          onChange={(e) =>
+                            setBrush((b) => ({ ...b, layer: e.target.value }))
+                          }
+                        >
+                          {map.layers.map((l) => (
+                            <option value={l.id} key={l.id}>
+                              {t(l.name)}
+                              {l.locked ? " 🔒" : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                    )}
+                    {!["river", "island", "room", "text", "eyedropper", "fill"].includes(
+                      tool,
+                    ) && (
+                      <label className="checkbox">
+                        <input
+                          type="checkbox"
+                          checked={brush.pressure}
+                          onChange={(e) =>
+                            setBrush((b) => ({ ...b, pressure: e.target.checked }))
+                          }
+                        />
+                        {t("Pressure sensitivity")}
+                      </label>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
           <div className="panel-tabs">
             {(
               [
@@ -1656,112 +1935,6 @@ export default function App() {
             ))}
           </div>
           <div className="panel-scroll">
-            {selection.length > 0 && (
-              <section className="selection-panel">
-                <div className="section-kicker">
-                  {t("Selected object")}{" "}
-                  <button
-                    className="plain-button"
-                    onClick={() => setSelected([])}
-                  >
-                    <X size={13} />
-                  </button>
-                </div>
-                <input
-                  className="object-name"
-                  aria-label={t("Name")}
-                  value={selection[0].name}
-                  onChange={(e) => updateSelected({ name: e.target.value })}
-                />
-                <div className="transform-fields">
-                  {(["x", "y", "width", "height", "rotation"] as const).map(
-                    (key, i) => (
-                      <label key={key}>
-                        {["X", "Y", "W", "H", "°"][i]}
-                        <input
-                          aria-label={`Object ${key}`}
-                          type="number"
-                          value={Math.round(selection[0][key])}
-                          min={
-                            key === "width" || key === "height" ? 4 : undefined
-                          }
-                          onChange={(e) =>
-                            updateSelected({ [key]: Number(e.target.value) })
-                          }
-                        />
-                      </label>
-                    ),
-                  )}
-                </div>
-                <div className="object-actions">
-                  {(
-                    [
-                      [
-                        FlipHorizontal2,
-                        "Flip horizontal",
-                        () => updateSelected({ flipX: !selection[0].flipX }),
-                      ],
-                      [
-                        FlipVertical2,
-                        "Flip vertical",
-                        () => updateSelected({ flipY: !selection[0].flipY }),
-                      ],
-                      [Copy, "Duplicate", duplicate],
-                      [Trash2, "Delete", deleteObjects],
-                      [Group, "Group", groupObjects],
-                      [AlignStartVertical, "Align left", () => arrange("left")],
-                      [AlignStartHorizontal, "Align top", () => arrange("top")],
-                      [
-                        ArrowLeftRight,
-                        "Distribute horizontally",
-                        () => arrange("distribute"),
-                      ],
-                      [ArrowUpToLine, "Bring forward", () => arrange("front")],
-                      [ArrowDownToLine, "Send backward", () => arrange("back")],
-                    ] as [LucideIcon, string, () => void][]
-                  ).map(([icon, title, fn]) => (
-                    <IconButton
-                      key={title}
-                      icon={icon}
-                      title={t(title)}
-                      onClick={fn}
-                    />
-                  ))}
-                </div>
-                {map.kind === "city" && (
-                  <>
-                    <Field label={t("Owner")}>
-                      <input
-                        value={selection[0].owner || ""}
-                        onChange={(e) =>
-                          updateSelected({ owner: e.target.value })
-                        }
-                      />
-                    </Field>
-                    <Field label={t("Notes for the GM")}>
-                      <textarea
-                        rows={2}
-                        value={selection[0].notes || ""}
-                        onChange={(e) =>
-                          updateSelected({ notes: e.target.value })
-                        }
-                      />
-                    </Field>
-                  </>
-                )}
-                {["city", "village", "castle", "dungeon"].includes(
-                  selection[0].kind,
-                ) && (
-                  <button
-                    className="button subtle full"
-                    onClick={() => openObject(selection[0])}
-                  >
-                    {t("Open linked map")}
-                    <ChevronRight size={14} />
-                  </button>
-                )}
-              </section>
-            )}
             {panel === "generate" && (
               <>
                 <div className="panel-heading">
@@ -2171,8 +2344,26 @@ export default function App() {
                 <div className="layers-list">
                   {[...map.layers].reverse().map((l) => (
                     <div
-                      className={`layer-row ${activeLayer === l.id ? "selected" : ""}`}
+                      className={`layer-row ${activeLayer === l.id ? "selected" : ""} ${dragLayer && dragLayer !== l.id && isMovable(l) ? "drop-target" : ""}`}
                       key={l.id}
+                      draggable={isMovable(l)}
+                      onDragStart={(e) => {
+                        setDragLayer(l.id);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragEnd={() => setDragLayer(null)}
+                      onDragOver={(e) => {
+                        if (dragLayer && isMovable(l)) e.preventDefault();
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const id = dragLayer;
+                        setDragLayer(null);
+                        if (id && id !== l.id)
+                          mutateMap((m) => {
+                            placeLayer(m.layers, id, l.id);
+                          }, "Reorder layers");
+                      }}
                     >
                       <IconButton
                         icon={l.visible ? Eye : EyeOff}
@@ -2192,6 +2383,28 @@ export default function App() {
                         </span>
                         <span>{t(l.name)}</span>
                       </button>
+                      {isMovable(l) && (
+                        <span className="layer-order">
+                          <IconButton
+                            icon={ChevronUp}
+                            title={t("Move layer up")}
+                            onClick={() =>
+                              mutateMap((m) => {
+                                moveLayer(m.layers, l.id, 1);
+                              }, "Reorder layers")
+                            }
+                          />
+                          <IconButton
+                            icon={ChevronDown}
+                            title={t("Move layer down")}
+                            onClick={() =>
+                              mutateMap((m) => {
+                                moveLayer(m.layers, l.id, -1);
+                              }, "Reorder layers")
+                            }
+                          />
+                        </span>
+                      )}
                       <IconButton
                         icon={l.locked ? LockKeyhole : LockKeyholeOpen}
                         title={t(l.locked ? "Unlock layer" : "Lock layer")}
@@ -2702,135 +2915,6 @@ export default function App() {
                   </div>
                 )}
               </>
-            )}
-            {tool !== "select" && tool !== "hand" && (
-              <div className="tool-settings">
-                <div className="section-kicker">
-                  {t(toolInfo[tool][0])}
-                  <span>{toolInfo[tool][2]}</span>
-                </div>
-                <p className="tool-hint">{t(toolDescriptions[tool])}</p>
-                {!["river", "island", "room", "text", "eyedropper", "fill"].includes(
-                  tool,
-                ) && (
-                  <Slider
-                    label={t("Brush size")}
-                    value={brush.size}
-                    onChange={(v) => setBrush((b) => ({ ...b, size: v }))}
-                    min={4}
-                    max={200}
-                    suffix=" px"
-                  />
-                )}
-                {["raise", "dig", "smooth", "flatten", "roughen", "ridge"].includes(
-                  tool,
-                ) ? (
-                  <Slider
-                    label={t("Strength")}
-                    value={brush.strength}
-                    onChange={(v) => setBrush((b) => ({ ...b, strength: v }))}
-                    min={5}
-                  />
-                ) : (
-                  paintTools.includes(tool) && (
-                    <Slider
-                      label={t("Opacity")}
-                      value={brush.opacity}
-                      onChange={(v) => setBrush((b) => ({ ...b, opacity: v }))}
-                      min={5}
-                    />
-                  )
-                )}
-                {tool === "biome" && (
-                  <Field label={t("Biome")}>
-                    <select
-                      value={brush.biome}
-                      onChange={(e) =>
-                        setBrush((b) => ({ ...b, biome: +e.target.value }))
-                      }
-                    >
-                      {BIOMES.map((name, i) =>
-                        // Sea (12) is decided by height, so it is not paintable.
-                        i === 12 ? null : (
-                          <option key={name} value={i}>
-                            {name}
-                          </option>
-                        ),
-                      )}
-                    </select>
-                  </Field>
-                )}
-                {colourTools.includes(tool) && (
-                  <>
-                    <div className="colour-palette">
-                      {MAP_COLORS.map((c) => (
-                        <button
-                          aria-label={`Colour ${c}`}
-                          title={c}
-                          key={c}
-                          style={{ background: c }}
-                          className={brush.color === c ? "active" : ""}
-                          onClick={() => color(c)}
-                        />
-                      ))}
-                    </div>
-                    {recentColors.length > 0 && (
-                      <div className="recent-colors">
-                        {recentColors.map((c) => (
-                          <button
-                            key={c}
-                            title={c}
-                            aria-label={`Recent colour ${c}`}
-                            style={{ background: c }}
-                            onClick={() => color(c)}
-                          />
-                        ))}
-                      </div>
-                    )}
-                    <div className="hex-input">
-                      <input
-                        aria-label="Colour picker"
-                        type="color"
-                        value={brush.color}
-                        onChange={(e) => color(e.target.value)}
-                      />
-                      <HexColorField value={brush.color} onChange={color} />
-                      <span>HEX</span>
-                    </div>
-                  </>
-                )}
-                {layerTools.includes(tool) && (
-                  <Field label={t("Active layer")}>
-                    <select
-                      value={brush.layer}
-                      onChange={(e) =>
-                        setBrush((b) => ({ ...b, layer: e.target.value }))
-                      }
-                    >
-                      {map.layers.map((l) => (
-                        <option value={l.id} key={l.id}>
-                          {t(l.name)}
-                          {l.locked ? " 🔒" : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                )}
-                {!["river", "island", "room", "text", "eyedropper", "fill"].includes(
-                  tool,
-                ) && (
-                  <label className="checkbox">
-                    <input
-                      type="checkbox"
-                      checked={brush.pressure}
-                      onChange={(e) =>
-                        setBrush((b) => ({ ...b, pressure: e.target.checked }))
-                      }
-                    />
-                    {t("Pressure sensitivity")}
-                  </label>
-                )}
-              </div>
             )}
           </div>
           <div className="sidebar-footer">
