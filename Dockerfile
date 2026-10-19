@@ -6,7 +6,7 @@ RUN npm ci
 COPY . .
 # Set --build-arg RUN_TESTS=1 to run the full test suite while building.
 ARG RUN_TESTS=0
-RUN npm run check:paths && if [ "$RUN_TESTS" = "1" ]; then npm test; fi && npm run build
+RUN npm run build && npm run check:paths && if [ "$RUN_TESTS" = "1" ]; then npm test; fi
 
 FROM node:24-bookworm-slim AS runtime
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=5173
