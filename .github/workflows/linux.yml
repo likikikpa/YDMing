@@ -19,6 +19,7 @@ jobs:
       - run: npm run check:runtime
       - run: npm run check:paths
       - run: sh -n scripts/start.sh
+      - run: sh -n deploy/install.sh
       - run: npm test
       - run: npm run build
       - run: node scripts/smoke-server.mjs
@@ -26,6 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: docker compose config --quiet
       - run: docker build --tag atlasforge:test .
       - run: |
           docker run --detach --name atlasforge --publish 127.0.0.1:5173:5173 atlasforge:test

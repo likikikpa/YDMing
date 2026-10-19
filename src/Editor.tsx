@@ -9,9 +9,22 @@ import { Application, Sprite, Texture } from "pixi.js";
 import { drawMap, loadImage } from "./render";
 import { hitObject, navigationTarget } from "./hit-test";
 import { biomeAt, keyRoom, traceRiver } from "./generator";
+import { mergeRivers, riverFromCells } from "./rivers";
 import { clamp, random } from "./random";
+import {
+  SCULPT_TOOLS,
+  raiseIsland,
+  raiseRange,
+  resample,
+  sculptAmount,
+  sculptDab,
+  simplify,
+  unionRects,
+} from "./sculpt";
+import { isScatterSprite, preloadSymbols } from "./symbols";
 import { uid } from "./types";
 import { editableTerrain, terrainView } from "./terrain";
+import type { CellRect } from "./terrain-render";
 import type {
   MapData,
   MapObject,
@@ -28,6 +41,8 @@ export interface BrushSettings {
   color: string;
   biome: number;
   stamp: StampKind;
+  /** A bundled sprite to place with the stamp tool; wins over `stamp`. */
+  sprite?: { src: string; name: string };
   snap: boolean;
   pressure: boolean;
   layer: string;
@@ -58,6 +73,53 @@ interface Props {
   }) => void;
 }
 type View = { x: number; y: number; scale: number };
+type Frame = { map: MapData; dirty?: CellRect; live?: string };
+
+const PAINT_TOOLS: Tool[] = [
+  "brush",
+  "pencil",
+  "eraser",
+  "line",
+  "rectangle",
+  "ellipse",
+  "fill",
+];
+// Tools whose result rewrites the height field and therefore needs private copies.
+const TERRAIN_TOOLS: Tool[] = [
+  ...SCULPT_TOOLS,
+  "ridge",
+  "island",
+  "river",
+  "room",
+];
+/**
+ * Copies only what a tool will change. Cloning every stroke and height of a
+ * large map for each click made editing slow; shared arrays stay untouched.
+ */
+function beginDraft(m: MapData, tool: Tool): MapData {
+  const draft: MapData = {
+    ...m,
+    objects: m.objects.map((o) => ({ ...o })),
+    paths: [...m.paths],
+    strokes: [...m.strokes],
+    rooms: m.rooms.map((r) => ({ ...r })),
+    layers: m.layers.map((l) => ({
+      ...l,
+      mask: l.mask ? [...l.mask] : undefined,
+    })),
+  };
+  if (TERRAIN_TOOLS.includes(tool)) {
+    draft.heights = m.heights.slice();
+    draft.biomes = m.biomes.slice();
+    if (m.terrain)
+      draft.terrain = {
+        heights: m.terrain.heights.slice(),
+        biomes: m.terrain.biomes.slice(),
+      };
+  }
+  return draft;
+}
+
 export const Editor = forwardRef<EditorHandle, Props>(
   function Editor(props, ref) {
     const host = useRef<HTMLDivElement>(null),
@@ -79,11 +141,32 @@ export const Editor = forwardRef<EditorHandle, Props>(
         stroke?: Stroke;
         box?: Point;
         flat?: number;
+        trail?: Point[];
+        sculpted?: boolean;
       } | null>(null),
       [ready, setReady] = useState(false),
       [renderError, setRenderError] = useState("");
     const lastPaint = useRef<Point | null>(null);
     const lastStatus = useRef({ zoom: 100, x: 0, y: 0, height: 0, biome: 0 });
+    // Fingers currently on the map and the pinch that two of them start.
+    const touches = useRef(new Map<number, Point>());
+    const pinch = useRef<{
+      distance: number;
+      centre: Point;
+      view: View;
+    } | null>(null);
+    const detail = useRef<HTMLCanvasElement>(null);
+    const detailTimer = useRef(0);
+    const queued = useRef<Frame | null>(null);
+    const frame = useRef(0);
+    const statusFrame = useRef(0);
+    const sculpt = useRef<{
+      pos: Point;
+      last: Point;
+      time: number;
+      pressure: number;
+      frame: number;
+    } | null>(null);
     latest.current = props;
     const size = useRef({ w: 1000, h: 700 });
     const screenPoint = (p: Point) => ({
@@ -97,6 +180,19 @@ export const Editor = forwardRef<EditorHandle, Props>(
     const getPoint = (e: { clientX: number; clientY: number }) => {
       const rect = host.current!.getBoundingClientRect();
       return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    };
+    // Status text changes on every mouse move; React only needs the latest value once per frame.
+    const reportStatus = () => {
+      if (statusFrame.current) return;
+      // About 20 updates a second is plenty for a coordinate read-out, and it
+      // keeps the large side panel from re-rendering on every mouse move.
+      statusFrame.current = window.setTimeout(() => {
+        statusFrame.current = 0;
+        latest.current.onStatus({
+          ...lastStatus.current,
+          zoom: view.current.scale * 100,
+        });
+      }, 50);
     };
     const fit = () => {
       const m = latest.current.map;
@@ -118,18 +214,51 @@ export const Editor = forwardRef<EditorHandle, Props>(
         application.current?.render();
       }
       drawOverlay();
-      latest.current.onStatus({
-        ...lastStatus.current,
-        zoom: view.current.scale * 100,
-      });
+      reportStatus();
+      // The 1x bitmap is only a stand-in while the view moves; once it settles
+      // the visible part is redrawn at screen resolution.
+      if (detail.current) detail.current.style.display = "none";
+      window.clearTimeout(detailTimer.current);
+      detailTimer.current = window.setTimeout(renderDetail, 220);
     };
-    const refresh = (m: MapData = latest.current.map) => {
-      const canvas = mapCanvas.current;
-      canvas.width = m.width;
-      canvas.height = m.height;
-      drawMap(canvas.getContext("2d")!, m, {
+    /** Redraws the visible part of the map as vectors at the current zoom. */
+    function renderDetail() {
+      const canvas = detail.current;
+      if (!canvas || drag.current || !sprite.current) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2),
+        v = view.current;
+      if (v.scale * dpr < 1.1) return;
+      const m = latest.current.map,
+        w = Math.round(size.current.w * dpr),
+        h = Math.round(size.current.h * dpr);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      const ctx = canvas.getContext("2d")!;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      ctx.setTransform(v.scale * dpr, 0, 0, v.scale * dpr, v.x * dpr, v.y * dpr);
+      ctx.imageSmoothingQuality = "high";
+      drawMap(ctx, m, {
         contours: latest.current.contours,
         player: latest.current.player,
+        vector: true,
+      });
+      canvas.style.display = "block";
+    }
+    /** Draws the map now and uploads it to the GPU. */
+    const render = (f: Frame) => {
+      const canvas = mapCanvas.current;
+      if (canvas.width !== f.map.width || canvas.height !== f.map.height) {
+        canvas.width = f.map.width;
+        canvas.height = f.map.height;
+      }
+      drawMap(canvas.getContext("2d")!, f.map, {
+        contours: latest.current.contours,
+        player: latest.current.player,
+        dirty: f.dirty,
+        liveStroke: f.live,
       });
       if (sprite.current) {
         if (sprite.current.texture === Texture.EMPTY)
@@ -137,6 +266,26 @@ export const Editor = forwardRef<EditorHandle, Props>(
         else sprite.current.texture.source.update();
         position();
       }
+    };
+    /** Queues a redraw for the next animation frame, merging pending changes. */
+    const refresh = (
+      m: MapData = latest.current.map,
+      dirty?: CellRect,
+      live?: string,
+    ) => {
+      const pending = queued.current;
+      queued.current = {
+        map: m,
+        dirty: m === pending?.map ? unionRects(pending?.dirty, dirty) : dirty,
+        live: live ?? (m === pending?.map ? pending?.live : undefined),
+      };
+      if (frame.current) return;
+      frame.current = requestAnimationFrame(() => {
+        frame.current = 0;
+        const next = queued.current;
+        queued.current = null;
+        if (next && sprite.current) render(next);
+      });
     };
     const selectedBounds = () => {
       const p = latest.current,
@@ -195,28 +344,64 @@ export const Editor = forwardRef<EditorHandle, Props>(
         c.fillRect(a.x, a.y, b.x - a.x, b.y - a.y);
         c.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
       }
-      if (cursor && !["select", "hand", "text"].includes(latest.current.tool)) {
+      const trail = drag.current?.trail;
+      if (trail && trail.length > 1) {
         c.beginPath();
-        c.arc(
-          cursor.x,
-          cursor.y,
-          (latest.current.brush.size * view.current.scale) / 2,
-          0,
-          Math.PI * 2,
-        );
+        trail.forEach((p, i) => {
+          const s = screenPoint(p);
+          if (i) c.lineTo(s.x, s.y);
+          else c.moveTo(s.x, s.y);
+        });
+        c.strokeStyle = "#e6c58a";
+        c.lineWidth = 2;
+        c.setLineDash([6, 4]);
+        c.stroke();
+        c.setLineDash([]);
+      }
+      const t = latest.current.tool;
+      if (drag.current && ["island", "room"].includes(t) && drag.current.box) {
+        const a = screenPoint(drag.current.start),
+          b = screenPoint(drag.current.box);
+        c.strokeStyle = "#e6c58a";
+        c.setLineDash([5, 4]);
+        if (t === "island") {
+          c.beginPath();
+          c.ellipse(
+            (a.x + b.x) / 2,
+            (a.y + b.y) / 2,
+            Math.abs(b.x - a.x) / 2,
+            Math.abs(b.y - a.y) / 2,
+            0,
+            0,
+            Math.PI * 2,
+          );
+          c.stroke();
+        } else c.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
+        c.setLineDash([]);
+      }
+      if (
+        cursor &&
+        !["select", "hand", "text", "river", "island", "room"].includes(t)
+      ) {
+        const radius = (latest.current.brush.size * view.current.scale) / 2;
+        c.beginPath();
+        c.arc(cursor.x, cursor.y, radius, 0, Math.PI * 2);
         c.strokeStyle = "#fff9df";
         c.lineWidth = 1;
         c.stroke();
         c.beginPath();
-        c.arc(
-          cursor.x,
-          cursor.y,
-          (latest.current.brush.size * view.current.scale) / 2 + 1,
-          0,
-          Math.PI * 2,
-        );
+        c.arc(cursor.x, cursor.y, radius + 1, 0, Math.PI * 2);
         c.strokeStyle = "#282c2277";
         c.stroke();
+        if (SCULPT_TOOLS.includes(t)) {
+          // The inner ring marks where the brush works at full strength.
+          c.beginPath();
+          c.arc(cursor.x, cursor.y, radius * 0.45, 0, Math.PI * 2);
+          c.setLineDash([3, 3]);
+          c.strokeStyle = "#fff9df99";
+          c.stroke();
+          c.setLineDash([]);
+        }
       }
     }
     useImperativeHandle(ref, () => ({
@@ -231,6 +416,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
         drawMap(ctx, latest.current.map, {
           player,
           contours: latest.current.contours,
+          vector: true,
         });
         return canvas;
       },
@@ -280,7 +466,11 @@ export const Editor = forwardRef<EditorHandle, Props>(
           observer.observe(host.current!);
           (app as Application & { cleanup?: () => void }).cleanup = () =>
             observer.disconnect();
-          refresh();
+          // Symbols must be loaded before the first frame, or the map would flash
+          // with placeholder shapes.
+          await preloadSymbols();
+          if (cancelled) return;
+          render({ map: latest.current.map });
           setReady(true);
         } catch (e) {
           setRenderError(`The map renderer could not start. ${String(e)}`);
@@ -317,6 +507,12 @@ export const Editor = forwardRef<EditorHandle, Props>(
         cancelled = true;
         window.removeEventListener("keydown", down);
         window.removeEventListener("keyup", up);
+        cancelAnimationFrame(frame.current);
+        clearTimeout(statusFrame.current);
+        window.clearTimeout(detailTimer.current);
+        if (sculpt.current) cancelAnimationFrame(sculpt.current.frame);
+        frame.current = statusFrame.current = 0;
+        queued.current = null;
         if (app.renderer) {
           (app as Application & { cleanup?: () => void }).cleanup?.();
           app.destroy(true, {
@@ -364,61 +560,74 @@ export const Editor = forwardRef<EditorHandle, Props>(
       const l = m.layers.find((l) => l.id === id);
       return !!l && !l.locked && l.visible;
     };
-    function sculpt(p: Point, pressure = 1) {
-      const m = draft.current!,
-        b = latest.current.brush,
-        t = latest.current.tool;
-      if (!editable(m, "Terrain")) return;
-      const terrain = editableTerrain(m);
-      const cx = (p.x / m.width) * m.cols,
-        cy = (p.y / m.height) * m.rows,
-        r = ((b.size / m.width) * m.cols) / 2;
-      const old = t === "smooth" ? [...terrain.heights] : terrain.heights;
-      for (
-        let y = Math.max(1, Math.floor(cy - r));
-        y < Math.min(m.rows - 1, cy + r);
-        y++
-      )
-        for (
-          let x = Math.max(1, Math.floor(cx - r));
-          x < Math.min(m.cols - 1, cx + r);
-          x++
-        ) {
-          const distance = Math.hypot(x - cx, y - cy) / r;
-          if (distance > 1) continue;
-          const i = y * m.cols + x,
-            strength = (((1 - distance) * b.strength) / 100) * 0.04 * pressure;
-          if (t === "raise")
-            terrain.heights[i] = clamp(terrain.heights[i] + strength);
-          if (t === "dig")
-            terrain.heights[i] = clamp(terrain.heights[i] - strength);
-          if (t === "roughen")
-            terrain.heights[i] = clamp(
-              terrain.heights[i] + (Math.random() - 0.5) * strength * 2,
-            );
-          if (t === "flatten")
-            terrain.heights[i] +=
-              (drag.current!.flat! - terrain.heights[i]) * strength * 8;
-          if (t === "smooth") {
-            const avg =
-              (old[i] +
-                old[i - 1] +
-                old[i + 1] +
-                old[i - m.cols] +
-                old[i + m.cols]) /
-              5;
-            terrain.heights[i] +=
-              (avg - terrain.heights[i]) * Math.min(1, strength * 20);
-          }
-          if (t === "biome") terrain.biomes[i] = b.biome;
-        }
-      // Texture identity changes without copying the entire map during a stroke.
-      terrain.heights = terrain.heights.slice();
+    /** Time-based brush: the longer the pointer stays down, the more terrain moves. */
+    function sculptFrame(now: number) {
+      const s = sculpt.current,
+        m = draft.current;
+      if (!s || !m) return;
+      // A long frame must not make the terrain jump, so time per step is capped.
+      const b = latest.current.brush,
+        tool = latest.current.tool,
+        distance = Math.hypot(s.pos.x - s.last.x, s.pos.y - s.last.y),
+        // Sweeping the brush counts as time spent on that ground, so a quick
+        // swipe of a finger still shapes the land and not only a slow press.
+        dt =
+          Math.min(0.1, Math.max(0.001, (now - s.time) / 1000)) +
+          Math.min(0.1, distance / (b.size * 12)),
+        steps = Math.max(1, Math.ceil(distance / Math.max(2, b.size * 0.18))),
+        amount = sculptAmount(b.strength, dt, s.pressure) / steps;
+      let dirty: CellRect | undefined;
+      for (let k = 1; k <= steps; k++)
+        dirty = unionRects(
+          dirty,
+          sculptDab(
+            m,
+            tool,
+            {
+              x: s.last.x + ((s.pos.x - s.last.x) * k) / steps,
+              y: s.last.y + ((s.pos.y - s.last.y) * k) / steps,
+            },
+            amount,
+            drag.current?.flat ?? 0,
+            b,
+          ) ?? undefined,
+        );
+      s.last = s.pos;
+      s.time = now;
+      if (dirty) {
+        if (drag.current) drag.current.sculpted = true;
+        cancelAnimationFrame(frame.current);
+        frame.current = 0;
+        queued.current = null;
+        render({ map: m, dirty });
+      }
+      s.frame = requestAnimationFrame(sculptFrame);
+    }
+    function endSculpt() {
+      if (sculpt.current) cancelAnimationFrame(sculpt.current.frame);
+      sculpt.current = null;
     }
     function placeStamp(p: Point) {
       const m = draft.current!,
         b = latest.current.brush;
       if (!editable(m, b.layer)) return;
+      if (b.sprite) {
+        const scatter = isScatterSprite(b.sprite.src);
+        m.objects.push({
+          id: uid(),
+          kind: "image",
+          image: b.sprite.src,
+          x: p.x,
+          y: p.y,
+          name: b.sprite.name,
+          width: scatter ? b.size * 0.7 : b.size,
+          height: scatter ? b.size * 0.7 : b.size,
+          rotation: 0,
+          layer: b.layer,
+          color: b.color,
+        });
+        return;
+      }
       const tree = ["tree", "pine"].includes(b.stamp);
       m.objects.push({
         id: uid(),
@@ -438,7 +647,53 @@ export const Editor = forwardRef<EditorHandle, Props>(
         color: b.color,
       });
     }
+    /** Two fingers zoom and pan the map, like any map app. */
+    function pinchStart() {
+      const [a, b] = [...touches.current.values()];
+      pinch.current = {
+        distance: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+        centre: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+        view: { ...view.current },
+      };
+    }
+    function pinchMove() {
+      const g = pinch.current,
+        [a, b] = [...touches.current.values()];
+      if (!g || !a || !b) return;
+      const centre = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+        scale = clamp(
+          (g.view.scale * (Math.hypot(a.x - b.x, a.y - b.y) || 1)) / g.distance,
+          0.12,
+          5,
+        ),
+        // Keep the map point that was under the starting midpoint under the fingers.
+        anchor = {
+          x: (g.centre.x - g.view.x) / g.view.scale,
+          y: (g.centre.y - g.view.y) / g.view.scale,
+        };
+      view.current = {
+        scale,
+        x: centre.x - anchor.x * scale,
+        y: centre.y - anchor.y * scale,
+      };
+      position();
+    }
     function pointerDown(e: React.PointerEvent) {
+      if (e.pointerType === "touch") {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        touches.current.set(e.pointerId, getPoint(e));
+        if (touches.current.size >= 2) {
+          // A second finger turns the touch into a gesture: drop what the
+          // first finger had started instead of committing a stray mark.
+          endSculpt();
+          drag.current = null;
+          draft.current = null;
+          refresh();
+          pinchStart();
+          drawOverlay();
+          return;
+        }
+      }
       if (e.button !== 0 && e.button !== 1) return;
       e.currentTarget.setPointerCapture(e.pointerId);
       const p = latest.current,
@@ -463,8 +718,6 @@ export const Editor = forwardRef<EditorHandle, Props>(
         drag.current = null;
         return;
       }
-      draft.current = structuredClone(p.map);
-      const m = draft.current;
       if (e.altKey || p.tool === "eyedropper") {
         const ctx = mapCanvas.current.getContext("2d")!,
           data = ctx.getImageData(
@@ -480,10 +733,11 @@ export const Editor = forwardRef<EditorHandle, Props>(
               .map((v) => v.toString(16).padStart(2, "0"))
               .join(""),
         );
-        draft.current = null;
         drag.current = null;
         return;
       }
+      draft.current = beginDraft(p.map, p.tool);
+      const m = draft.current;
       if (p.tool === "select") {
         const bounds = selectedBounds();
         if (bounds) {
@@ -535,30 +789,34 @@ export const Editor = forwardRef<EditorHandle, Props>(
         }
         return;
       }
-      if (
-        ["raise", "dig", "smooth", "flatten", "roughen", "biome"].includes(
-          p.tool,
-        )
-      ) {
-        if (!editable(m, "Terrain")) return;
+      if (SCULPT_TOOLS.includes(p.tool)) {
+        if (!editable(m, "Terrain")) {
+          draft.current = null;
+          drag.current = null;
+          return;
+        }
         const terrain = editableTerrain(m);
         drag.current.flat =
           terrain.heights[
-            Math.floor((world.y / m.height) * m.rows) * m.cols +
-              Math.floor((world.x / m.width) * m.cols)
+            clamp(Math.floor((world.y / m.height) * m.rows), 0, m.rows - 1) *
+              m.cols +
+              clamp(Math.floor((world.x / m.width) * m.cols), 0, m.cols - 1)
           ];
-        sculpt(world);
-      } else if (
-        [
-          "brush",
-          "pencil",
-          "eraser",
-          "line",
-          "rectangle",
-          "ellipse",
-          "fill",
-        ].includes(p.tool)
-      ) {
+        sculpt.current = {
+          pos: world,
+          last: world,
+          time: performance.now() - 16,
+          pressure:
+            e.pointerType === "pen" && p.brush.pressure ? e.pressure * 2 : 1,
+          frame: 0,
+        };
+        // Paints the first dab at once (a tap already leaves a visible mark);
+        // the loop then keeps going every frame.
+        sculpt.current.time = performance.now() - 120;
+        sculptFrame(performance.now());
+        drawOverlay(screen);
+        return;
+      } else if (PAINT_TOOLS.includes(p.tool)) {
         if (!editable(m, p.brush.layer)) return;
         const stroke: Stroke = {
           id: uid(),
@@ -585,8 +843,11 @@ export const Editor = forwardRef<EditorHandle, Props>(
           layer.mask.push(stroke);
         } else m.strokes.push(stroke);
         drag.current.stroke = stroke;
-      } else if (p.tool === "stamp") placeStamp(world);
-      else if (p.tool === "text") {
+        refresh(m, undefined, p.brush.mask ? undefined : stroke.id);
+      } else if (p.tool === "stamp") {
+        placeStamp(world);
+        refresh(m);
+      } else if (p.tool === "text") {
         if (editable(m, "Labels")) {
           const o: MapObject = {
             id: uid(),
@@ -602,31 +863,51 @@ export const Editor = forwardRef<EditorHandle, Props>(
           };
           m.objects.push(o);
           p.setSelected([o.id]);
+          refresh(m);
         }
       } else if (
-        p.tool === "river" && editable(m, "Water") && editable(m, "Terrain")
+        p.tool === "river" &&
+        editable(m, "Water") &&
+        editable(m, "Terrain")
       ) {
         editableTerrain(m);
-        const start =
-          clamp(Math.floor((world.y / m.height) * m.rows), 0, m.rows - 1) *
-            m.cols +
-          clamp(Math.floor((world.x / m.width) * m.cols), 0, m.cols - 1);
-        const cells = traceRiver(terrainView(m), start);
-        m.paths.push({
-          id: uid(),
-          kind: "river",
-          points: cells.map((i) => ({
-            x: (((i % m.cols) + 0.5) * m.width) / m.cols,
-            y: ((Math.floor(i / m.cols) + 0.5) * m.height) / m.rows,
-          })),
-          width: 3,
-          layer: "Water",
-        });
+        const landscape = terrainView(m),
+          start =
+            clamp(Math.floor((world.y / m.height) * m.rows), 0, m.rows - 1) *
+              m.cols +
+            clamp(Math.floor((world.x / m.width) * m.cols), 0, m.cols - 1);
+        // Only land can hold a source; a click on open water does nothing.
+        if (landscape.heights[start] >= m.settings.seaLevel) {
+          const cells = traceRiver(landscape, start);
+          if (cells.length > 2) {
+            const { relaxed, ...river } = riverFromCells(
+              landscape,
+              [...cells].reverse(),
+              { id: uid() },
+            );
+            void relaxed;
+            // A river that runs into an existing one ends there instead of overlapping it.
+            const merged = mergeRivers(
+              river,
+              m.paths.filter((p) => p.kind === "river"),
+            );
+            if (merged) m.paths.push(merged);
+          }
+        }
+        refresh(m);
+      } else if (["road", "wall", "ridge"].includes(p.tool)) {
+        drag.current.trail = [world];
       }
-      refresh(m);
       drawOverlay(screen);
     }
     function pointerMove(e: React.PointerEvent) {
+      if (e.pointerType === "touch" && touches.current.has(e.pointerId)) {
+        touches.current.set(e.pointerId, getPoint(e));
+        if (touches.current.size >= 2) {
+          pinchMove();
+          return;
+        }
+      }
       const p = latest.current,
         screen = getPoint(e),
         world = worldPoint(screen),
@@ -635,15 +916,14 @@ export const Editor = forwardRef<EditorHandle, Props>(
         gy = clamp(Math.floor((world.y / m.height) * m.rows), 0, m.rows - 1),
         landscape = terrainView(m),
         h = landscape.heights[gy * m.cols + gx] || 0;
-      const cursorStatus = {
+      lastStatus.current = {
         zoom: view.current.scale * 100,
         x: Math.round(world.x),
         y: Math.round(world.y),
         height: Math.round((h - m.settings.seaLevel) * 8000),
         biome: biomeAt(landscape, gx, gy),
       };
-      lastStatus.current = cursorStatus;
-      p.onStatus(cursorStatus);
+      reportStatus();
       const d = drag.current;
       if (!d) {
         drawOverlay(screen);
@@ -657,6 +937,14 @@ export const Editor = forwardRef<EditorHandle, Props>(
         return;
       }
       if (!draft.current) return;
+      if (sculpt.current) {
+        // The animation loop paints; the pointer only says where.
+        sculpt.current.pos = world;
+        if (e.pointerType === "pen" && p.brush.pressure)
+          sculpt.current.pressure = e.pressure * 2;
+        drawOverlay(screen);
+        return;
+      }
       if (d.box) {
         d.box = world;
         drawOverlay(screen);
@@ -744,47 +1032,61 @@ export const Editor = forwardRef<EditorHandle, Props>(
             }
           }
         });
-      } else if (
-        ["raise", "dig", "smooth", "flatten", "roughen", "biome"].includes(
-          p.tool,
-        )
-      )
-        sculpt(
-          world,
-          e.pointerType === "pen" && p.brush.pressure ? e.pressure * 2 : 1,
-        );
-      else if (d.stroke) {
+      } else if (d.stroke) {
         if (["line", "rectangle", "ellipse"].includes(p.tool))
           d.stroke.points = [d.start, world];
-        else d.stroke.points.push(world);
+        else {
+          // Every pointer sample since the last frame, so fast strokes stay smooth.
+          const samples = e.nativeEvent.getCoalescedEvents?.() ?? [];
+          if (samples.length > 1)
+            for (const s of samples)
+              d.stroke.points.push(worldPoint(getPoint(s)));
+          else d.stroke.points.push(world);
+        }
       } else if (
         p.tool === "stamp" &&
-        ["tree", "pine"].includes(p.brush.stamp) &&
+        (p.brush.sprite
+          ? isScatterSprite(p.brush.sprite.src)
+          : ["tree", "pine"].includes(p.brush.stamp)) &&
         Math.hypot(world.x - d.last.x, world.y - d.last.y) > p.brush.size * 0.45
       ) {
         placeStamp(world);
         d.last = world;
-      } else if (["road", "wall", "ridge", "island", "room"].includes(p.tool)) {
+      } else if (d.trail) {
+        const last = d.trail[d.trail.length - 1];
+        if (Math.hypot(world.x - last.x, world.y - last.y) > 4)
+          d.trail.push(world);
         drawOverlay(screen);
-        const ctx = overlay.current!.getContext("2d")!,
-          a = screenPoint(d.start);
-        ctx.strokeStyle = "#e6c58a";
-        ctx.setLineDash([5, 4]);
-        ctx.strokeRect(a.x, a.y, screen.x - a.x, screen.y - a.y);
+        return;
+      } else if (["island", "room"].includes(p.tool)) {
+        d.box = world;
+        drawOverlay(screen);
         return;
       }
-      refresh(m);
+      refresh(m, undefined, d.stroke && !p.brush.mask ? d.stroke.id : undefined);
       drawOverlay(screen);
     }
     function pointerUp(e: React.PointerEvent) {
+      if (e.pointerType === "touch") {
+        const wasPinching = touches.current.size >= 2;
+        touches.current.delete(e.pointerId);
+        if (wasPinching) {
+          pinch.current = null;
+          // The remaining finger must lift and touch again before it draws.
+          return;
+        }
+      }
       const d = drag.current;
       if (!d) return;
+      endSculpt();
       const p = latest.current,
         m = draft.current,
         world = worldPoint(getPoint(e));
       if (m && !d.pan) {
         if (d.stroke) lastPaint.current = world;
-        if (d.box) {
+        let changed = true,
+          dirty: CellRect | undefined;
+        if (d.box && !["island", "room"].includes(p.tool)) {
           const left = Math.min(d.start.x, world.x),
             right = Math.max(d.start.x, world.x),
             top = Math.min(d.start.y, world.y),
@@ -802,79 +1104,44 @@ export const Editor = forwardRef<EditorHandle, Props>(
           p.setSelected(
             e.shiftKey ? [...new Set([...p.selected, ...ids])] : ids,
           );
+          changed = false;
         } else if (
           (p.tool === "road" || p.tool === "wall") &&
+          d.trail &&
           editable(m, "Objects")
         ) {
-          m.paths.push({
-            id: uid(),
-            kind: p.tool,
-            points: [d.start, world],
-            width: p.tool === "wall" ? 7 : 9,
-            layer: "Objects",
-          });
-        } else if (p.tool === "ridge" && editable(m, "Terrain")) {
-          const terrain = editableTerrain(m);
-          const steps = Math.ceil(
-            Math.hypot(world.x - d.start.x, world.y - d.start.y) / 5,
-          );
-          for (let n = 0; n <= steps; n++) {
-            const at = {
-                x: d.start.x + ((world.x - d.start.x) * n) / (steps || 1),
-                y: d.start.y + ((world.y - d.start.y) * n) / (steps || 1),
-              },
-              cx = (at.x / m.width) * m.cols,
-              cy = (at.y / m.height) * m.rows;
-            for (
-              let y = Math.max(1, Math.floor(cy - 5));
-              y < Math.min(m.rows - 1, cy + 5);
-              y++
-            )
-              for (
-                let x = Math.max(1, Math.floor(cx - 5));
-                x < Math.min(m.cols - 1, cx + 5);
-                x++
-              ) {
-                const dist = Math.hypot(x - cx, y - cy) / 5;
-                if (dist < 1)
-                  terrain.heights[y * m.cols + x] = Math.max(
-                    terrain.heights[y * m.cols + x],
-                    m.settings.seaLevel + 0.35 * (1 - dist),
-                  );
-              }
-          }
-          terrain.heights = terrain.heights.slice();
-        } else if (p.tool === "island" && editable(m, "Terrain")) {
-          const terrain = editableTerrain(m);
-          const cx = ((world.x + d.start.x) / 2 / m.width) * m.cols,
-            cy = ((world.y + d.start.y) / 2 / m.height) * m.rows,
-            rx = Math.max(
-              1,
-              (Math.abs(world.x - d.start.x) / 2 / m.width) * m.cols,
-            ),
-            ry = Math.max(
-              1,
-              (Math.abs(world.y - d.start.y) / 2 / m.height) * m.rows,
-            );
-          for (
-            let y = Math.max(0, Math.floor(cy - ry));
-            y < Math.min(m.rows, cy + ry);
-            y++
-          )
-            for (
-              let x = Math.max(0, Math.floor(cx - rx));
-              x < Math.min(m.cols, cx + rx);
-              x++
-            ) {
-              const dist = Math.hypot((x - cx) / rx, (y - cy) / ry);
-              if (dist < 1)
-                terrain.heights[y * m.cols + x] = Math.max(
-                  terrain.heights[y * m.cols + x],
-                  m.settings.seaLevel + 0.28 * (1 - dist),
-                );
-            }
-          terrain.heights = terrain.heights.slice();
-        } else if (p.tool === "room" && editable(m, "Terrain")) {
+          const points = simplify([...d.trail, world], 2.5 / view.current.scale);
+          if (points.length > 1) {
+            const world_ = m.kind === "world";
+            m.paths.push({
+              id: uid(),
+              kind: p.tool,
+              points,
+              width: Math.max(
+                1,
+                p.tool === "wall"
+                  ? world_
+                    ? p.brush.size / 16
+                    : p.brush.size / 7
+                  : world_
+                    ? p.brush.size / 24
+                    : p.brush.size / 5,
+              ),
+              layer: "Objects",
+            });
+          } else changed = false;
+        } else if (p.tool === "ridge") {
+          if (d.trail && d.trail.length > 1 && editable(m, "Terrain"))
+            dirty = raiseRange(m, [...d.trail, world], p.brush);
+          else changed = false;
+        } else if (
+          ["island", "room"].includes(p.tool) &&
+          !(d.box && editable(m, "Terrain"))
+        ) {
+          changed = false;
+        } else if (p.tool === "island") {
+          dirty = raiseIsland(m, d.start, world);
+        } else if (p.tool === "room") {
           const cell = m.width / m.cols,
             ch = m.height / m.rows,
             x = Math.floor(Math.min(d.start.x, world.x) / cell),
@@ -896,13 +1163,20 @@ export const Editor = forwardRef<EditorHandle, Props>(
           };
           keyRoom(room, m.settings, random(room.id));
           m.rooms.push(room);
+          // Floors changed; give the draft its own array so caches rebuild.
           m.heights = m.heights.slice();
-        }
-        if (
-          !d.box &&
-          (p.tool !== "select" ||
-            Math.hypot(world.x - d.start.x, world.y - d.start.y) > 0.1)
-        ) {
+        } else if (p.tool === "select") {
+          changed = Math.hypot(world.x - d.start.x, world.y - d.start.y) > 0.1;
+        } else if (PAINT_TOOLS.includes(p.tool)) {
+          changed = !!d.stroke;
+        } else if (SCULPT_TOOLS.includes(p.tool)) {
+          changed = d.sculpted === true;
+        } else if (["stamp", "text", "river"].includes(p.tool)) {
+          changed =
+            m.objects.length !== p.map.objects.length ||
+            m.paths.length !== p.map.paths.length;
+        } else if (!["island", "room"].includes(p.tool)) changed = false;
+        if (changed)
           p.onChange(
             m,
             p.tool === "select"
@@ -911,7 +1185,11 @@ export const Editor = forwardRef<EditorHandle, Props>(
                 ? "Add label"
                 : `${p.tool.charAt(0).toUpperCase() + p.tool.slice(1)} stroke`,
           );
-        }
+        drag.current = null;
+        draft.current = null;
+        refresh(changed ? m : p.map, dirty);
+        drawOverlay();
+        return;
       }
       drag.current = null;
       draft.current = null;
@@ -937,6 +1215,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
         ref={host}
         onContextMenu={(e) => e.preventDefault()}
       >
+        <canvas ref={detail} className="detail-canvas" aria-hidden="true" />
         <canvas
           ref={overlay}
           className="interaction-canvas"
@@ -946,6 +1225,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
           onPointerMove={pointerMove}
           onPointerUp={pointerUp}
           onPointerCancel={pointerUp}
+          onPointerLeave={() => !drag.current && drawOverlay()}
           onDoubleClick={doubleClick}
         />
         {renderError && <div className="render-error">{renderError}</div>}

@@ -1,14 +1,18 @@
+# syntax=docker/dockerfile:1
 FROM node:24-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-RUN npm run check:paths && npm test && npm run build
+# Set --build-arg RUN_TESTS=1 to run the full test suite while building.
+ARG RUN_TESTS=0
+RUN npm run check:paths && if [ "$RUN_TESTS" = "1" ]; then npm test; fi && npm run build
 
 FROM node:24-bookworm-slim AS runtime
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=5173
 WORKDIR /app
 COPY package.json package-lock.json ./
+# The editor is bundled at build time; only the small Express server runs here.
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
 COPY server.mjs server-app.mjs server-api.mjs ./

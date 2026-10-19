@@ -55,8 +55,22 @@ export function validateProject(value: unknown): Project {
         !m.terrain.biomes.every((v) => Number.isInteger(v) && v >= 0 && v <= 12))
     )
       throw new Error("The project contains invalid landscape data.");
+    for (const path of m.paths)
+      if (
+        !Array.isArray(path.points) ||
+        (path.widths !== undefined &&
+          (!Array.isArray(path.widths) ||
+            path.widths.length !== path.points.length ||
+            !path.widths.every((w) => Number.isFinite(w))))
+      )
+        throw new Error("The project contains an invalid path.");
     for (const o of m.objects) {
-      if (o.image && !/^data:image\/(png|jpeg|webp);base64,/.test(o.image))
+      if (
+        o.image &&
+        !/^data:image\/(png|jpeg|webp);base64,/.test(o.image) &&
+        // Sprites that ship with the app are referenced by path, not copied in.
+        !/^\/assets\/(cartography|medieval)\/[\w.-]+\.png$/.test(o.image)
+      )
         throw new Error(
           "Imported images must be embedded PNG, JPEG, or WebP files.",
         );

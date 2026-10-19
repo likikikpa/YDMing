@@ -73,6 +73,8 @@ export interface MapPath {
   points: Point[];
   kind: "river" | "road" | "wall" | "corridor" | "border";
   width: number;
+  /** Optional width at each point, so rivers can widen towards their mouth. */
+  widths?: number[];
   layer: string;
 }
 export interface Stroke {
@@ -167,6 +169,15 @@ export interface MapData {
   terrain?: TerrainData;
   parentId?: string;
   parentPosition?: Point;
+  /** City layout (centre, size, gates) kept so buildings can be rerolled on the same streets. */
+  plan?: {
+    cx: number;
+    cy: number;
+    rx: number;
+    ry: number;
+    rot: number;
+    gates: Point[];
+  };
 }
 export interface Credit {
   id: string;

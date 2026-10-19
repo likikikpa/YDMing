@@ -1,0 +1,49 @@
+# Atlasforge on a VPS: the app plus Caddy, which terminates HTTPS automatically.
+#
+#   cp .env.example .env      # set SITE_ADDRESS to your domain
+#   docker compose up -d --build
+#
+# Without a domain the site is served over plain HTTP on port 80.
+services:
+  atlasforge:
+    build: .
+    image: atlasforge:latest
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      PORT: "5173"
+      # Caddy is the single proxy hop in front of the app.
+      TRUST_PROXY: "1"
+      ATLASFORGE_SEARCH: ${ATLASFORGE_SEARCH:-on}
+      ATLASFORGE_CONTACT: ${ATLASFORGE_CONTACT:-}
+    expose:
+      - "5173"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      atlasforge:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates live here; keep the volume so they survive updates.
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

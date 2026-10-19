@@ -18,8 +18,11 @@ import {
   Square,
   Type,
   Pipette,
-  TrendingUp,
   Shovel,
+  MountainSnow,
+  Blend,
+  Activity,
+  Equal,
   Waves,
   Trees,
   Route,
@@ -96,9 +99,10 @@ import { loadProject, saveProject, validateProject } from "./storage";
 import { creditsText, download, exportMap, slug } from "./export";
 import { fitImage } from "./assets";
 import type { FitSettings } from "./assets";
-import { stampSvg } from "./render";
+import { toolDescriptions } from "./tools";
 import kenney from "./data/kenney.json";
 
+const HISTORY_LIMIT = 100;
 type Panel = "generate" | "layers" | "library" | "history" | "tools" | "rooms";
 const toolInfo: Record<Tool, [string, LucideIcon, string]> = {
   select: ["Select", MousePointer2, "V"],
@@ -107,47 +111,46 @@ const toolInfo: Record<Tool, [string, LucideIcon, string]> = {
   pencil: ["Pencil", Pencil, "N"],
   eraser: ["Eraser", Eraser, "E"],
   fill: ["Fill bucket", Droplets, "G"],
-  line: ["Line", Minus, "U"],
+  line: ["Line", Minus, "L"],
   rectangle: ["Rectangle", Square, "U"],
-  ellipse: ["Ellipse", Circle, "U"],
+  ellipse: ["Ellipse", Circle, "O"],
   text: ["Text", Type, "T"],
   eyedropper: ["Eyedropper", Pipette, "I"],
-  raise: ["Raise terrain", TrendingUp, "A"],
+  raise: ["Raise terrain", Mountain, "A"],
   dig: ["Dig terrain", Shovel, "Q"],
-  smooth: ["Smooth", Waves, "R"],
-  flatten: ["Flatten", Minus, "F"],
-  roughen: ["Roughen", Mountain, ""],
-  biome: ["Biome override", Sprout, ""],
+  smooth: ["Smooth", Blend, "R"],
+  flatten: ["Flatten", Equal, "F"],
+  roughen: ["Roughen", Activity, "Y"],
+  biome: ["Biome override", Sprout, "C"],
   stamp: ["Place stamp", Trees, "S"],
-  river: ["River", Waves, ""],
-  ridge: ["Mountain ridge", Mountain, ""],
-  island: ["Island", Globe2, ""],
-  road: ["Road", Route, ""],
-  wall: ["Wall", Castle, ""],
-  room: ["Room", Grid2X2, ""],
+  river: ["River", Waves, "W"],
+  ridge: ["Mountain range", MountainSnow, "M"],
+  island: ["Island", Globe2, "Z"],
+  road: ["Road", Route, "K"],
+  wall: ["Wall", Castle, "J"],
+  room: ["Room", Grid2X2, "P"],
 };
-const stamps: { kind: StampKind; name: string; category: string }[] = [
-  { kind: "mountain", name: "Mountain", category: "Nature" },
-  { kind: "hill", name: "Hills", category: "Nature" },
-  { kind: "tree", name: "Oak tree", category: "Nature" },
-  { kind: "pine", name: "Pine tree", category: "Nature" },
-  { kind: "rock", name: "Boulders", category: "Nature" },
-  { kind: "city", name: "City", category: "Buildings" },
-  { kind: "village", name: "Village", category: "Buildings" },
-  { kind: "castle", name: "Castle", category: "Buildings" },
-  { kind: "house", name: "House", category: "Buildings" },
-  { kind: "tavern", name: "Tavern", category: "Buildings" },
-  { kind: "temple", name: "Temple", category: "Buildings" },
-  { kind: "tower", name: "Watchtower", category: "Buildings" },
-  { kind: "well", name: "Well", category: "Buildings" },
-  { kind: "dungeon", name: "Dungeon", category: "Markers" },
-  { kind: "chest", name: "Chest", category: "Markers" },
-  { kind: "door", name: "Door", category: "Markers" },
-  { kind: "secret", name: "Secret door", category: "Markers" },
-  { kind: "trap", name: "Trap", category: "Markers" },
-  { kind: "stairs", name: "Stairs", category: "Markers" },
-  { kind: "pillar", name: "Pillar", category: "Markers" },
+const paintTools: Tool[] = [
+  "brush",
+  "pencil",
+  "eraser",
+  "fill",
+  "line",
+  "rectangle",
+  "ellipse",
 ];
+// Terrain tools ignore colour and layers, so those controls are hidden for them.
+const colourTools: Tool[] = [
+  "brush",
+  "pencil",
+  "fill",
+  "line",
+  "rectangle",
+  "ellipse",
+  "text",
+  "stamp",
+];
+const layerTools: Tool[] = [...paintTools, "stamp"];
 const presetNames: Record<string, string> = {
   continents: "Continents",
   pangaea: "Pangaea",
@@ -167,6 +170,9 @@ const emptyFit: FitSettings = {
 function IconButton({
   icon: Icon,
   title,
+  hint,
+  keys,
+  side,
   onClick,
   active,
   disabled,
@@ -174,6 +180,10 @@ function IconButton({
 }: {
   icon: LucideIcon;
   title: string;
+  /** One or two sentences explaining what the button does. */
+  hint?: string;
+  keys?: string;
+  side?: "right" | "bottom";
   onClick: () => void;
   active?: boolean;
   disabled?: boolean;
@@ -182,8 +192,11 @@ function IconButton({
   return (
     <button
       className={`icon-button ${active ? "active" : ""}`}
-      title={title}
       aria-label={title}
+      data-tip={title}
+      data-tip-hint={hint}
+      data-tip-keys={keys}
+      data-tip-side={side}
       aria-pressed={active}
       disabled={disabled}
       onClick={onClick}
@@ -191,6 +204,97 @@ function IconButton({
       <Icon size={18} />
       {children}
     </button>
+  );
+}
+interface Tip {
+  x: number;
+  y: number;
+  side: "right" | "bottom";
+  title: string;
+  hint?: string;
+  keys?: string;
+}
+/**
+ * Shows a name, a description and the shortcut next to whatever the pointer
+ * rests on. Plain `title` attributes are adopted too, so every button gets the
+ * same instant tooltip instead of the browser's slow, plain one.
+ */
+function TooltipLayer() {
+  const [tip, setTip] = useState<Tip | null>(null);
+  useEffect(() => {
+    let timer = 0;
+    const hide = () => {
+      window.clearTimeout(timer);
+      setTip(null);
+    };
+    const show = (el: HTMLElement) => {
+      if (el.hasAttribute("title")) {
+        el.dataset.tip = el.getAttribute("title") || "";
+        el.removeAttribute("title");
+        // Icon-only buttons must keep an accessible name once the title is gone.
+        if (!el.getAttribute("aria-label") && !el.textContent?.trim())
+          el.setAttribute("aria-label", el.dataset.tip);
+      }
+      const title = el.dataset.tip;
+      if (!title) return;
+      const rect = el.getBoundingClientRect(),
+        side =
+          (el.dataset.tipSide as Tip["side"] | undefined) ||
+          (rect.right < 120 ? "right" : "bottom");
+      const next: Tip = {
+        side,
+        title,
+        hint: el.dataset.tipHint,
+        keys: el.dataset.tipKeys,
+        x: side === "right" ? rect.right + 10 : rect.left + rect.width / 2,
+        y: side === "right" ? rect.top + rect.height / 2 : rect.bottom + 8,
+      };
+      window.clearTimeout(timer);
+      // Moving along a row of tools swaps the tip at once; a first hover waits briefly.
+      timer = window.setTimeout(() => setTip(next), 120);
+    };
+    const over = (e: Event) => {
+      // Fingers have no hover; a tooltip after a tap would just get in the way.
+      if ((e as PointerEvent).pointerType === "touch") return;
+      const el = (e.target as HTMLElement | null)?.closest?.(
+        "[data-tip],[title]",
+      ) as HTMLElement | null;
+      if (el) show(el);
+      else hide();
+    };
+    document.addEventListener("pointerover", over);
+    document.addEventListener("focusin", over);
+    document.addEventListener("pointerdown", hide);
+    document.addEventListener("focusout", hide);
+    window.addEventListener("blur", hide);
+    return () => {
+      hide();
+      document.removeEventListener("pointerover", over);
+      document.removeEventListener("focusin", over);
+      document.removeEventListener("pointerdown", hide);
+      document.removeEventListener("focusout", hide);
+      window.removeEventListener("blur", hide);
+    };
+  }, []);
+  if (!tip) return null;
+  return (
+    <div
+      role="tooltip"
+      className={`tooltip tip-${tip.side}`}
+      style={{
+        left: Math.min(
+          Math.max(tip.x, tip.side === "right" ? 0 : 140),
+          window.innerWidth - (tip.side === "right" ? 0 : 140),
+        ),
+        top: tip.y,
+      }}
+    >
+      <div className="tooltip-title">
+        <b>{tip.title}</b>
+        {tip.keys && <kbd>{tip.keys}</kbd>}
+      </div>
+      {tip.hint && <p>{tip.hint}</p>}
+    </div>
   );
 }
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -309,6 +413,7 @@ export default function App() {
     [tool, setTool] = useState<Tool>("select"),
     [selected, setSelected] = useState<string[]>([]),
     [settings, setSettings] = useState(defaultSettings),
+    [lockSeed, setLockSeed] = useState(false),
     [brush, setBrush] = useState<BrushSettings>({
       size: 48,
       strength: 55,
@@ -317,6 +422,7 @@ export default function App() {
       color: "#344a39",
       biome: 6,
       stamp: "tree",
+      sprite: { src: "/assets/cartography/treePine.png", name: "Pine tree" },
       snap: false,
       pressure: true,
       layer: "Objects",
@@ -326,6 +432,8 @@ export default function App() {
     [contours, setContours] = useState(false),
     [player, setPlayer] = useState(false),
     [hidePanels, setHidePanels] = useState(false),
+    // On a phone the side panel is a sheet that slides up over the map.
+    [sheet, setSheet] = useState(false),
     [status, setStatus] = useState({
       zoom: 100,
       x: 0,
@@ -357,8 +465,7 @@ export default function App() {
     [exportSecrets, setExportSecrets] = useState(true),
     [libraryTab, setLibraryTab] = useState("Built-in"),
     [assetSearch, setAssetSearch] = useState(""),
-    [assetCategory, setAssetCategory] = useState("All"),
-    [assetPack, setAssetPack] = useState("procedural"),
+    [assetPack, setAssetPack] = useState("cartography"),
     [webQuery, setWebQuery] = useState(""),
     [webSource, setWebSource] = useState("commons"),
     [webResults, setWebResults] = useState<AssetResult[]>([]),
@@ -387,6 +494,10 @@ export default function App() {
     imageInput = useRef<HTMLInputElement>(null),
     toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const t = (s: string) => translate(lang, s);
+  const historyRef = useRef(history),
+    indexRef = useRef(historyIndex);
+  historyRef.current = history;
+  indexRef.current = historyIndex;
   const map = project?.maps.find((m) => m.id === project.activeMapId);
   const selection = map?.objects.filter((o) => selected.includes(o.id)) || [];
   projectRef.current = project;
@@ -398,11 +509,16 @@ export default function App() {
   function commit(next: Project, label: string) {
     next = { ...next, updatedAt: new Date().toISOString() };
     setProject(next);
-    setHistory((prev) => [
-      ...prev.slice(0, historyIndex + 1),
+    // Refs keep two commits in the same tick consistent, and the cap stops a
+    // long session from holding hundreds of full map copies in memory.
+    const kept = [
+      ...historyRef.current.slice(0, indexRef.current + 1),
       { project: next, label },
-    ]);
-    setHistoryIndex((i) => i + 1);
+    ].slice(-HISTORY_LIMIT);
+    historyRef.current = kept;
+    indexRef.current = kept.length - 1;
+    setHistory(kept);
+    setHistoryIndex(kept.length - 1);
     setSaveState("Saving…");
   }
   function updateMap(next: MapData, label: string) {
@@ -599,8 +715,14 @@ export default function App() {
         setHidePanels((x) => !x);
         return;
       }
-      if (e.key === "Enter" && !modal) {
-        void regenerate("all", true);
+      // Only when nothing else has focus: Enter on a focused button must not regenerate the map.
+      if (
+        e.key === "Enter" &&
+        !modal &&
+        (e.target === document.body ||
+          (e.target as HTMLElement).classList?.contains("interaction-canvas"))
+      ) {
+        void regenerate("all", !lockSeed);
         return;
       }
       if (e.key === "[" || e.key === "]") {
@@ -621,6 +743,7 @@ export default function App() {
         setSecondary("#eee6ce");
         return;
       }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       const entry = Object.entries(toolInfo).find(
         ([, v]) => v[2] === e.key.toUpperCase(),
       );
@@ -982,54 +1105,6 @@ export default function App() {
     key: K,
     value: GeneratorSettings[K],
   ) => setSettings((s) => ({ ...s, [key]: value }));
-  async function placeKenney(asset: (typeof kenney)[number]) {
-    try {
-      const response = await fetch(asset.src);
-      if (!response.ok) throw new Error("The asset is unavailable.");
-      const image = await fitImage(await response.blob(), { ...emptyFit });
-      const credit: Credit = {
-        id: "kenney-" + asset.pack,
-        name:
-          asset.pack === "cartography"
-            ? "Kenney Cartography Pack"
-            : "Kenney Medieval RTS",
-        author: "Kenney",
-        license: "CC0 1.0",
-        url: asset.source,
-      };
-      const next = structuredClone(map!);
-      const o: MapObject = {
-        id: uid(),
-        kind: "image",
-        x: 600,
-        y: 425,
-        width: 64,
-        height: (64 * image.height) / image.width,
-        name: asset.name,
-        rotation: 0,
-        layer: "Objects",
-        color: brush.color,
-        image: image.data,
-        creditId: credit.id,
-      };
-      next.objects.push(o);
-      commit(
-        {
-          ...project!,
-          maps: project!.maps.map((m) => (m.id === next.id ? next : m)),
-          credits: [
-            ...project!.credits.filter((c) => c.id !== credit.id),
-            credit,
-          ],
-        },
-        "Place Kenney sprite",
-      );
-      setSelected([o.id]);
-      setTool("select");
-    } catch (e) {
-      notify(String(e));
-    }
-  }
   const selectField = (
     label: string,
     key: keyof GeneratorSettings,
@@ -1093,7 +1168,10 @@ export default function App() {
     );
   const currentRoom = map.rooms.find((r) => r.id === roomDetail);
   return (
-    <div className={`app ${hidePanels ? "panels-hidden" : ""}`}>
+    <div
+      className={`app ${hidePanels ? "panels-hidden" : ""} ${sheet ? "sheet-open" : ""}`}
+    >
+      <TooltipLayer />
       <header className="topbar wood">
         <button
           className="brand"
@@ -1170,13 +1248,17 @@ export default function App() {
           <div className="undo-group">
             <IconButton
               icon={Undo2}
-              title={`${t("Undo")} · Ctrl Z`}
+              title={t("Undo")}
+              keys="Ctrl Z"
+              side="bottom"
               onClick={undo}
               disabled={historyIndex === 0 || busy}
             />
             <IconButton
               icon={Redo2}
-              title={`${t("Redo")} · Ctrl Shift Z`}
+              title={t("Redo")}
+              keys="Ctrl Shift Z"
+              side="bottom"
               onClick={redo}
               disabled={historyIndex >= history.length - 1 || busy}
             />
@@ -1274,7 +1356,10 @@ export default function App() {
                   <IconButton
                     key={key}
                     icon={Icon}
-                    title={`${t(name)}${shortcut ? " · " + shortcut : ""}`}
+                    title={t(name)}
+                    hint={t(toolDescriptions[key])}
+                    keys={shortcut || undefined}
+                    side="right"
                     active={tool === key}
                     onClick={() => chooseTool(key)}
                   />
@@ -1285,6 +1370,8 @@ export default function App() {
           <IconButton
             icon={MoreHorizontal}
             title={t("More tools")}
+            hint={t("Every tool, with what it does.")}
+            side="right"
             active={panel === "tools"}
             onClick={() => setPanel(panel === "tools" ? "generate" : "tools")}
           />
@@ -1361,6 +1448,7 @@ export default function App() {
               <IconButton
                 icon={Grid2X2}
                 title={t("Grid")}
+                hint={t("Show or hide the square grid over the map.")}
                 active={map.settings.grid !== "none"}
                 onClick={() => {
                   mutateMap(
@@ -1374,18 +1462,23 @@ export default function App() {
               <IconButton
                 icon={Waves}
                 title={t("Contours")}
+                hint={t("Draw height contour lines over the land.")}
                 active={contours}
                 onClick={() => setContours((v) => !v)}
               />
               <IconButton
                 icon={Crosshair}
                 title={t("Snap")}
+                hint={t("Snap dragged objects to a grid.")}
                 active={brush.snap}
                 onClick={() => setBrush((b) => ({ ...b, snap: !b.snap }))}
               />
               <IconButton
                 icon={player ? Eye : EyeOff}
                 title={t(player ? "Player view" : "GM view")}
+                hint={t(
+                  "Switch between what you see as GM and what players see. Player view hides GM-only secrets.",
+                )}
                 active={player}
                 onClick={() => setPlayer((v) => !v)}
               />
@@ -1439,10 +1532,18 @@ export default function App() {
             <span className="control-divider" />
             <IconButton
               icon={Maximize}
-              title={`${t("Fit map")} · 0`}
+              title={t("Fit map")}
+              keys="0"
               onClick={() => editor.current?.fit()}
             />
           </div>
+          <button
+            className="sheet-toggle button brass"
+            aria-label={sheet ? t("Close") : t("Tool settings")}
+            onClick={() => setSheet((v) => !v)}
+          >
+            {sheet ? <X size={18} /> : <SlidersHorizontal size={18} />}
+          </button>
           <div className="map-signature">
             <Compass size={15} />
             <span>
@@ -1660,6 +1761,17 @@ export default function App() {
                     </button>
                   </div>
                 </Field>
+                <label
+                  className="checkbox lock-seed"
+                  title={t("Keep the same seed when generating")}
+                >
+                  <input
+                    type="checkbox"
+                    checked={lockSeed}
+                    onChange={(e) => setLockSeed(e.target.checked)}
+                  />
+                  {t("Lock seed")}
+                </label>
                 <div className="generator-sections">
                   {generatorGroups.map((title, i) => (
                     <section
@@ -1960,7 +2072,7 @@ export default function App() {
                 <button
                   className="button brass full generate-button"
                   disabled={busy}
-                  onClick={() => regenerate()}
+                  onClick={() => regenerate("all", !lockSeed)}
                 >
                   <Shuffle size={16} />
                   {t("Generate map")}
@@ -2163,9 +2275,6 @@ export default function App() {
                         value={assetPack}
                         onChange={(e) => setAssetPack(e.target.value)}
                       >
-                        <option value="procedural">
-                          {t("Procedural symbols")} · 20
-                        </option>
                         <option value="cartography">
                           Kenney Cartography · 83
                         </option>
@@ -2182,74 +2291,45 @@ export default function App() {
                         onChange={(e) => setAssetSearch(e.target.value)}
                       />
                     </div>
-                    {assetPack === "procedural" && (
-                      <div className="filter-chips">
-                        {["All", "Nature", "Buildings", "Markers"].map((v) => (
+                    <div className="stamp-grid">
+                      {[...kenney]
+                        // Map symbols first; arrows, path pieces and textures last.
+                        .sort(
+                          (x, y) =>
+                            Number(/arrow|path|texture|element/i.test(x.name)) -
+                            Number(/arrow|path|texture|element/i.test(y.name)),
+                        )
+                        .filter(
+                          (a) =>
+                            a.pack === assetPack &&
+                            a.name
+                              .toLowerCase()
+                              .includes(assetSearch.toLowerCase()),
+                        )
+                        .map((a) => (
                           <button
-                            key={v}
-                            className={assetCategory === v ? "active" : ""}
-                            onClick={() => setAssetCategory(v)}
+                            className={`pack-stamp ${tool === "stamp" && brush.sprite?.src === a.src ? "active" : ""}`}
+                            key={a.id}
+                            title={a.name}
+                            onClick={() => {
+                              // Pick a sprite, then click or drag on the map to place it.
+                              setBrush((b) => ({
+                                ...b,
+                                sprite: { src: a.src, name: a.name },
+                                layer: "Objects",
+                                mask: false,
+                              }));
+                              setTool("stamp");
+                            }}
                           >
-                            {t(v)}
+                            <img src={a.src} alt="" loading="lazy" />
+                            <span>{a.name}</span>
                           </button>
                         ))}
-                      </div>
-                    )}
-                    <div className="stamp-grid">
-                      {assetPack === "procedural"
-                        ? stamps
-                            .filter(
-                              (s) =>
-                                (assetCategory === "All" ||
-                                  s.category === assetCategory) &&
-                                s.name
-                                  .toLowerCase()
-                                  .includes(assetSearch.toLowerCase()),
-                            )
-                            .map((s) => (
-                              <button
-                                key={s.kind}
-                                className={
-                                  brush.stamp === s.kind && tool === "stamp"
-                                    ? "active"
-                                    : ""
-                                }
-                                onClick={() => {
-                                  setBrush((b) => ({
-                                    ...b,
-                                    stamp: s.kind,
-                                    layer: "Objects",
-                                  }));
-                                  setTool("stamp");
-                                }}
-                              >
-                                <img src={stampSvg(s.kind)} alt="" />
-                                <span>{t(s.name)}</span>
-                              </button>
-                            ))
-                        : kenney
-                            .filter(
-                              (a) =>
-                                a.pack === assetPack &&
-                                a.name
-                                  .toLowerCase()
-                                  .includes(assetSearch.toLowerCase()),
-                            )
-                            .map((a) => (
-                              <button
-                                className="pack-stamp"
-                                key={a.id}
-                                onClick={() => void placeKenney(a)}
-                              >
-                                <img src={a.src} alt="" loading="lazy" />
-                                <span>{a.name}</span>
-                              </button>
-                            ))}
                     </div>
                     <p className="panel-footnote">
-                      {assetPack === "procedural"
-                        ? t("Procedural symbols · original artwork")
-                        : "Kenney · CC0 1.0"}
+                      {t("Pick a sprite, then click or drag on the map to place it.")} Kenney
+                      · CC0 1.0
                     </p>
                   </>
                 )}
@@ -2448,6 +2528,7 @@ export default function App() {
                         <Icon size={17} />
                         {t(name)}
                         <kbd>{shortcut}</kbd>
+                        <small>{t(toolDescriptions[key as Tool])}</small>
                       </button>
                     ),
                   )}
@@ -2569,22 +2650,22 @@ export default function App() {
                   {t(toolInfo[tool][0])}
                   <span>{toolInfo[tool][2]}</span>
                 </div>
-                <Slider
-                  label={t("Brush size")}
-                  value={brush.size}
-                  onChange={(v) => setBrush((b) => ({ ...b, size: v }))}
-                  min={4}
-                  max={200}
-                  suffix=" px"
-                />
-                {[
-                  "raise",
-                  "dig",
-                  "smooth",
-                  "flatten",
-                  "roughen",
-                  "ridge",
-                ].includes(tool) ? (
+                <p className="tool-hint">{t(toolDescriptions[tool])}</p>
+                {!["river", "island", "room", "text", "eyedropper", "fill"].includes(
+                  tool,
+                ) && (
+                  <Slider
+                    label={t("Brush size")}
+                    value={brush.size}
+                    onChange={(v) => setBrush((b) => ({ ...b, size: v }))}
+                    min={4}
+                    max={200}
+                    suffix=" px"
+                  />
+                )}
+                {["raise", "dig", "smooth", "flatten", "roughen", "ridge"].includes(
+                  tool,
+                ) ? (
                   <Slider
                     label={t("Strength")}
                     value={brush.strength}
@@ -2592,48 +2673,15 @@ export default function App() {
                     min={5}
                   />
                 ) : (
-                  <Slider
-                    label={t("Opacity")}
-                    value={brush.opacity}
-                    onChange={(v) => setBrush((b) => ({ ...b, opacity: v }))}
-                    min={5}
-                  />
-                )}
-                <div className="colour-palette">
-                  {MAP_COLORS.map((c) => (
-                    <button
-                      aria-label={`Colour ${c}`}
-                      title={c}
-                      key={c}
-                      style={{ background: c }}
-                      className={brush.color === c ? "active" : ""}
-                      onClick={() => color(c)}
+                  paintTools.includes(tool) && (
+                    <Slider
+                      label={t("Opacity")}
+                      value={brush.opacity}
+                      onChange={(v) => setBrush((b) => ({ ...b, opacity: v }))}
+                      min={5}
                     />
-                  ))}
-                </div>
-                {recentColors.length > 0 && (
-                  <div className="recent-colors">
-                    {recentColors.map((c) => (
-                      <button
-                        key={c}
-                        title={c}
-                        aria-label={`Recent colour ${c}`}
-                        style={{ background: c }}
-                        onClick={() => color(c)}
-                      />
-                    ))}
-                  </div>
+                  )
                 )}
-                <div className="hex-input">
-                  <input
-                    aria-label="Colour picker"
-                    type="color"
-                    value={brush.color}
-                    onChange={(e) => color(e.target.value)}
-                  />
-                  <HexColorField value={brush.color} onChange={color} />
-                  <span>HEX</span>
-                </div>
                 {tool === "biome" && (
                   <Field label={t("Biome")}>
                     <select
@@ -2650,31 +2698,76 @@ export default function App() {
                     </select>
                   </Field>
                 )}
-                <Field label={t("Active layer")}>
-                  <select
-                    value={brush.layer}
-                    onChange={(e) =>
-                      setBrush((b) => ({ ...b, layer: e.target.value }))
-                    }
-                  >
-                    {map.layers.map((l) => (
-                      <option value={l.id} key={l.id}>
-                        {t(l.name)}
-                        {l.locked ? " 🔒" : ""}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <label className="checkbox">
-                  <input
-                    type="checkbox"
-                    checked={brush.pressure}
-                    onChange={(e) =>
-                      setBrush((b) => ({ ...b, pressure: e.target.checked }))
-                    }
-                  />
-                  {t("Pressure sensitivity")}
-                </label>
+                {colourTools.includes(tool) && (
+                  <>
+                    <div className="colour-palette">
+                      {MAP_COLORS.map((c) => (
+                        <button
+                          aria-label={`Colour ${c}`}
+                          title={c}
+                          key={c}
+                          style={{ background: c }}
+                          className={brush.color === c ? "active" : ""}
+                          onClick={() => color(c)}
+                        />
+                      ))}
+                    </div>
+                    {recentColors.length > 0 && (
+                      <div className="recent-colors">
+                        {recentColors.map((c) => (
+                          <button
+                            key={c}
+                            title={c}
+                            aria-label={`Recent colour ${c}`}
+                            style={{ background: c }}
+                            onClick={() => color(c)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    <div className="hex-input">
+                      <input
+                        aria-label="Colour picker"
+                        type="color"
+                        value={brush.color}
+                        onChange={(e) => color(e.target.value)}
+                      />
+                      <HexColorField value={brush.color} onChange={color} />
+                      <span>HEX</span>
+                    </div>
+                  </>
+                )}
+                {layerTools.includes(tool) && (
+                  <Field label={t("Active layer")}>
+                    <select
+                      value={brush.layer}
+                      onChange={(e) =>
+                        setBrush((b) => ({ ...b, layer: e.target.value }))
+                      }
+                    >
+                      {map.layers.map((l) => (
+                        <option value={l.id} key={l.id}>
+                          {t(l.name)}
+                          {l.locked ? " 🔒" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                )}
+                {!["river", "island", "room", "text", "eyedropper", "fill"].includes(
+                  tool,
+                ) && (
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={brush.pressure}
+                      onChange={(e) =>
+                        setBrush((b) => ({ ...b, pressure: e.target.checked }))
+                      }
+                    />
+                    {t("Pressure sensitivity")}
+                  </label>
+                )}
               </div>
             )}
           </div>
@@ -3057,13 +3150,16 @@ export default function App() {
                     ["V / H", "Select / Pan"],
                     ["B / E", "Brush / Eraser"],
                     ["A / Q", "Raise terrain / Dig terrain"],
+                    ["R / F / Y", "Smooth / Flatten / Roughen"],
+                    ["M / W / Z", "Mountain range / River / Island"],
+                    ["L / U / O", "Line / Rectangle / Ellipse"],
                     ["S / T", "Place stamp / Text"],
                     ["[ / ]", "Brush size"],
                     ["X / D", "Swap / reset colours"],
                     ["Space + drag", "Pan"],
                     ["Scroll", "Zoom"],
                     ["0", "Fit map"],
-                    ["Enter", "Reroll map"],
+                    ["Enter", "Generate a new map"],
                     ["Ctrl Z", "Undo"],
                     ["Ctrl Shift Z", "Redo"],
                     ["Ctrl G", "Group"],

@@ -1,3 +1,4 @@
+import { toolDescriptionsRu } from "./tools";
 export const ru: Record<string, string> = {
   "Your world, made by you": "Ваш мир — в ваших руках",
   "Cartographer’s studio": "Мастерская картографа",
@@ -291,4 +292,12 @@ Object.assign(ru, {
 Object.assign(ru, {
   "Paint layer mask": "Рисовать маску",
   "Clear mask": "Очистить маску",
+});
+
+Object.assign(ru, toolDescriptionsRu, {
+  "Raise terrain": "Поднять рельеф (гора)",
+  "Dig terrain": "Понизить рельеф (лопата)",
+  "Mountain range": "Горная цепь",
+  "Lock seed": "Закрепить сид",
+  "Keep the same seed when generating": "Сохранять сид при генерации",
 });

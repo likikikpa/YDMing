@@ -1,4 +1,4 @@
-import { pointSegmentDistance } from "./generator";
+import { biomeAt, pointSegmentDistance } from "./generator";
 import { clamp } from "./random";
 import type { MapData, Point } from "./types";
 export function inheritCityTerrain(
@@ -12,7 +12,11 @@ export function inheritCityTerrain(
       .flatMap((p) =>
         p.points
           .slice(1)
-          .map((b, i) => ({ a: p.points[i], b, width: p.width })),
+          .map((b, i) => ({
+            a: p.points[i],
+            b,
+            width: p.widths?.[i] ?? p.width,
+          })),
       );
   for (let y = 0; y < city.rows; y++)
     for (let x = 0; x < city.cols; x++) {
@@ -37,7 +41,9 @@ export function inheritCityTerrain(
       )
         h = world.settings.seaLevel - 0.03;
       city.heights[y * city.cols + x] = h;
-      city.biomes[y * city.cols + x] = world.biomes[gy * world.cols + gx];
+      // Resolve the world's climate here, so the city looks like its surroundings.
+      const biome = biomeAt(world, gx, gy);
+      city.biomes[y * city.cols + x] = biome === 12 ? 0 : biome;
     }
   city.settings.seaLevel = world.settings.seaLevel;
   city.objects = city.objects.filter(
