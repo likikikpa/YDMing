@@ -9,7 +9,7 @@ import { Application, Sprite, Texture } from "pixi.js";
 import { drawMap, loadImage } from "./render";
 import { hitObject, navigationTarget } from "./hit-test";
 import { biomeAt, keyRoom } from "./generator";
-import { riverBetween, snapToRiver } from "./rivers";
+import { riverThrough, snapToRiver } from "./rivers";
 import { clamp, random } from "./random";
 import {
   SCULPT_TOOLS,
@@ -52,6 +52,12 @@ export interface EditorHandle {
   fit: () => void;
   zoom: (factor: number) => void;
   exportCanvas: (player: boolean, scale: number) => HTMLCanvasElement;
+  /** Draws the river made of the points placed so far, then clears them. */
+  finishRiver: () => void;
+  /** Throws away the river being placed. */
+  cancelRiver: () => void;
+  /** Removes the last point of the river being placed. */
+  undoRiverPoint: () => void;
 }
 interface Props {
   map: MapData;
@@ -62,6 +68,8 @@ interface Props {
   onChange: (map: MapData, label: string) => void;
   onOpen: (object: MapObject) => void;
   onColor: (color: string) => void;
+  /** Reports how many points the river being placed has. */
+  onRiverPoints?: (count: number) => void;
   contours: boolean;
   player: boolean;
   onStatus: (status: {
@@ -85,13 +93,7 @@ const PAINT_TOOLS: Tool[] = [
   "fill",
 ];
 // Tools whose result rewrites the height field and therefore needs private copies.
-const TERRAIN_TOOLS: Tool[] = [
-  ...SCULPT_TOOLS,
-  "ridge",
-  "island",
-  "river",
-  "room",
-];
+const TERRAIN_TOOLS: Tool[] = [...SCULPT_TOOLS, "ridge", "island", "room"];
 /**
  * Copies only what a tool will change. Cloning every stroke and height of a
  * large map for each click made editing slow; shared arrays stay untouched.
@@ -147,8 +149,13 @@ export const Editor = forwardRef<EditorHandle, Props>(
       [ready, setReady] = useState(false),
       [renderError, setRenderError] = useState("");
     const lastPaint = useRef<Point | null>(null);
-    // Source of the river being drawn; the next click places its mouth.
-    const riverStart = useRef<Point | null>(null);
+    // Points of the river being placed; it is only drawn once approved.
+    const riverPoints = useRef<Point[]>([]);
+    function setRiverPoints(points: Point[]) {
+      riverPoints.current = points;
+      latest.current.onRiverPoints?.(points.length);
+      drawOverlay();
+    }
     const lastStatus = useRef({ zoom: 100, x: 0, y: 0, height: 0, biome: 0 });
     // Fingers currently on the map and the pinch that two of them start.
     const touches = useRef(new Map<number, Point>());
@@ -346,34 +353,37 @@ export const Editor = forwardRef<EditorHandle, Props>(
         c.fillRect(a.x, a.y, b.x - a.x, b.y - a.y);
         c.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
       }
-      if (riverStart.current && latest.current.tool === "river") {
-        const rivers = latest.current.map.paths.filter(
-            (p) => p.kind === "river",
-          ),
-          from = snapToRiver(riverStart.current, rivers) ?? riverStart.current,
-          a = screenPoint(from);
+      if (riverPoints.current.length && latest.current.tool === "river") {
+        const placed = riverPoints.current,
+          preview = riverThrough(
+            cursor ? [...placed, worldPoint(cursor)] : placed,
+            latest.current.map.paths.filter((p) => p.kind === "river"),
+            "preview",
+          );
         c.strokeStyle = "#7fb7d6";
         c.fillStyle = "#7fb7d6";
         c.lineWidth = 2;
-        if (cursor) {
-          const hover = snapToRiver(worldPoint(cursor), rivers),
-            b = hover ? screenPoint(hover) : cursor;
-          c.setLineDash([6, 4]);
+        if (preview) {
+          c.setLineDash(cursor ? [6, 4] : []);
           c.beginPath();
-          c.moveTo(a.x, a.y);
-          c.lineTo(b.x, b.y);
+          preview.points.forEach((q, i) => {
+            const t = screenPoint(q);
+            if (i) c.lineTo(t.x, t.y);
+            else c.moveTo(t.x, t.y);
+          });
           c.stroke();
           c.setLineDash([]);
-          if (hover) {
-            // The mouth is close enough to a river to join it.
-            c.beginPath();
-            c.arc(b.x, b.y, 6, 0, Math.PI * 2);
-            c.stroke();
-          }
         }
-        c.beginPath();
-        c.arc(a.x, a.y, 4, 0, Math.PI * 2);
-        c.fill();
+        // The river bends at each of these, so they are drawn as handles.
+        placed.forEach((q, i) => {
+          const t = screenPoint(q);
+          c.beginPath();
+          c.arc(t.x, t.y, i === 0 ? 5 : 4, 0, Math.PI * 2);
+          c.fill();
+          c.strokeStyle = "#102028";
+          c.lineWidth = 1;
+          c.stroke();
+        });
       }
       const trail = drag.current?.trail;
       if (trail && trail.length > 1) {
@@ -438,6 +448,25 @@ export const Editor = forwardRef<EditorHandle, Props>(
     useImperativeHandle(ref, () => ({
       fit,
       zoom: (f) => zoomAt(f, { x: size.current.w / 2, y: size.current.h / 2 }),
+      finishRiver: () => {
+        const p = latest.current,
+          river =
+            editable(p.map, "Water") &&
+            riverThrough(
+              riverPoints.current,
+              p.map.paths.filter((q) => q.kind === "river"),
+              uid(),
+            );
+        if (river) {
+          const m = beginDraft(p.map, "river");
+          m.paths.push(river);
+          p.onChange(m, "River");
+          refresh(m);
+        }
+        setRiverPoints([]);
+      },
+      cancelRiver: () => setRiverPoints([]),
+      undoRiverPoint: () => setRiverPoints(riverPoints.current.slice(0, -1)),
       exportCanvas: (player, scale) => {
         const canvas = document.createElement("canvas");
         canvas.width = latest.current.map.width * scale;
@@ -509,10 +538,6 @@ export const Editor = forwardRef<EditorHandle, Props>(
       };
       void init();
       const down = (e: KeyboardEvent) => {
-        if (e.key === "Escape" && riverStart.current) {
-          riverStart.current = null;
-          drawOverlay();
-        }
         if (
           e.code === "Space" &&
           !(
@@ -579,11 +604,12 @@ export const Editor = forwardRef<EditorHandle, Props>(
       if (ready) fit();
     }, [props.map.id, ready]);
     useEffect(() => {
-      if (props.tool !== "river") riverStart.current = null;
-      drawOverlay();
+      if (props.tool !== "river" && riverPoints.current.length)
+        setRiverPoints([]);
+      else drawOverlay();
     }, [props.selected, props.tool, props.brush]);
     useEffect(() => {
-      riverStart.current = null;
+      if (riverPoints.current.length) setRiverPoints([]);
     }, [props.map.id]);
     useEffect(() => {
       const el = host.current;
@@ -908,22 +934,9 @@ export const Editor = forwardRef<EditorHandle, Props>(
         p.tool === "river" &&
         editable(m, "Water")
       ) {
-        // Two clicks: the first marks the source, the second the mouth. The
-        // river is the straight line between them, joined to a neighbouring
-        // river only when an end lies within a small gap of it.
-        const first = riverStart.current;
-        if (!first) riverStart.current = world;
-        else {
-          riverStart.current = null;
-          const river = riverBetween(
-            first,
-            world,
-            m.paths.filter((p) => p.kind === "river"),
-            uid(),
-          );
-          if (river) m.paths.push(river);
-        }
-        refresh(m);
+        // Every click adds a point. Nothing is drawn until the river is
+        // approved, so the person can place as many bends as they like.
+        setRiverPoints([...riverPoints.current, world]);
       } else if (["road", "wall", "ridge"].includes(p.tool)) {
         drag.current.trail = [world];
       }

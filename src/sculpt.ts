@@ -16,15 +16,34 @@ export const SCULPT_SPEED = 0.5;
 
 /**
  * Raise works like pouring material from a bag: the higher a pile gets, the
- * further up the ladder it climbs. Heights are measured above sea level.
- * Sand is the beach band `biomeAt` already paints just above the water, dirt
- * comes next, and above that the climate picks grass or forest, then rock and
- * finally snow, exactly as it does on a generated map.
+ * further up the ladder it climbs: sand, dirt, grass, rock, snow. Sand is the
+ * beach band `biomeAt` already paints just above the water (heights here are
+ * measured above sea level), and rock and snow start where `biomeAt` paints
+ * them on a generated map.
  */
+export const SAND_START = 0.012;
 export const SAND_TOP = 0.025;
 export const DIRT_TOP = 0.09;
-/** Where `biomeAt` starts painting bare rock; snow follows higher up. */
 export const ROCK_FROM = 0.74;
+export const SNOW_FROM = 0.87;
+/** Holding the brush at full pace spends this long in each material. */
+export const STAGE_SECONDS = 0.25;
+/** The strength at which pouring runs at exactly `STAGE_SECONDS` per material. */
+export const POUR_STRENGTH = 55;
+
+/**
+ * How fast a pile of this height grows, in height per second. The materials
+ * span very different heights, so the pace changes from band to band to keep
+ * every stage the same length of time.
+ */
+function pourRate(h: number, sea: number) {
+  let from = sea + SAND_START;
+  for (const edge of [sea + SAND_TOP, sea + DIRT_TOP, ROCK_FROM, SNOW_FROM]) {
+    if (h < edge) return Math.max(0.02, edge - from) / STAGE_SECONDS;
+    from = edge;
+  }
+  return (SNOW_FROM - ROCK_FROM) / STAGE_SECONDS;
+}
 /** Biome indices of the two materials that sculpting lays down itself. */
 export const DIRT = 13;
 export const GRASS = 5;
@@ -125,9 +144,15 @@ export function sculptDab(
       if (tool === "raise") {
         // Pouring onto open water lays sand at once; a soft rim is left alone.
         if (heights[i] < sea) {
-          if (w > 0.2) heights[i] = sea + 0.006 + 0.012 * w;
-        } else heights[i] = clamp(heights[i] + amount * w);
-      } else if (tool === "dig") heights[i] = clamp(heights[i] - amount * w);
+          if (w > 0.2) heights[i] = sea + SAND_START * (0.5 + 0.5 * w);
+        } else
+          heights[i] = clamp(
+            heights[i] + amount * w * pourRate(heights[i], sea),
+          );
+      } else if (tool === "dig")
+        heights[i] = clamp(
+          heights[i] - amount * w * pourRate(heights[i], sea),
+        );
       else if (tool === "flatten")
         heights[i] += (flat - heights[i]) * Math.min(1, amount * 14 * w);
       else if (tool === "roughen")
@@ -151,25 +176,20 @@ export function sculptDab(
 }
 
 /**
- * Raise and dig move height directly, while smooth, flatten and roughen apply
- * their own multipliers in `sculptDab`. At the default strength this pours
- * about 0.18 of height per second, so half a second of holding takes sand to
- * grass, and rock and snow follow as the pile keeps growing.
+ * What one frame of `dt` seconds does at the brush centre. For smooth, flatten
+ * and roughen that is a height change; for raise and dig it is pouring time,
+ * which `sculptDab` turns into height with `pourRate`. Strength speeds the
+ * pour up or slows it down around `POUR_STRENGTH`.
  */
-export const RAISE_DIG_GAIN = 0.65;
-
-/** Height change a single frame of `dt` seconds applies at the brush centre. */
 export const sculptAmount = (
   strength: number,
   dt: number,
   pressure = 1,
   tool?: Tool,
 ) =>
-  SCULPT_SPEED *
-  (strength / 100) *
-  dt *
-  pressure *
-  (tool === "raise" || tool === "dig" ? RAISE_DIG_GAIN : 1);
+  tool === "raise" || tool === "dig"
+    ? (dt * pressure * strength) / POUR_STRENGTH
+    : SCULPT_SPEED * (strength / 100) * dt * pressure;
 
 /** Ramer–Douglas–Peucker: keeps the shape of a freehand line with far fewer points. */
 export function simplify(points: Point[], epsilon: number): Point[] {

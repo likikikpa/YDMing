@@ -31,6 +31,11 @@ export const ru: Record<string, string> = {
   "Mountain ridge": "Горный хребет",
   "Place stamp": "Штамп",
   River: "Река",
+  "Approve river": "Утвердить реку",
+  "Draw the river through the points you placed. Enter does the same.":
+    "Нарисовать реку через расставленные точки. Enter делает то же самое.",
+  "Remove last point": "Убрать последнюю точку",
+  "Cancel river": "Отменить реку",
   Road: "Дорога",
   Room: "Комната",
   "More tools": "Все инструменты",

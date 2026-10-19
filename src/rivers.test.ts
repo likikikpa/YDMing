@@ -3,7 +3,7 @@ import { generateMap } from "./generator";
 import {
   buildRiverNetwork,
   mergeRivers,
-  riverBetween,
+  riverThrough,
   riverFromCells,
 } from "./rivers";
 import { traceRiver } from "./generator";
@@ -125,28 +125,54 @@ describe("river networks", () => {
     expect(river.widths!.length).toBe(river.points.length);
   });
   describe("hand-drawn rivers", () => {
-    const line = (x0: number, y0: number, x1: number, y1: number) =>
-      riverBetween({ x: x0, y: y0 }, { x: x1, y: y1 }, [], "a")!;
-    it("is a straight line between the two clicks with no branches", () => {
-      const river = line(100, 100, 300, 160);
+    const through = (pts: [number, number][], others: ReturnType<typeof riverThrough>[] = []) =>
+      riverThrough(
+        pts.map(([x, y]) => ({ x, y })),
+        others.filter((o) => o !== null) as never,
+        "a",
+      );
+    const nearest = (river: NonNullable<ReturnType<typeof through>>, x: number, y: number) =>
+      Math.min(...river.points.map((p) => Math.hypot(p.x - x, p.y - y)));
+    it("is the same every time and passes through every point placed", () => {
+      const pts: [number, number][] = [[100, 100], [200, 160], [260, 90], [380, 150]],
+        river = through(pts)!;
+      expect(through(pts)).toEqual(river);
+      for (const [x, y] of pts) expect(nearest(river, x, y)).toBeLessThan(0.5);
       expect(river.points[0]).toEqual({ x: 100, y: 100 });
-      expect(river.points.at(-1)).toEqual({ x: 300, y: 160 });
+      expect(river.points.at(-1)).toEqual({ x: 380, y: 150 });
+    });
+    it("curves at the points instead of running in straight segments", () => {
+      const river = through([[100, 100], [200, 160], [260, 90]])!,
+        corner = { x: 200, y: 160 },
+        // Directions of travel just before and just after the middle point.
+        i = river.points.findIndex((p) => Math.hypot(p.x - corner.x, p.y - corner.y) < 0.5),
+        before = river.points[i - 1],
+        after = river.points[i + 1];
+      expect(i).toBeGreaterThan(0);
+      // A polyline would turn at once; a curve has already been bending.
+      const turn = (a: typeof before, b: typeof before, c: typeof before) =>
+        Math.abs(
+          Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(b.y - a.y, b.x - a.x),
+        );
+      expect(turn(before, river.points[i], after)).toBeLessThan(0.5);
+    });
+    it("with two points is a straight line, thin at the source and wide at the mouth", () => {
+      const river = through([[100, 100], [300, 160]])!;
       for (const p of river.points)
-        expect(
-          Math.abs((p.y - 100) * 200 - (p.x - 100) * 60),
-        ).toBeLessThan(1e-6);
-      expect(river.widths!.length).toBe(river.points.length);
+        expect(Math.abs((p.y - 100) * 200 - (p.x - 100) * 60)).toBeLessThan(1e-6);
       expect(river.widths![0]).toBeLessThan(river.widths!.at(-1)!);
+      expect(river.widths!.length).toBe(river.points.length);
     });
     it("joins a river whose bank is within the small gap, but not one further away", () => {
-      const other = line(0, 200, 400, 200);
-      const near = riverBetween({ x: 200, y: 50 }, { x: 205, y: 190 }, [other], "b")!;
+      const other = through([[0, 200], [400, 200]]);
+      const near = through([[200, 50], [205, 190]], [other])!;
       expect(near.points.at(-1)).toEqual({ x: 205, y: 200 });
-      const far = riverBetween({ x: 200, y: 50 }, { x: 205, y: 150 }, [other], "c")!;
+      const far = through([[200, 50], [205, 150]], [other])!;
       expect(far.points.at(-1)).toEqual({ x: 205, y: 150 });
     });
-    it("ignores a click on the same spot twice", () => {
-      expect(riverBetween({ x: 10, y: 10 }, { x: 11, y: 11 }, [], "d")).toBeNull();
+    it("needs two separate points", () => {
+      expect(through([[10, 10]])).toBeNull();
+      expect(through([[10, 10], [11, 11]])).toBeNull();
     });
   });
 });

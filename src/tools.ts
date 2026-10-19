@@ -18,7 +18,7 @@ export const toolDescriptions: Record<Tool, string> = {
   eyedropper:
     "Click the map to pick up the colour under the cursor. Alt-click does this with any tool.",
   raise:
-    "Raise the land like a mountain. Hold and drag: the longer you stay, the higher it grows. Ground rising above the sea line becomes dry land.",
+    "Pour land like a god emptying a bag. Touching the sea makes sand at once; keep holding and the pile climbs from sand to dirt to grass to rock to snow, a quarter of a second each. Drag to draw out a continent.",
   dig: "Lower the land with a shovel. Dig below the sea line to carve lakes, bays and channels.",
   smooth: "Softens sharp peaks and pits so slopes blend into each other.",
   flatten:
@@ -29,7 +29,7 @@ export const toolDescriptions: Record<Tool, string> = {
   stamp:
     "Place symbols from the library: trees, buildings, markers. Drag to scatter trees.",
   river:
-    "Click on land: a river runs downhill from that spot to the sea or a lake.",
+    "Click to place the points of a river, as many as you like: it curves at each one. Press Approve on the left (or Enter) to draw it. Backspace removes the last point, Esc cancels. Ends near another river join it.",
   ridge:
     "Drag a line to raise a whole mountain range along it. Brush size sets the width, strength sets the height.",
   island: "Drag a box to raise a new island with a natural, ragged coast.",
@@ -58,7 +58,7 @@ export const toolDescriptionsRu: Record<string, string> = {
   [toolDescriptions.eyedropper]:
     "Нажмите на карту, чтобы взять цвет. Alt+клик работает с любым инструментом.",
   [toolDescriptions.raise]:
-    "Поднимает землю, как гору. Зажмите и ведите: чем дольше держите, тем выше. Выше уровня моря появляется суша.",
+    "Насыпает землю, как бог из мешка. Касание моря сразу даёт песок; пока держите, куча растёт: песок, земля, трава, скалы, снег — по четверти секунды на каждый слой. Ведите мышь, чтобы нарисовать материк.",
   [toolDescriptions.dig]:
     "Лопата понижает землю. Копайте ниже уровня моря, чтобы создавать озёра, заливы и проливы.",
   [toolDescriptions.smooth]: "Сглаживает острые пики и ямы.",
@@ -70,7 +70,7 @@ export const toolDescriptionsRu: Record<string, string> = {
   [toolDescriptions.stamp]:
     "Ставит символы из библиотеки: деревья, здания, метки. Деревья можно «рассыпать», ведя мышь.",
   [toolDescriptions.river]:
-    "Нажмите на сушу: река потечёт вниз от этой точки к морю или озеру.",
+    "Расставьте точки реки, сколько нужно: на каждой она изгибается. Нажмите «Утвердить» слева (или Enter), чтобы нарисовать. Backspace убирает последнюю точку, Esc отменяет. Концы рядом с другой рекой соединяются с ней.",
   [toolDescriptions.ridge]:
     "Проведите линию, чтобы поднять горную цепь. Размер кисти задаёт ширину, сила — высоту.",
   [toolDescriptions.island]:

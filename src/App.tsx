@@ -489,6 +489,8 @@ export default function App() {
     }),
     [srdDetail, setSrdDetail] = useState<SrdEntry | null>(null),
     [roomDetail, setRoomDetail] = useState<string | null>(null);
+  // Points placed so far for a river that has not been approved yet.
+  const [riverCount, setRiverCount] = useState(0);
   const editor = useRef<EditorHandle>(null),
     fileInput = useRef<HTMLInputElement>(null),
     imageInput = useRef<HTMLInputElement>(null),
@@ -671,6 +673,32 @@ export default function App() {
   }, [fitSource, fitSettings]);
   useEffect(() => {
     function keyboard(e: KeyboardEvent) {
+      const typing =
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement;
+      // While a river is being placed these keys belong to it, so Enter must
+      // not regenerate the map and Backspace must not delete objects.
+      if (tool === "river" && riverCount > 0 && !typing && !modal) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          if (riverCount >= 2) editor.current?.finishRiver();
+          return;
+        }
+        if (e.key === "Escape") {
+          editor.current?.cancelRiver();
+          return;
+        }
+        if (
+          e.key === "Backspace" ||
+          e.key === "Delete" ||
+          ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !e.shiftKey)
+        ) {
+          e.preventDefault();
+          editor.current?.undoRiverPoint();
+          return;
+        }
+      }
       if (e.key === "Escape") {
         setModal(null);
         setMenu(false);
@@ -1367,6 +1395,36 @@ export default function App() {
               })}
             </div>
           ))}
+          {tool === "river" && (
+            <div className="tool-group">
+              <IconButton
+                icon={Check}
+                title={t("Approve river")}
+                hint={t("Draw the river through the points you placed. Enter does the same.")}
+                keys="Enter"
+                side="right"
+                active={riverCount >= 2}
+                disabled={riverCount < 2}
+                onClick={() => editor.current?.finishRiver()}
+              />
+              <IconButton
+                icon={Undo2}
+                title={t("Remove last point")}
+                keys="Backspace"
+                side="right"
+                disabled={riverCount === 0}
+                onClick={() => editor.current?.undoRiverPoint()}
+              />
+              <IconButton
+                icon={X}
+                title={t("Cancel river")}
+                keys="Esc"
+                side="right"
+                disabled={riverCount === 0}
+                onClick={() => editor.current?.cancelRiver()}
+              />
+            </div>
+          )}
           <IconButton
             icon={MoreHorizontal}
             title={t("More tools")}
@@ -1494,6 +1552,7 @@ export default function App() {
             onChange={updateMap}
             onOpen={openObject}
             onColor={color}
+            onRiverPoints={setRiverCount}
             contours={contours}
             player={player}
             onStatus={setStatus}

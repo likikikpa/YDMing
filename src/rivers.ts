@@ -152,33 +152,87 @@ export function snapToRiver(
 }
 
 /**
- * A river drawn by hand: a straight line from `start` to `end`, thin at the
- * source and wider at the mouth. An end that lies within a small gap of an
- * existing river is moved onto that river so the two connect; otherwise the
- * points are used exactly as given.
+ * Centripetal Catmull–Rom spline through `points`: a smooth curve that bends
+ * at every point and passes exactly through it, without loops or overshoot.
+ * Samples are about `step` apart.
  */
-export function riverBetween(
-  start: Point,
-  end: Point,
+export function curveThrough(points: Point[], step: number): Point[] {
+  if (points.length < 3) {
+    const [a, b] = points;
+    if (!b) return [...points];
+    const count = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / step));
+    return Array.from({ length: count + 1 }, (_, i) => ({
+      x: a.x + ((b.x - a.x) * i) / count,
+      y: a.y + ((b.y - a.y) * i) / count,
+    }));
+  }
+  const first = points[0],
+    last = points[points.length - 1],
+    p = [
+      { x: 2 * first.x - points[1].x, y: 2 * first.y - points[1].y },
+      ...points,
+      {
+        x: 2 * last.x - points[points.length - 2].x,
+        y: 2 * last.y - points[points.length - 2].y,
+      },
+    ],
+    out: Point[] = [first],
+    knot = (a: Point, b: Point) => Math.max(1e-3, Math.hypot(b.x - a.x, b.y - a.y) ** 0.5),
+    mix = (a: Point, b: Point, wa: number, wb: number): Point => ({
+      x: a.x * wa + b.x * wb,
+      y: a.y * wa + b.y * wb,
+    });
+  for (let i = 1; i < p.length - 2; i++) {
+    const [p0, p1, p2, p3] = [p[i - 1], p[i], p[i + 1], p[i + 2]],
+      t1 = knot(p0, p1),
+      t2 = t1 + knot(p1, p2),
+      t3 = t2 + knot(p2, p3),
+      count = Math.max(2, Math.ceil(Math.hypot(p2.x - p1.x, p2.y - p1.y) / step));
+    for (let k = 1; k <= count; k++) {
+      const t = t1 + ((t2 - t1) * k) / count,
+        a1 = mix(p0, p1, (t1 - t) / t1, t / t1),
+        a2 = mix(p1, p2, (t2 - t) / (t2 - t1), (t - t1) / (t2 - t1)),
+        a3 = mix(p2, p3, (t3 - t) / (t3 - t2), (t - t2) / (t3 - t2)),
+        b1 = mix(a1, a2, (t2 - t) / t2, t / t2),
+        b2 = mix(a2, a3, (t3 - t) / (t3 - t1), (t - t1) / (t3 - t1));
+      out.push(mix(b1, b2, (t2 - t) / (t2 - t1), (t - t1) / (t2 - t1)));
+    }
+  }
+  return out;
+}
+
+/**
+ * A river drawn by hand through the points the person placed, in order. It
+ * curves smoothly at each point and is not random. The first and last point
+ * join a neighbouring river when they lie within a small gap of it; all other
+ * points are used exactly as given. Returns null when there is nothing to draw.
+ */
+export function riverThrough(
+  placed: Point[],
   others: MapPath[],
   id: string,
 ): MapPath | null {
-  const a = snapToRiver(start, others) ?? start,
-    b = snapToRiver(end, others) ?? end,
-    length = Math.hypot(b.x - a.x, b.y - a.y);
+  // A double-click would otherwise leave two points on top of each other.
+  const points = placed.filter(
+    (p, i) => i === 0 || Math.hypot(p.x - placed[i - 1].x, p.y - placed[i - 1].y) >= 2,
+  );
+  if (points.length < 2) return null;
+  points[0] = snapToRiver(points[0], others) ?? points[0];
+  points[points.length - 1] =
+    snapToRiver(points[points.length - 1], others) ?? points[points.length - 1];
+  const line = curveThrough(points, 6);
+  let length = 0;
+  const along = line.map((p, i) => {
+    if (i) length += Math.hypot(p.x - line[i - 1].x, p.y - line[i - 1].y);
+    return length;
+  });
   if (length < 4) return null;
-  const count = Math.max(1, Math.ceil(length / 8)),
-    points: Point[] = [],
-    widths: number[] = [];
-  for (let i = 0; i <= count; i++) {
-    const t = i / count;
-    points.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
-    widths.push(1 + 1.4 * t);
-  }
+  // Thin at the source, wider towards the mouth.
+  const widths = along.map((d) => 1 + 1.4 * (d / length));
   return {
     id,
     kind: "river",
-    points,
+    points: line,
     widths,
     width: Math.max(...widths),
     layer: "Water",

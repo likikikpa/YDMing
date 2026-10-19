@@ -26,8 +26,8 @@ describe("sculpting", () => {
   it("raises the ground softly: strongest in the middle, nothing outside the brush", () => {
     const map = flatWorld(),
       before = map.heights.slice(),
-      dirty = sculptDab(map, "raise", { x: 600, y: 425 }, 0.2, 0, brush)!;
-    expect(at(map, 600, 425)).toBeGreaterThan(0.69);
+      dirty = sculptDab(map, "raise", { x: 600, y: 425 }, 0.5, 0, brush)!;
+    expect(at(map, 600, 425)).toBeGreaterThan(0.6);
     expect(at(map, 600, 425)).toBeGreaterThan(at(map, 615, 425));
     expect(at(map, 615, 425)).toBeGreaterThan(at(map, 628, 425));
     expect(at(map, 700, 425)).toBe(0.5);
@@ -124,20 +124,29 @@ describe("freehand helpers", () => {
       expect(biomeAt(map, 120, 85)).toBe(11);
       expect(map.heights[85 * map.cols + 160]).toBe(0.2);
     });
-    it("climbs from sand to dirt to grass to rock to snow as the pile grows", () => {
+    it("spends a quarter of a second in each material: sand, dirt, grass, rock, snow", () => {
       const map = flatWorld(0.2),
         stage = () => biomeAt(map, 120, 85);
-      pour(map, 1);
+      // Sampled in the middle of each quarter second (60 frames a second).
+      pour(map, 8);
       expect(stage()).toBe(11);
-      pour(map, 14);
+      pour(map, 15);
       expect(stage()).toBe(DIRT);
-      // Half a second of holding is past dirt and onto grass, wherever the map sits.
       pour(map, 15);
       expect(stage()).toBe(GRASS);
-      pour(map, 80);
+      pour(map, 15);
       expect(stage()).toBe(2);
-      pour(map, 120);
+      pour(map, 15);
       expect(stage()).toBe(1);
+    });
+    it("pours faster at higher strength", () => {
+      const slow = flatWorld(0.2),
+        fast = flatWorld(0.2);
+      for (let f = 0; f < 20; f++) {
+        sculptDab(slow, "raise", { x: 600, y: 425 }, sculptAmount(30, 1 / 60, 1, "raise"), 0, brush);
+        sculptDab(fast, "raise", { x: 600, y: 425 }, sculptAmount(90, 1 / 60, 1, "raise"), 0, brush);
+      }
+      expect(fast.heights[centre(fast)]).toBeGreaterThan(slow.heights[centre(slow)]);
     });
     it("lets digging lower the pile back through the same materials", () => {
       const map = flatWorld(0.2);
