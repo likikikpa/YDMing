@@ -21,6 +21,7 @@ import {
   simplify,
   unionRects,
 } from "./sculpt";
+import { isScatterSprite, preloadSymbols } from "./symbols";
 import { uid } from "./types";
 import { editableTerrain, terrainView } from "./terrain";
 import type { CellRect } from "./terrain-render";
@@ -40,6 +41,8 @@ export interface BrushSettings {
   color: string;
   biome: number;
   stamp: StampKind;
+  /** A bundled sprite to place with the stamp tool; wins over `stamp`. */
+  sprite?: { src: string; name: string };
   snap: boolean;
   pressure: boolean;
   layer: string;
@@ -463,6 +466,10 @@ export const Editor = forwardRef<EditorHandle, Props>(
           observer.observe(host.current!);
           (app as Application & { cleanup?: () => void }).cleanup = () =>
             observer.disconnect();
+          // Symbols must be loaded before the first frame, or the map would flash
+          // with placeholder shapes.
+          await preloadSymbols();
+          if (cancelled) return;
           render({ map: latest.current.map });
           setReady(true);
         } catch (e) {
@@ -604,6 +611,23 @@ export const Editor = forwardRef<EditorHandle, Props>(
       const m = draft.current!,
         b = latest.current.brush;
       if (!editable(m, b.layer)) return;
+      if (b.sprite) {
+        const scatter = isScatterSprite(b.sprite.src);
+        m.objects.push({
+          id: uid(),
+          kind: "image",
+          image: b.sprite.src,
+          x: p.x,
+          y: p.y,
+          name: b.sprite.name,
+          width: scatter ? b.size * 0.7 : b.size,
+          height: scatter ? b.size * 0.7 : b.size,
+          rotation: 0,
+          layer: b.layer,
+          color: b.color,
+        });
+        return;
+      }
       const tree = ["tree", "pine"].includes(b.stamp);
       m.objects.push({
         id: uid(),
@@ -1021,7 +1045,9 @@ export const Editor = forwardRef<EditorHandle, Props>(
         }
       } else if (
         p.tool === "stamp" &&
-        ["tree", "pine"].includes(p.brush.stamp) &&
+        (p.brush.sprite
+          ? isScatterSprite(p.brush.sprite.src)
+          : ["tree", "pine"].includes(p.brush.stamp)) &&
         Math.hypot(world.x - d.last.x, world.y - d.last.y) > p.brush.size * 0.45
       ) {
         placeStamp(world);

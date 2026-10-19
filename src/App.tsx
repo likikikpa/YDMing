@@ -99,7 +99,6 @@ import { loadProject, saveProject, validateProject } from "./storage";
 import { creditsText, download, exportMap, slug } from "./export";
 import { fitImage } from "./assets";
 import type { FitSettings } from "./assets";
-import { stampSvg } from "./stamps";
 import { toolDescriptions } from "./tools";
 import kenney from "./data/kenney.json";
 
@@ -152,28 +151,6 @@ const colourTools: Tool[] = [
   "stamp",
 ];
 const layerTools: Tool[] = [...paintTools, "stamp"];
-const stamps: { kind: StampKind; name: string; category: string }[] = [
-  { kind: "mountain", name: "Mountain", category: "Nature" },
-  { kind: "hill", name: "Hills", category: "Nature" },
-  { kind: "tree", name: "Oak tree", category: "Nature" },
-  { kind: "pine", name: "Pine tree", category: "Nature" },
-  { kind: "rock", name: "Boulders", category: "Nature" },
-  { kind: "city", name: "City", category: "Buildings" },
-  { kind: "village", name: "Village", category: "Buildings" },
-  { kind: "castle", name: "Castle", category: "Buildings" },
-  { kind: "house", name: "House", category: "Buildings" },
-  { kind: "tavern", name: "Tavern", category: "Buildings" },
-  { kind: "temple", name: "Temple", category: "Buildings" },
-  { kind: "tower", name: "Watchtower", category: "Buildings" },
-  { kind: "well", name: "Well", category: "Buildings" },
-  { kind: "dungeon", name: "Dungeon", category: "Markers" },
-  { kind: "chest", name: "Chest", category: "Markers" },
-  { kind: "door", name: "Door", category: "Markers" },
-  { kind: "secret", name: "Secret door", category: "Markers" },
-  { kind: "trap", name: "Trap", category: "Markers" },
-  { kind: "stairs", name: "Stairs", category: "Markers" },
-  { kind: "pillar", name: "Pillar", category: "Markers" },
-];
 const presetNames: Record<string, string> = {
   continents: "Continents",
   pangaea: "Pangaea",
@@ -445,6 +422,7 @@ export default function App() {
       color: "#344a39",
       biome: 6,
       stamp: "tree",
+      sprite: { src: "/assets/cartography/treePine.png", name: "Pine tree" },
       snap: false,
       pressure: true,
       layer: "Objects",
@@ -487,8 +465,7 @@ export default function App() {
     [exportSecrets, setExportSecrets] = useState(true),
     [libraryTab, setLibraryTab] = useState("Built-in"),
     [assetSearch, setAssetSearch] = useState(""),
-    [assetCategory, setAssetCategory] = useState("All"),
-    [assetPack, setAssetPack] = useState("procedural"),
+    [assetPack, setAssetPack] = useState("cartography"),
     [webQuery, setWebQuery] = useState(""),
     [webSource, setWebSource] = useState("commons"),
     [webResults, setWebResults] = useState<AssetResult[]>([]),
@@ -1128,54 +1105,6 @@ export default function App() {
     key: K,
     value: GeneratorSettings[K],
   ) => setSettings((s) => ({ ...s, [key]: value }));
-  async function placeKenney(asset: (typeof kenney)[number]) {
-    try {
-      const response = await fetch(asset.src);
-      if (!response.ok) throw new Error("The asset is unavailable.");
-      const image = await fitImage(await response.blob(), { ...emptyFit });
-      const credit: Credit = {
-        id: "kenney-" + asset.pack,
-        name:
-          asset.pack === "cartography"
-            ? "Kenney Cartography Pack"
-            : "Kenney Medieval RTS",
-        author: "Kenney",
-        license: "CC0 1.0",
-        url: asset.source,
-      };
-      const next = structuredClone(map!);
-      const o: MapObject = {
-        id: uid(),
-        kind: "image",
-        x: 600,
-        y: 425,
-        width: 64,
-        height: (64 * image.height) / image.width,
-        name: asset.name,
-        rotation: 0,
-        layer: "Objects",
-        color: brush.color,
-        image: image.data,
-        creditId: credit.id,
-      };
-      next.objects.push(o);
-      commit(
-        {
-          ...project!,
-          maps: project!.maps.map((m) => (m.id === next.id ? next : m)),
-          credits: [
-            ...project!.credits.filter((c) => c.id !== credit.id),
-            credit,
-          ],
-        },
-        "Place Kenney sprite",
-      );
-      setSelected([o.id]);
-      setTool("select");
-    } catch (e) {
-      notify(String(e));
-    }
-  }
   const selectField = (
     label: string,
     key: keyof GeneratorSettings,
@@ -2346,9 +2275,6 @@ export default function App() {
                         value={assetPack}
                         onChange={(e) => setAssetPack(e.target.value)}
                       >
-                        <option value="procedural">
-                          {t("Procedural symbols")} · 20
-                        </option>
                         <option value="cartography">
                           Kenney Cartography · 83
                         </option>
@@ -2365,74 +2291,45 @@ export default function App() {
                         onChange={(e) => setAssetSearch(e.target.value)}
                       />
                     </div>
-                    {assetPack === "procedural" && (
-                      <div className="filter-chips">
-                        {["All", "Nature", "Buildings", "Markers"].map((v) => (
+                    <div className="stamp-grid">
+                      {[...kenney]
+                        // Map symbols first; arrows, path pieces and textures last.
+                        .sort(
+                          (x, y) =>
+                            Number(/arrow|path|texture|element/i.test(x.name)) -
+                            Number(/arrow|path|texture|element/i.test(y.name)),
+                        )
+                        .filter(
+                          (a) =>
+                            a.pack === assetPack &&
+                            a.name
+                              .toLowerCase()
+                              .includes(assetSearch.toLowerCase()),
+                        )
+                        .map((a) => (
                           <button
-                            key={v}
-                            className={assetCategory === v ? "active" : ""}
-                            onClick={() => setAssetCategory(v)}
+                            className={`pack-stamp ${tool === "stamp" && brush.sprite?.src === a.src ? "active" : ""}`}
+                            key={a.id}
+                            title={a.name}
+                            onClick={() => {
+                              // Pick a sprite, then click or drag on the map to place it.
+                              setBrush((b) => ({
+                                ...b,
+                                sprite: { src: a.src, name: a.name },
+                                layer: "Objects",
+                                mask: false,
+                              }));
+                              setTool("stamp");
+                            }}
                           >
-                            {t(v)}
+                            <img src={a.src} alt="" loading="lazy" />
+                            <span>{a.name}</span>
                           </button>
                         ))}
-                      </div>
-                    )}
-                    <div className="stamp-grid">
-                      {assetPack === "procedural"
-                        ? stamps
-                            .filter(
-                              (s) =>
-                                (assetCategory === "All" ||
-                                  s.category === assetCategory) &&
-                                s.name
-                                  .toLowerCase()
-                                  .includes(assetSearch.toLowerCase()),
-                            )
-                            .map((s) => (
-                              <button
-                                key={s.kind}
-                                className={
-                                  brush.stamp === s.kind && tool === "stamp"
-                                    ? "active"
-                                    : ""
-                                }
-                                onClick={() => {
-                                  setBrush((b) => ({
-                                    ...b,
-                                    stamp: s.kind,
-                                    layer: "Objects",
-                                  }));
-                                  setTool("stamp");
-                                }}
-                              >
-                                <img src={stampSvg(s.kind)} alt="" />
-                                <span>{t(s.name)}</span>
-                              </button>
-                            ))
-                        : kenney
-                            .filter(
-                              (a) =>
-                                a.pack === assetPack &&
-                                a.name
-                                  .toLowerCase()
-                                  .includes(assetSearch.toLowerCase()),
-                            )
-                            .map((a) => (
-                              <button
-                                className="pack-stamp"
-                                key={a.id}
-                                onClick={() => void placeKenney(a)}
-                              >
-                                <img src={a.src} alt="" loading="lazy" />
-                                <span>{a.name}</span>
-                              </button>
-                            ))}
                     </div>
                     <p className="panel-footnote">
-                      {assetPack === "procedural"
-                        ? t("Procedural symbols · original artwork")
-                        : "Kenney · CC0 1.0"}
+                      {t("Pick a sprite, then click or drag on the map to place it.")} Kenney
+                      · CC0 1.0
                     </p>
                   </>
                 )}

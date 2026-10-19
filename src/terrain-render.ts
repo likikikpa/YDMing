@@ -1,6 +1,7 @@
 import { biomeAt } from "./generator";
 import { clamp, hash, noise, random } from "./random";
-import { drawStamp } from "./stamps";
+import { imageCache } from "./render";
+import { DECOR_SPRITES } from "./symbols";
 import type { MapData } from "./types";
 
 /** Inclusive rectangle of terrain cells. */
@@ -336,46 +337,21 @@ function decorFor(seed: string) {
   return spots;
 }
 
-const sprites = new Map<string, HTMLCanvasElement>();
-function sprite(
-  kind: "mountain" | "pine" | "tree",
-  w: number,
-  h: number,
-  color: string,
-) {
-  // Sizes are bucketed so a few dozen small bitmaps serve thousands of symbols.
-  const qw = kind === "mountain" ? Math.round(w / 2) * 2 : Math.round(w),
-    qh = kind === "mountain" ? Math.round(h / 3) * 3 : Math.round(h),
-    key = `${kind}:${qw}:${qh}:${color}`;
-  let canvas = sprites.get(key);
-  if (!canvas) {
-    canvas = document.createElement("canvas");
-    canvas.width = Math.ceil(qw * 1.4) + 6;
-    canvas.height = Math.ceil(qh * 1.5) + 6;
-    const c = canvas.getContext("2d")!;
-    c.translate(canvas.width / 2, canvas.height / 2);
-    drawStamp(c, kind, qw, qh, color);
-    sprites.set(key, canvas);
-  }
-  return canvas;
-}
-
 function drawDecor(
   ctx: CanvasRenderingContext2D,
   map: MapData,
   entry: Entry | undefined,
-  vector: boolean,
   area?: Rect,
 ) {
   const { cols, rows, heights, width, height } = map;
   for (const spot of decorFor(map.settings.seed)) {
-    // Symbols reach up to ~40 px beyond their centre.
+    // Sprites reach up to ~60 px beyond their centre.
     if (
       area &&
-      (spot.x < area.x - 40 ||
-        spot.x > area.x + area.w + 40 ||
-        spot.y < area.y - 40 ||
-        spot.y > area.y + area.h + 40)
+      (spot.x < area.x - 70 ||
+        spot.x > area.x + area.w + 70 ||
+        spot.y < area.y - 70 ||
+        spot.y > area.y + area.h + 70)
     )
       continue;
     const cx = Math.floor((spot.x / width) * cols),
@@ -383,32 +359,39 @@ function drawDecor(
       i = cy * cols + cx,
       h = heights[i],
       b = entry ? entry.biomeGrid[i] : biomeAt(map, cx, cy);
-    let kind: "mountain" | "pine" | "tree" | null = null;
-    if (h > 0.71 && spot.n % 3 === 0) kind = "mountain";
-    else if ((b === 6 || b === 4 || b === 10) && spot.n % 2 === 0)
-      kind = b === 4 ? "pine" : "tree";
-    if (!kind) continue;
-    const w = kind === "mountain" ? spot.mw : spot.tw,
-      hh = kind === "mountain" ? spot.mh : spot.th,
-      color = kind === "mountain" ? "#717258" : "#64704f";
-    if (kind !== "mountain") ctx.globalAlpha = 0.7;
-    if (vector) {
-      ctx.save();
-      ctx.translate(spot.x, spot.y);
-      drawStamp(ctx, kind, w, hh, color);
-      ctx.restore();
-    } else {
-      const s = sprite(kind, w, hh, color);
-      ctx.drawImage(
-        s,
-        spot.x - s.width / 2,
-        spot.y - s.height / 2,
-        s.width,
-        s.height,
-      );
+    let pool: readonly string[] | null = null,
+      size = 0;
+    if (spot.n % 3 === 0) {
+      if (h > 0.71) {
+        // Occasional volcano-like peaks stand out among the ranges.
+        // Every other candidate: ranges stay readable instead of a solid scribble.
+        if (spot.n % 2) continue;
+        pool = h > 0.85 && spot.n % 18 === 0 ? DECOR_SPRITES.peak : DECOR_SPRITES.mountain;
+        size = spot.mw * 1.55;
+      } else {
+        pool =
+          b === 4
+            ? DECOR_SPRITES.pine
+            : b === 6
+              ? DECOR_SPRITES.forest
+              : b === 10
+                ? DECOR_SPRITES.jungle
+                : b === 8 && spot.n % 9 === 0
+                  ? DECOR_SPRITES.desert
+                  : b === 9 && spot.n % 9 === 0
+                    ? DECOR_SPRITES.savanna
+                    : null;
+        size = spot.tw * 2.8;
+      }
     }
-    if (kind !== "mountain") ctx.globalAlpha = 1;
+    if (!pool) continue;
+    const img = imageCache.get(pool[(spot.n / 3) % pool.length | 0]);
+    if (!img?.complete) continue;
+    // The sprite's base sits on the spot, so symbols overlap like real terrain.
+    ctx.globalAlpha = size > 20 && h > 0.71 ? 0.82 : 0.75;
+    ctx.drawImage(img, spot.x - size / 2, spot.y - size * 0.72, size, size);
   }
+  ctx.globalAlpha = 1;
 }
 
 interface Rect {
@@ -454,7 +437,7 @@ function paintLandscape(
   if (contours)
     for (let h = map.settings.seaLevel + 0.07; h < 1; h += 0.055)
       coast(ctx, map, h, "#6d725d44", 0.7, region);
-  if (map.kind === "world") drawDecor(ctx, map, entry, vector, area);
+  if (map.kind === "world") drawDecor(ctx, map, entry, area);
   if (area) ctx.restore();
 }
 

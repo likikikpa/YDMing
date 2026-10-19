@@ -65,7 +65,12 @@ export function validateProject(value: unknown): Project {
       )
         throw new Error("The project contains an invalid path.");
     for (const o of m.objects) {
-      if (o.image && !/^data:image\/(png|jpeg|webp);base64,/.test(o.image))
+      if (
+        o.image &&
+        !/^data:image\/(png|jpeg|webp);base64,/.test(o.image) &&
+        // Sprites that ship with the app are referenced by path, not copied in.
+        !/^\/assets\/(cartography|medieval)\/[\w.-]+\.png$/.test(o.image)
+      )
         throw new Error(
           "Imported images must be embedded PNG, JPEG, or WebP files.",
         );

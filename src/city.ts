@@ -290,7 +290,11 @@ export function generateCity(map: MapData, r: () => number) {
         x: plan.cx + Math.cos(a) * plan.rx * 0.5,
         y: plan.cy + Math.sin(a) * plan.ry * 0.5,
       };
-    if (landAt(map, keep.x, keep.y))
+    // The keep is large, so all of its footprint must be dry.
+    const dry = [[0, 0], [28, 0], [-28, 0], [0, 28], [0, -28]].every(([dx, dy]) =>
+      landAt(map, keep.x + dx, keep.y + dy),
+    );
+    if (dry)
       map.objects.push(
         object("citadel", "castle", keep.x, keep.y, "The High Keep", s.citySize === "town" ? 50 : 65, s.citySize === "town" ? 50 : 65),
       );
@@ -395,7 +399,8 @@ export function cityBuildings(map: MapData, r: () => number) {
         kind === "temple" ? 26 : w,
         kind === "temple" ? 28 : h,
       );
-    o.rotation = (rotation * 180) / Math.PI;
+    // Line-art roofs stay upright; the street angle only shaped the footprint.
+    o.rotation = 0;
     o.owner = settlementName(r);
     map.objects.push(o);
     remember(x, y, Math.hypot(w, h) * 0.42);

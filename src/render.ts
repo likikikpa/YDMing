@@ -4,6 +4,7 @@ import { drawLandscape, seaColor } from "./terrain-render";
 import type { CellRect } from "./terrain-render";
 import { hash } from "./random";
 import { drawStamp, path } from "./stamps";
+import { SYMBOL_SCALE, SYMBOL_SPRITES } from "./symbols";
 import type { MapData, MapObject, MapPath, Stroke } from "./types";
 export { drawStamp, stampSvg } from "./stamps";
 export interface RenderOptions {
@@ -19,7 +20,7 @@ export interface RenderOptions {
   /** Draw everything as vectors into the target, for scaled exports. */
   vector?: boolean;
 }
-const imageCache = new Map<string, HTMLImageElement>();
+export const imageCache = new Map<string, HTMLImageElement>();
 export function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const known = imageCache.get(src);
@@ -274,7 +275,23 @@ function drawObject(
     if (img?.complete)
       ctx.drawImage(img, -o.width / 2, -o.height / 2, o.width, o.height);
     else void loadImage(o.image).catch(() => undefined);
-  } else drawStamp(ctx, o.kind, o.width, o.height, o.color, variant);
+  } else {
+    const src = SYMBOL_SPRITES[o.kind as keyof typeof SYMBOL_SPRITES],
+      img = src ? imageCache.get(src) : undefined;
+    if (img?.complete) {
+      // Fit the sprite inside the object's box, keeping its proportions.
+      const k =
+        Math.min(o.width / img.naturalWidth, o.height / img.naturalHeight) *
+        SYMBOL_SCALE;
+      ctx.drawImage(
+        img,
+        (-img.naturalWidth * k) / 2,
+        (-img.naturalHeight * k) / 2,
+        img.naturalWidth * k,
+        img.naturalHeight * k,
+      );
+    } else drawStamp(ctx, o.kind, o.width, o.height, o.color, variant);
+  }
   ctx.restore();
 }
 export function drawMap(
