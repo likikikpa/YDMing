@@ -2,6 +2,7 @@ import { drainage } from "./drainage";
 import { cityBuildings, generateCity } from "./city";
 import { worldLakes, worldPeople, worldWater } from "./generation-parts";
 import { clamp, fbm, hash, random } from "./random";
+import { CELL, clampSize } from "./mapsize";
 import { defaultSettings, makeLayers } from "./types";
 import type {
   GeneratorSettings,
@@ -122,11 +123,13 @@ export function createEmptyMap(
   settings: GeneratorSettings = defaultSettings,
   name?: string,
   id?: string,
+  size?: { cols: number; rows: number },
 ): MapData {
   const s = { ...settings },
     r = random(s.seed),
-    cols = kind === "dungeon" ? s.dungeonSize : 240,
-    rows = kind === "dungeon" ? Math.round(cols * 0.7) : 170;
+    landSize = size ? clampSize(size.cols, size.rows) : { cols: 240, rows: 170 },
+    cols = kind === "dungeon" ? s.dungeonSize : landSize.cols,
+    rows = kind === "dungeon" ? Math.round(cols * 0.7) : landSize.rows;
   const map: MapData = {
     id: id || `map-${hash(s.seed + kind)}`,
     name:
@@ -137,8 +140,9 @@ export function createEmptyMap(
           ? settlementName(r)
           : "The Hollow Sanctum"),
     kind,
-    width: 1200,
-    height: 850,
+    // Dungeons keep a fixed sheet and size their grid squares to it.
+    width: kind === "dungeon" ? 1200 : cols * CELL,
+    height: kind === "dungeon" ? 850 : rows * CELL,
     cols,
     rows,
     heights: new Array(cols * rows).fill(0),
@@ -157,10 +161,11 @@ export function generateMap(
   settings: GeneratorSettings = defaultSettings,
   name?: string,
   id?: string,
+  size?: { cols: number; rows: number },
 ): MapData {
   const r = random(settings.seed);
   const resolvedName = name || (kind === "city" ? settlementName(r) : undefined);
-  const map = createEmptyMap(kind, settings, resolvedName, id);
+  const map = createEmptyMap(kind, settings, resolvedName, id, size);
   if (kind === "world") generateWorld(map, r);
   else if (kind === "city") generateCity(map, r);
   else generateDungeon(map, r);
@@ -530,7 +535,10 @@ export function rerollGroup(
   settings: GeneratorSettings,
 ): MapData {
   if (group === "all") {
-    const next = generateMap(map.kind, settings, map.name, map.id);
+    const next = generateMap(map.kind, settings, map.name, map.id, {
+      cols: map.cols,
+      rows: map.rows,
+    });
     next.parentId = map.parentId;
     next.parentPosition = map.parentPosition;
     return next;
@@ -571,7 +579,10 @@ export function rerollGroup(
       // Streets and terrain stay; only houses and district names are re-drawn.
       cityBuildings(out, random(seed + "buildings"));
     } else {
-      const next = generateMap(map.kind, settings, map.name, map.id);
+      const next = generateMap(map.kind, settings, map.name, map.id, {
+      cols: map.cols,
+      rows: map.rows,
+    });
       out.heights = next.heights;
       out.biomes = next.biomes;
       out.paths = next.paths;

@@ -202,6 +202,8 @@ export interface MapData {
   materialKeys?: string[];
   parentId?: string;
   parentPosition?: Point;
+  /** How far resizing has moved the original sheet, so decorations stay on the land. */
+  origin?: Point;
   /** City layout (centre, size, gates) kept so buildings can be rerolled on the same streets. */
   plan?: {
     cx: number;
