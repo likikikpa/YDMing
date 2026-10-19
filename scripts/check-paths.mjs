@@ -39,6 +39,8 @@ for (const filename of walk(root)) {
   for (const [, specifier] of matches) {
     checked++;
     const base = path.resolve(path.dirname(filename), specifier);
+    // The build output only exists after `npm run build`, which CI runs later.
+    if (path.relative(root, base).split(path.sep)[0] === "dist") continue;
     const candidates = [
       base,
       ...[".ts", ".tsx", ".js", ".mjs", ".json", ".mts", ".d.ts", ".d.mts"].map(

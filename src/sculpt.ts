@@ -1,3 +1,4 @@
+import { setMaterial } from "./materials";
 import { clamp, hash, noise } from "./random";
 import { editableTerrain } from "./terrain";
 import type { CellRect } from "./terrain-render";
@@ -10,6 +11,7 @@ export const SCULPT_TOOLS: Tool[] = [
   "flatten",
   "roughen",
   "biome",
+  "terrain",
 ];
 /** Height change per second at full strength, in height units (0–1 range). */
 export const SCULPT_SPEED = 0.5;
@@ -76,6 +78,10 @@ export interface SculptBrush {
   /** 5–100. */
   strength: number;
   biome: number;
+  /** Texture layer the terrain paint tool lays down; empty clears back to the biome. */
+  material?: string;
+  /** 0–100: low values fray the edge of terrain paint. */
+  hardness?: number;
 }
 
 export const unionRects = (
@@ -170,6 +176,11 @@ export function sculptDab(
             6;
         heights[i] += (avg - heights[i]) * Math.min(1, amount * 16 * w);
       } else if (tool === "biome" && w > 0.2) terrain.biomes[i] = brush.biome;
+      else if (tool === "terrain") {
+        const soft = 1 - (brush.hardness ?? 85) / 100;
+        if (w > 0.2 + (noise(x * 0.7, y * 0.7, seed) - 0.5) * soft * 0.7)
+          setMaterial(m, terrain, i, brush.material || null);
+      }
       if (tool === "raise" || tool === "dig") settle(terrain, i, sea);
     }
   return { x0: x0 - 1, y0: y0 - 1, x1: x1 + 1, y1: y1 + 1 };
