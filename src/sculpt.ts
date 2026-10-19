@@ -107,9 +107,25 @@ export function sculptDab(
   return { x0: x0 - 1, y0: y0 - 1, x1: x1 + 1, y1: y1 + 1 };
 }
 
+/**
+ * Raise and dig move height directly, while smooth, flatten and roughen apply
+ * their own multipliers in `sculptDab`. Without this gain a click or a short
+ * drag changed the ground by about a tenth of the land's height: invisible.
+ */
+export const RAISE_DIG_GAIN = 3;
+
 /** Height change a single frame of `dt` seconds applies at the brush centre. */
-export const sculptAmount = (strength: number, dt: number, pressure = 1) =>
-  SCULPT_SPEED * (strength / 100) * dt * pressure;
+export const sculptAmount = (
+  strength: number,
+  dt: number,
+  pressure = 1,
+  tool?: Tool,
+) =>
+  SCULPT_SPEED *
+  (strength / 100) *
+  dt *
+  pressure *
+  (tool === "raise" || tool === "dig" ? RAISE_DIG_GAIN : 1);
 
 /** Ramer–Douglas–Peucker: keeps the shape of a freehand line with far fewer points. */
 export function simplify(points: Point[], epsilon: number): Point[] {

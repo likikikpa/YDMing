@@ -8,8 +8,8 @@ import {
 import { Application, Sprite, Texture } from "pixi.js";
 import { drawMap, loadImage } from "./render";
 import { hitObject, navigationTarget } from "./hit-test";
-import { biomeAt, keyRoom, traceRiver } from "./generator";
-import { mergeRivers, riverFromCells } from "./rivers";
+import { biomeAt, keyRoom } from "./generator";
+import { riverBetween, snapToRiver } from "./rivers";
 import { clamp, random } from "./random";
 import {
   SCULPT_TOOLS,
@@ -147,6 +147,8 @@ export const Editor = forwardRef<EditorHandle, Props>(
       [ready, setReady] = useState(false),
       [renderError, setRenderError] = useState("");
     const lastPaint = useRef<Point | null>(null);
+    // Source of the river being drawn; the next click places its mouth.
+    const riverStart = useRef<Point | null>(null);
     const lastStatus = useRef({ zoom: 100, x: 0, y: 0, height: 0, biome: 0 });
     // Fingers currently on the map and the pinch that two of them start.
     const touches = useRef(new Map<number, Point>());
@@ -344,6 +346,35 @@ export const Editor = forwardRef<EditorHandle, Props>(
         c.fillRect(a.x, a.y, b.x - a.x, b.y - a.y);
         c.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
       }
+      if (riverStart.current && latest.current.tool === "river") {
+        const rivers = latest.current.map.paths.filter(
+            (p) => p.kind === "river",
+          ),
+          from = snapToRiver(riverStart.current, rivers) ?? riverStart.current,
+          a = screenPoint(from);
+        c.strokeStyle = "#7fb7d6";
+        c.fillStyle = "#7fb7d6";
+        c.lineWidth = 2;
+        if (cursor) {
+          const hover = snapToRiver(worldPoint(cursor), rivers),
+            b = hover ? screenPoint(hover) : cursor;
+          c.setLineDash([6, 4]);
+          c.beginPath();
+          c.moveTo(a.x, a.y);
+          c.lineTo(b.x, b.y);
+          c.stroke();
+          c.setLineDash([]);
+          if (hover) {
+            // The mouth is close enough to a river to join it.
+            c.beginPath();
+            c.arc(b.x, b.y, 6, 0, Math.PI * 2);
+            c.stroke();
+          }
+        }
+        c.beginPath();
+        c.arc(a.x, a.y, 4, 0, Math.PI * 2);
+        c.fill();
+      }
       const trail = drag.current?.trail;
       if (trail && trail.length > 1) {
         c.beginPath();
@@ -478,6 +509,10 @@ export const Editor = forwardRef<EditorHandle, Props>(
       };
       void init();
       const down = (e: KeyboardEvent) => {
+        if (e.key === "Escape" && riverStart.current) {
+          riverStart.current = null;
+          drawOverlay();
+        }
         if (
           e.code === "Space" &&
           !(
@@ -544,8 +579,12 @@ export const Editor = forwardRef<EditorHandle, Props>(
       if (ready) fit();
     }, [props.map.id, ready]);
     useEffect(() => {
+      if (props.tool !== "river") riverStart.current = null;
       drawOverlay();
     }, [props.selected, props.tool, props.brush]);
+    useEffect(() => {
+      riverStart.current = null;
+    }, [props.map.id]);
     useEffect(() => {
       const el = host.current;
       if (!el) return;
@@ -575,7 +614,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
           Math.min(0.1, Math.max(0.001, (now - s.time) / 1000)) +
           Math.min(0.1, distance / (b.size * 12)),
         steps = Math.max(1, Math.ceil(distance / Math.max(2, b.size * 0.18))),
-        amount = sculptAmount(b.strength, dt, s.pressure) / steps;
+        amount = sculptAmount(b.strength, dt, s.pressure, tool) / steps;
       let dirty: CellRect | undefined;
       for (let k = 1; k <= steps; k++)
         dirty = unionRects(
@@ -867,32 +906,22 @@ export const Editor = forwardRef<EditorHandle, Props>(
         }
       } else if (
         p.tool === "river" &&
-        editable(m, "Water") &&
-        editable(m, "Terrain")
+        editable(m, "Water")
       ) {
-        editableTerrain(m);
-        const landscape = terrainView(m),
-          start =
-            clamp(Math.floor((world.y / m.height) * m.rows), 0, m.rows - 1) *
-              m.cols +
-            clamp(Math.floor((world.x / m.width) * m.cols), 0, m.cols - 1);
-        // Only land can hold a source; a click on open water does nothing.
-        if (landscape.heights[start] >= m.settings.seaLevel) {
-          const cells = traceRiver(landscape, start);
-          if (cells.length > 2) {
-            const { relaxed, ...river } = riverFromCells(
-              landscape,
-              [...cells].reverse(),
-              { id: uid() },
-            );
-            void relaxed;
-            // A river that runs into an existing one ends there instead of overlapping it.
-            const merged = mergeRivers(
-              river,
-              m.paths.filter((p) => p.kind === "river"),
-            );
-            if (merged) m.paths.push(merged);
-          }
+        // Two clicks: the first marks the source, the second the mouth. The
+        // river is the straight line between them, joined to a neighbouring
+        // river only when an end lies within a small gap of it.
+        const first = riverStart.current;
+        if (!first) riverStart.current = world;
+        else {
+          riverStart.current = null;
+          const river = riverBetween(
+            first,
+            world,
+            m.paths.filter((p) => p.kind === "river"),
+            uid(),
+          );
+          if (river) m.paths.push(river);
         }
         refresh(m);
       } else if (["road", "wall", "ridge"].includes(p.tool)) {

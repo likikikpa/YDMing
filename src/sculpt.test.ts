@@ -104,4 +104,19 @@ describe("freehand helpers", () => {
     expect(points).toHaveLength(11);
     expect(points[5].x).toBeCloseTo(50);
   });
+  it("makes a plain click or a short drag change the ground visibly", () => {
+    const map = flatWorld(0.6),
+      before = map.heights.slice();
+    // The first dab of a press covers 0.1s; the editor then adds a few frames.
+    for (let frame = 0; frame < 7; frame++)
+      sculptDab(
+        map,
+        "raise",
+        { x: 600, y: 425 },
+        sculptAmount(55, frame ? 1 / 60 : 0.1, 1, "raise"),
+        0,
+        brush,
+      );
+    expect(at(map, 600, 425) - before[Math.round(425 / 5) * map.cols + 120]).toBeGreaterThan(0.12);
+  });
 });

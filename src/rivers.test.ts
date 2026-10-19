@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { generateMap } from "./generator";
-import { buildRiverNetwork, mergeRivers, riverFromCells } from "./rivers";
+import {
+  buildRiverNetwork,
+  mergeRivers,
+  riverBetween,
+  riverFromCells,
+} from "./rivers";
 import { traceRiver } from "./generator";
 import { random } from "./random";
 import { defaultSettings } from "./types";
@@ -118,5 +123,30 @@ describe("river networks", () => {
       river = riverFromCells(map, [...cells].reverse());
     expect(river.points.length).toBeGreaterThan(cells.length);
     expect(river.widths!.length).toBe(river.points.length);
+  });
+  describe("hand-drawn rivers", () => {
+    const line = (x0: number, y0: number, x1: number, y1: number) =>
+      riverBetween({ x: x0, y: y0 }, { x: x1, y: y1 }, [], "a")!;
+    it("is a straight line between the two clicks with no branches", () => {
+      const river = line(100, 100, 300, 160);
+      expect(river.points[0]).toEqual({ x: 100, y: 100 });
+      expect(river.points.at(-1)).toEqual({ x: 300, y: 160 });
+      for (const p of river.points)
+        expect(
+          Math.abs((p.y - 100) * 200 - (p.x - 100) * 60),
+        ).toBeLessThan(1e-6);
+      expect(river.widths!.length).toBe(river.points.length);
+      expect(river.widths![0]).toBeLessThan(river.widths!.at(-1)!);
+    });
+    it("joins a river whose bank is within the small gap, but not one further away", () => {
+      const other = line(0, 200, 400, 200);
+      const near = riverBetween({ x: 200, y: 50 }, { x: 205, y: 190 }, [other], "b")!;
+      expect(near.points.at(-1)).toEqual({ x: 205, y: 200 });
+      const far = riverBetween({ x: 200, y: 50 }, { x: 205, y: 150 }, [other], "c")!;
+      expect(far.points.at(-1)).toEqual({ x: 205, y: 150 });
+    });
+    it("ignores a click on the same spot twice", () => {
+      expect(riverBetween({ x: 10, y: 10 }, { x: 11, y: 11 }, [], "d")).toBeNull();
+    });
   });
 });

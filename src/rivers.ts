@@ -120,6 +120,71 @@ export function riverFromCells(
   };
 }
 
+/** How close (in map pixels) a clicked point must be to a river to join it. */
+export const RIVER_JOIN_DISTANCE = 12;
+
+/** The nearest point on any of `rivers` to `p`, or null when none is within `reach`. */
+export function snapToRiver(
+  p: Point,
+  rivers: MapPath[],
+  reach = RIVER_JOIN_DISTANCE,
+): Point | null {
+  let best: { d: number; at: Point } | null = null;
+  for (const river of rivers) {
+    const q = river.points;
+    for (let k = 1; k < q.length; k++) {
+      const dx = q[k].x - q[k - 1].x,
+        dy = q[k].y - q[k - 1].y,
+        t = Math.max(
+          0,
+          Math.min(
+            1,
+            ((p.x - q[k - 1].x) * dx + (p.y - q[k - 1].y) * dy) /
+              (dx * dx + dy * dy || 1),
+          ),
+        ),
+        at = { x: q[k - 1].x + dx * t, y: q[k - 1].y + dy * t },
+        d = Math.hypot(p.x - at.x, p.y - at.y);
+      if (d <= reach && (!best || d < best.d)) best = { d, at };
+    }
+  }
+  return best?.at ?? null;
+}
+
+/**
+ * A river drawn by hand: a straight line from `start` to `end`, thin at the
+ * source and wider at the mouth. An end that lies within a small gap of an
+ * existing river is moved onto that river so the two connect; otherwise the
+ * points are used exactly as given.
+ */
+export function riverBetween(
+  start: Point,
+  end: Point,
+  others: MapPath[],
+  id: string,
+): MapPath | null {
+  const a = snapToRiver(start, others) ?? start,
+    b = snapToRiver(end, others) ?? end,
+    length = Math.hypot(b.x - a.x, b.y - a.y);
+  if (length < 4) return null;
+  const count = Math.max(1, Math.ceil(length / 8)),
+    points: Point[] = [],
+    widths: number[] = [];
+  for (let i = 0; i <= count; i++) {
+    const t = i / count;
+    points.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+    widths.push(1 + 1.4 * t);
+  }
+  return {
+    id,
+    kind: "river",
+    points,
+    widths,
+    width: Math.max(...widths),
+    layer: "Water",
+  };
+}
+
 /**
  * Stops a river where it runs into another one, ending exactly on the other
  * river's line, so two rivers never lie on top of each other. Returns null when
