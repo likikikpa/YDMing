@@ -63,8 +63,8 @@ export function worldPeople(map: MapData, seed: string) {
   const total = s.cities + s.towns + s.villages + s.dungeons;
   for (let n = 0; n < total; n++)
     for (let a = 0; a < 1800; a++) {
-      const x = 100 + r() * 1000,
-        y = 95 + r() * 660,
+      const x = 100 + r() * (map.width - 200),
+        y = 95 + r() * (map.height - 190),
         i =
           Math.floor((y / map.height) * map.rows) * map.cols +
           Math.floor((x / map.width) * map.cols),

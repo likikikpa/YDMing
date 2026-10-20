@@ -266,9 +266,11 @@ export const Editor = forwardRef<EditorHandle, Props>(
     /** Draws the map now and uploads it to the GPU. */
     const render = (f: Frame) => {
       const canvas = mapCanvas.current;
+      let resized = false;
       if (canvas.width !== f.map.width || canvas.height !== f.map.height) {
         canvas.width = f.map.width;
         canvas.height = f.map.height;
+        resized = true;
       }
       drawMap(canvas.getContext("2d")!, f.map, {
         contours: latest.current.contours,
@@ -279,6 +281,17 @@ export const Editor = forwardRef<EditorHandle, Props>(
       if (sprite.current) {
         if (sprite.current.texture === Texture.EMPTY)
           sprite.current.texture = Texture.from(canvas);
+        else if (resized) {
+          // A sprite keeps the size of its first texture, so a resized map
+          // gets a fresh sprite and texture in the same place.
+          const old = sprite.current,
+            next = new Sprite(Texture.from(canvas, true)),
+            stage = application.current?.stage;
+          stage?.addChildAt(next, stage.getChildIndex(old));
+          stage?.removeChild(old);
+          old.destroy({ texture: true, textureSource: true });
+          sprite.current = next;
+        }
         else sprite.current.texture.source.update();
         position();
       }

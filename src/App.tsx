@@ -7,6 +7,7 @@ import {
   DoorOpen,
   ChevronDown,
   ChevronUp,
+  Maximize2,
   PaintRoller,
   ChevronRight,
   Undo2,
@@ -81,6 +82,16 @@ import type { LucideIcon } from "lucide-react";
 import { get, set } from "idb-keyval";
 import { inheritCityTerrain } from "./inherit";
 import { isMovable, moveLayer, placeLayer } from "./layers";
+import {
+  clampSize,
+  MAX_CELLS,
+  MIN_COLS,
+  MIN_ROWS,
+  resizeMap,
+  shiftChildren,
+  SIZE_PRESETS,
+} from "./mapsize";
+import type { Anchor } from "./mapsize";
 import {
   BUILTIN_MATERIALS,
   defaultTextures,
@@ -313,6 +324,62 @@ function TooltipLayer() {
     </div>
   );
 }
+/** Width and height in cells, with presets; shows the size in pixels too. */
+function MapSizeFields({
+  t,
+  size,
+  onChange,
+}: {
+  t: (s: string) => string;
+  size: { cols: number; rows: number };
+  onChange: (size: { cols: number; rows: number }) => void;
+}) {
+  const preset = SIZE_PRESETS.find(
+    (p) => p.cols === size.cols && p.rows === size.rows,
+  );
+  return (
+    <>
+      <Field label={t("Map size")}>
+        <select
+          value={preset?.name ?? "custom"}
+          onChange={(e) => {
+            const p = SIZE_PRESETS.find((p) => p.name === e.target.value);
+            if (p) onChange({ cols: p.cols, rows: p.rows });
+          }}
+        >
+          {SIZE_PRESETS.map((p) => (
+            <option key={p.name} value={p.name}>
+              {t(p.name)} · {p.cols} × {p.rows}
+            </option>
+          ))}
+          <option value="custom">{t("Custom")}</option>
+        </select>
+      </Field>
+      <div className="size-fields">
+        {(["cols", "rows"] as const).map((key) => (
+          <label key={key}>
+            {t(key === "cols" ? "Width" : "Height")}
+            <input
+              type="number"
+              min={key === "cols" ? MIN_COLS : MIN_ROWS}
+              max={MAX_CELLS}
+              value={size[key]}
+              onChange={(e) => onChange({ ...size, [key]: +e.target.value })}
+              onBlur={() => onChange(clampSize(size.cols, size.rows))}
+            />
+          </label>
+        ))}
+        <span>
+          {t("cells")} · {clampSize(size.cols, size.rows).cols * 5} ×{" "}
+          {clampSize(size.cols, size.rows).rows * 5} px
+        </span>
+      </div>
+      <p className="panel-footnote">
+        {t("Up to 640 × 640 cells (3200 × 3200 px).")}
+      </p>
+    </>
+  );
+}
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="field">
@@ -477,7 +544,7 @@ export default function App() {
     [busy, setBusy] = useState(false),
     [toast, setToast] = useState(""),
     [modal, setModal] = useState<
-      "new" | "export" | "credits" | "help" | "fit" | null
+      "new" | "export" | "credits" | "help" | "fit" | "resize" | null
     >(null),
     [menu, setMenu] = useState(false),
     [group, setGroup] = useState("Shape"),
@@ -491,6 +558,12 @@ export default function App() {
     [newKind, setNewKind] = useState<MapKind>("world"),
     [newName, setNewName] = useState(""),
     [newSeed, setNewSeed] = useState(""),
+    [newSize, setNewSize] = useState<{ cols: number; rows: number }>(
+      SIZE_PRESETS[0],
+    ),
+    [resize, setResize] = useState<{ cols: number; rows: number; anchor: Anchor }>(
+      { cols: 240, rows: 170, anchor: { x: 0.5, y: 0.5 } },
+    ),
     [exportFormat, setExportFormat] = useState("png"),
     [exportScale, setExportScale] = useState(2),
     [exportSecrets, setExportSecrets] = useState(true),
@@ -572,6 +645,24 @@ export default function App() {
     commit(next, "Delete texture layer");
     setActiveTexture("grass");
     if (brush.material === id) setBrush((b) => ({ ...b, material: to ?? "" }));
+  }
+  function openResize() {
+    if (!map) return;
+    setResize({ cols: map.cols, rows: map.rows, anchor: { x: 0.5, y: 0.5 } });
+    setModal("resize");
+  }
+  /** Applies the Resize dialog: new cells are sea, child maps keep their spot. */
+  function applyResize() {
+    if (!project || !map) return;
+    const next = resizeMap(map, resize.cols, resize.rows, resize.anchor),
+      ox = (next.origin?.x ?? 0) - (map.origin?.x ?? 0),
+      oy = (next.origin?.y ?? 0) - (map.origin?.y ?? 0),
+      maps = project.maps.map((m) => (m.id === map.id ? next : { ...m }));
+    shiftChildren(maps, map.id, ox, oy);
+    commit({ ...project, maps }, `Resize map · ${next.cols} × ${next.rows}`);
+    setModal(null);
+    setSelected([]);
+    requestAnimationFrame(() => editor.current?.fit());
   }
   /** Replaces the project's texture layers as one undo step. */
   const changeTextures = (
@@ -911,6 +1002,7 @@ export default function App() {
     name: string,
     seed?: string,
     parent?: MapObject,
+    size?: { cols: number; rows: number },
   ) {
     if (!project || !map) return;
     setBusy(true);
@@ -931,7 +1023,7 @@ export default function App() {
             map.heights[i] < map.settings.seaLevel + 0.06 ? "coast" : "river",
         };
       }
-      const next = createEmptyMap(kind, s, name || undefined, uid());
+      const next = createEmptyMap(kind, s, name || undefined, uid(), size);
       const updated = structuredClone(map);
       if (parent) {
         next.parentId = map.id;
@@ -2438,6 +2530,12 @@ export default function App() {
                     "Regenerating replaces this map’s edits. Undo restores them.",
                   )}
                 </p>
+                {map.kind !== "dungeon" && (
+                  <button className="button subtle full" onClick={openResize}>
+                    <Maximize2 size={14} />
+                    {t("Resize map")} · {map.cols} × {map.rows}
+                  </button>
+                )}
                 {map.kind === "dungeon" && (
                   <button
                     className="button subtle full"
@@ -3313,9 +3411,19 @@ export default function App() {
           )}
           <span>{BIOMES[status.biome] || "Auto"}</span>
           <span className="status-separator" />
-          <span>
-            {map.width} × {map.height}
-          </span>
+          {map.kind === "dungeon" ? (
+            <span>
+              {map.width} × {map.height}
+            </span>
+          ) : (
+            <button
+              className="status-size"
+              title={t("Resize map")}
+              onClick={openResize}
+            >
+              {map.width} × {map.height}
+            </button>
+          )}
         </div>
         <button
           title={`${t("Hide panels")} · Tab`}
@@ -3402,7 +3510,9 @@ export default function App() {
                       ? "Credits"
                       : modal === "help"
                         ? "Keyboard shortcuts"
-                        : "Library",
+                        : modal === "resize"
+                          ? "Map size"
+                          : "Library",
               )}
             </span>
             <h2 id="modal-title">
@@ -3415,7 +3525,9 @@ export default function App() {
                       ? "Credits"
                       : modal === "help"
                         ? "Keyboard shortcuts"
-                        : "Make it fit",
+                        : modal === "resize"
+                          ? "Resize map"
+                          : "Make it fit",
               )}
             </h2>
             {modal === "new" && (
@@ -3461,10 +3573,19 @@ export default function App() {
                     onChange={(e) => setNewSeed(e.target.value)}
                   />
                 </Field>
+                {newKind !== "dungeon" && (
+                  <MapSizeFields
+                    t={t}
+                    size={newSize}
+                    onChange={setNewSize}
+                  />
+                )}
                 <button
                   disabled={busy}
                   className="button brass full"
-                  onClick={() => createMap(newKind, newName, newSeed)}
+                  onClick={() =>
+                    createMap(newKind, newName, newSeed, undefined, newSize)
+                  }
                 >
                   {busy ? (
                     <LoaderCircle className="spin" size={16} />
@@ -3472,6 +3593,47 @@ export default function App() {
                     <Plus size={16} />
                   )}{" "}
                   {t("Create map")}
+                </button>
+              </>
+            )}
+            {modal === "resize" && (
+              <>
+                <MapSizeFields
+                  t={t}
+                  size={resize}
+                  onChange={(s) => setResize({ ...resize, ...s })}
+                />
+                <Field label={t("Keep the map at")}>
+                  <div className="anchor-grid" role="radiogroup">
+                    {([0, 0.5, 1] as const).flatMap((y) =>
+                      ([0, 0.5, 1] as const).map((x) => (
+                        <button
+                          key={`${x}-${y}`}
+                          role="radio"
+                          aria-checked={
+                            resize.anchor.x === x && resize.anchor.y === y
+                          }
+                          aria-label={`${t(y === 0 ? "Top" : y === 1 ? "Bottom" : "Middle")} ${t(x === 0 ? "left" : x === 1 ? "right" : "centre")}`}
+                          className={
+                            resize.anchor.x === x && resize.anchor.y === y
+                              ? "active"
+                              : ""
+                          }
+                          onClick={() =>
+                            setResize({ ...resize, anchor: { x, y } })
+                          }
+                        />
+                      )),
+                    )}
+                  </div>
+                </Field>
+                <p className="panel-footnote">
+                  {t(
+                    "New space is open sea. Generate the map again to spread land across the whole new size.",
+                  )}
+                </p>
+                <button className="button brass full" onClick={applyResize}>
+                  <Maximize2 size={16} /> {t("Resize map")}
                 </button>
               </>
             )}
@@ -3499,9 +3661,18 @@ export default function App() {
                         value={exportScale}
                         onChange={(e) => setExportScale(+e.target.value)}
                       >
-                        <option value={1}>1× · 1200 × 850</option>
-                        <option value={2}>2× · 2400 × 1700</option>
-                        <option value={3}>3× · 3600 × 2550</option>
+                        {[1, 2, 3]
+                          // Browsers refuse canvases much past ~120 million pixels.
+                          .filter(
+                            (s) =>
+                              s === 1 ||
+                              map.width * map.height * s * s <= 120_000_000,
+                          )
+                          .map((s) => (
+                            <option key={s} value={s}>
+                              {s}× · {map.width * s} × {map.height * s}
+                            </option>
+                          ))}
                       </select>
                     </Field>
                     <label className="checkbox">

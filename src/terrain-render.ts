@@ -621,27 +621,55 @@ interface DecorSpot {
   th: number;
   n: number;
 }
-const decorSpots = new Map<string, DecorSpot[]>();
-function decorFor(seed: string) {
-  let spots = decorSpots.get(seed);
+const decorTiles = new Map<string, DecorSpot[]>();
+/** Decoration spots are laid out on 400 px tiles so any map size gets the same density. */
+const DECOR_TILE = 400;
+/** 3000 spots used to cover a 1140 × 790 px sheet. */
+const DECOR_PER_TILE = Math.round((3000 * DECOR_TILE * DECOR_TILE) / (1140 * 790));
+function decorTile(seed: string, tx: number, ty: number) {
+  const key = `${seed}:${tx}:${ty}`;
+  let spots = decorTiles.get(key);
   if (!spots) {
-    const r = random(seed + "decor");
-    spots = Array.from({ length: 3000 }, (_, n) => ({
-      x: 30 + r() * 1140,
-      y: 30 + r() * 790,
+    const r = random(`${seed}decor${tx},${ty}`);
+    spots = Array.from({ length: DECOR_PER_TILE }, (_, n) => ({
+      x: (tx + r()) * DECOR_TILE,
+      y: (ty + r()) * DECOR_TILE,
       mw: 15 + r() * 19,
       mh: 19 + r() * 23,
       tw: 5 + r() * 4,
       th: 7 + r() * 5,
       n,
     }));
-    // Painter's algorithm: nearer (lower) symbols overlap the ones behind.
-    spots.sort((a, b) => a.y - b.y);
-    if (decorSpots.size >= 6)
-      decorSpots.delete(decorSpots.keys().next().value!);
-    decorSpots.set(seed, spots);
+    if (decorTiles.size >= 400)
+      decorTiles.delete(decorTiles.keys().next().value!);
+    decorTiles.set(key, spots);
   }
   return spots;
+}
+/**
+ * Decoration spots on the map, in map pixels, nearest last. They are fixed to
+ * the land rather than the sheet, so resizing a map does not move the trees.
+ */
+function decorFor(map: MapData, area?: Rect) {
+  const ox = map.origin?.x ?? 0,
+    oy = map.origin?.y ?? 0,
+    x0 = (area ? Math.max(0, area.x - 70) : 0) - ox,
+    y0 = (area ? Math.max(0, area.y - 70) : 0) - oy,
+    x1 = (area ? Math.min(map.width, area.x + area.w + 70) : map.width) - ox,
+    y1 = (area ? Math.min(map.height, area.y + area.h + 70) : map.height) - oy,
+    out: DecorSpot[] = [];
+  for (let ty = Math.floor(y0 / DECOR_TILE); ty * DECOR_TILE < y1; ty++)
+    for (let tx = Math.floor(x0 / DECOR_TILE); tx * DECOR_TILE < x1; tx++)
+      for (const spot of decorTile(map.settings.seed, tx, ty)) {
+        const x = spot.x + ox,
+          y = spot.y + oy;
+        // Keep clear of the frame drawn around the sheet.
+        if (x < 30 || y < 30 || x > map.width - 30 || y > map.height - 30)
+          continue;
+        out.push({ ...spot, x, y });
+      }
+  // Painter's algorithm: nearer (lower) symbols overlap the ones behind.
+  return out.sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
 function drawDecor(
@@ -651,7 +679,7 @@ function drawDecor(
   area?: Rect,
 ) {
   const { cols, rows, heights, width, height } = map;
-  for (const spot of decorFor(map.settings.seed)) {
+  for (const spot of decorFor(map, area)) {
     // Sprites reach up to ~60 px beyond their centre.
     if (
       area &&

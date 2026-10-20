@@ -1,12 +1,33 @@
 import { get, set } from "idb-keyval";
 import { BUILTIN_MATERIALS, PATTERNS } from "./materials";
+import { CELL, MAX_CELLS } from "./mapsize";
 import type { Project } from "./types";
 const key = "atlasforge-project-v1";
+/** Per-cell grids that are stored as Float32Array: a large map's heights stay a few MB. */
+const GRIDS = ["heights", "biomes", "materials"] as const;
+type Grids = Partial<Record<(typeof GRIDS)[number], ArrayLike<number>>>;
+function mapGrids(project: Project, convert: (v: ArrayLike<number>) => ArrayLike<number>) {
+  return {
+    ...project,
+    maps: project.maps.map((m) => {
+      const out = { ...m } as typeof m & Grids;
+      for (const k of GRIDS) if (m[k]) (out as Grids)[k] = convert(m[k]!);
+      if (m.terrain) {
+        const t = { ...m.terrain } as Grids;
+        for (const k of GRIDS)
+          if (m.terrain[k]) t[k] = convert(m.terrain[k]!);
+        out.terrain = t as typeof m.terrain;
+      }
+      return out;
+    }),
+  } as Project;
+}
 export async function loadProject(): Promise<Project | undefined> {
-  return get(key);
+  const project = await get<Project>(key);
+  return project && mapGrids(project, (v) => Array.from(v));
 }
 export async function saveProject(project: Project) {
-  await set(key, project);
+  await set(key, mapGrids(project, (v) => Float32Array.from(v)));
 }
 export function validateProject(value: unknown): Project {
   const p = value as Project;
@@ -27,8 +48,14 @@ export function validateProject(value: unknown): Project {
       m.cols < 1 ||
       m.rows < 1 ||
       m.cols * m.rows > 1000000 ||
-      m.width !== 1200 ||
-      m.height !== 850 ||
+      !Number.isFinite(m.width) ||
+      !Number.isFinite(m.height) ||
+      (m.kind === "dungeon"
+        ? m.width !== 1200 || m.height !== 850
+        : m.width !== m.cols * CELL ||
+          m.height !== m.rows * CELL ||
+          m.cols > MAX_CELLS ||
+          m.rows > MAX_CELLS) ||
       !Array.isArray(m.heights) ||
       m.heights.length !== m.cols * m.rows ||
       !m.heights.every(

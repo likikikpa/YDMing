@@ -2557,3 +2557,45 @@ img.layer-thumbnail {
 .texture-delete {
   margin-top: 14px;
 }
+.status-size {
+  color: inherit;
+  font: inherit;
+  text-decoration: underline dotted #a38d6766;
+  text-underline-offset: 3px;
+}
+.size-fields {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  margin: 4px 0 6px;
+}
+.size-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 10px;
+  color: #a38d67;
+}
+.size-fields input {
+  width: 84px;
+}
+.size-fields span {
+  font-size: 10px;
+  color: #8e7e65;
+  padding-bottom: 9px;
+}
+.anchor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 28px);
+  gap: 4px;
+}
+.anchor-grid button {
+  height: 28px;
+  border: 1px solid #ab8a4944;
+  border-radius: 2px;
+  background: #0002;
+}
+.anchor-grid button.active {
+  background: #d3b072;
+  border-color: #e0bd79;
+}

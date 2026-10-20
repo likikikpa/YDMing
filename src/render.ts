@@ -244,7 +244,7 @@ function layerPaint(
 ) {
   const live = liveId ? strokes.find((s) => s.id === liveId) : undefined,
     stable = live ? strokes.filter((s) => s !== live) : strokes,
-    key = `${map.id}:${layerId}`;
+    key = `${map.id}:${layerId}:${map.width}x${map.height}`;
   let cache = paintCaches.get(key);
   let common = 0;
   if (cache)
