@@ -1,4 +1,6 @@
+import { useMemo } from "react";
 import { Editor } from "../editor/Editor";
+import { imagesWithSprite, spriteAssets } from "../stamp-brush";
 import { cursorStatus } from "../status";
 import { IconButton } from "../ui/IconButton";
 import { ZoomReadout } from "../ui/Readouts";
@@ -48,6 +50,11 @@ export function CanvasWorkspace({ app }: { app: ReadyApp }) {
     tool,
     updateMap,
   } = app;
+  // A stamp being drawn shows before its picture joins the world's table.
+  const images = useMemo(
+    () => imagesWithSprite(project.images, brush.sprite),
+    [project.images, brush.sprite],
+  );
   return (
     <section className="canvas-workspace wood" aria-label="Map workspace">
       <div className="workspace-heading">
@@ -129,15 +136,14 @@ export function CanvasWorkspace({ app }: { app: ReadyApp }) {
         brush={brush}
         selected={selected}
         setSelected={setSelected}
-        onChange={(m, label) =>
-          updateMap(m, label, brush.sprite?.credit ? [brush.sprite.credit] : [])
-        }
+        onChange={(m, label) => updateMap(m, label, spriteAssets(brush.sprite))}
         onOpen={openObject}
         onColor={color}
         onRiverPoints={setRiverCount}
         contours={contours}
         player={player}
         textureVersion={textureVersion}
+        images={images}
         onStatus={cursorStatus.set}
       />
       <div className="map-corner-note">

@@ -66,7 +66,10 @@ export interface MapObject extends Point {
   linkedMap?: string;
   owner?: string;
   notes?: string;
+  /** A bundled sprite's path, or (in old saves) the picture embedded as a data URL. */
   image?: string;
+  /** The picture's key in `Project.images`: imported images are stored once per world. */
+  imageId?: string;
   creditId?: string;
   /** A note about this stamp outside the app: an obsidian:// or web link. */
   noteUrl?: string;
@@ -247,6 +250,8 @@ export interface Project {
   credits: Credit[];
   /** Ground materials shared by every map, drawn lowest first. */
   textures?: TextureLayer[];
+  /** Imported pictures (data URLs) by id; stamps refer to them with `imageId`. */
+  images?: Record<string, string>;
   commercial: boolean;
   updatedAt: string;
 }

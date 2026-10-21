@@ -17,7 +17,7 @@ CI (`.github/workflows/linux.yml`) runs typecheck, tests, build, a server smoke 
 - `src/app/`: `useAppModel` builds the app state from small hooks, each with one job (`useProjectStore` for the project and undo, `useToolState`, `useTextureLayers`, `useGenerator`, `useObjectActions`, `useLibrary`, `useProjectFiles`, `useKeyboardShortcuts`, ...). A hook gets only the earlier hooks it needs, so the order in `useAppModel` matters. `constants.ts` holds tool tables and shared types.
 - `src/layout/` (top bar, tool rail, canvas, tool card, sidebar, status bar), `src/panels/` (Generator, Layers, Library, History, More tools, Rooms), `src/modals/`, `src/ui/` (shared buttons, tooltip, fields): components take `app: ReadyApp` and destructure what they use.
 - `src/editor/`: the map canvas. `useEditorCore` holds every ref; `overlay`, `rendering`, `sculpting`, `stamps`, `pinch` and the `pointer-*` files each build on the earlier ones, composed in `Editor.tsx`.
-- Pure logic with tests lives in the root of `src/`: `sculpt.ts`, `materials.ts`, `erase.ts`, `search.ts`, `storage.ts`, `generator.ts`, `worlds.ts` (saved worlds), `map-tree.ts` (map parents and stamp links), `note-link.ts` (Obsidian links), `clipboard.ts` (copy and paste), `path-select.ts` (picking rivers, roads and walls), `stamp-brush.ts` (the stamp tool's sprite), `extent.ts` and `id-set.ts` (min/max and id lookups that stay fast and safe for any number of stamps), `shortcut-key.ts` (the letter of a key press on any layout). Rendering is `render.ts` and `terrain-render.ts`.
+- Pure logic with tests lives in the root of `src/`: `sculpt.ts`, `materials.ts`, `erase.ts`, `search.ts`, `storage.ts`, `generator.ts`, `worlds.ts` (saved worlds), `map-tree.ts` (map parents and stamp links), `note-link.ts` (Obsidian links), `clipboard.ts` (copy and paste), `path-select.ts` (picking rivers, roads and walls), `stamp-brush.ts` (the stamp tool's sprite), `extent.ts` and `id-set.ts` (min/max and id lookups that stay fast and safe for any number of stamps), `shortcut-key.ts` (the letter of a key press on any layout), `images.ts` (the per-world image table, and moving old embedded images into it). Rendering is `render.ts` and `terrain-render.ts`.
 - Server: `server-app.mjs` (Express app), `server-api.mjs` (the search proxy), `server-sources.mjs` (Wikimedia, Openverse, OpenGameArt), `server-sprites.mjs` (the sprite index and the sprite-or-picture rules), `server-auto.mjs` (the Auto search that combines them). `data/sprite-index.json` is built by `npm run index:sprites`; the Dockerfile copies every server file and `data/`, so add new ones there.
 
 ## Keep files small
@@ -62,6 +62,7 @@ Projects are stored in users' browsers and in `.ydming` files (older `.atlasforg
 
 - New fields on `Project`, `MapData` or `TextureLayer` are optional, and `validateProject` in `src/storage.ts` checks them.
 - Never change what an existing field means. Add a new field instead.
+- Imported pictures live once per world in `Project.images`; a stamp holds only `imageId` (see `src/images.ts`). Never put a data URL in a `MapObject`: every edit, undo step and save copies the whole map, so thousands of stamps with their own copy of a picture froze the app. Old saves that embed the picture in each stamp are moved into the table when loaded (`migrateImages`).
 
 ## UI text
 

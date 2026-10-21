@@ -1,3 +1,4 @@
+import { migrateImages } from "../images";
 import { IconButton } from "../ui/IconButton";
 import { Camera, Check } from "lucide-react";
 import type { ReadyApp } from "../app/useAppModel";
@@ -46,8 +47,12 @@ export function HistoryPanel({ app }: { app: ReadyApp }) {
           <button
             onClick={() => {
               // A snapshot restores into the open world and never moves it to another id.
+              // Snapshots from before images were kept once per world embed them.
               commit(
-                { ...structuredClone(s.project), id: project.id },
+                migrateImages({
+                  ...structuredClone(s.project),
+                  id: project.id,
+                }),
                 "Restore snapshot",
               );
               setSelected([]);
