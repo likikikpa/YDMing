@@ -1,6 +1,6 @@
 import type { StampSprite } from "../stamp-brush";
 import type { CellRect } from "../terrain-render";
-import type { MapData, MapObject, StampKind, Tool } from "../types";
+import type { MapData, MapObject, Point, StampKind, Tool } from "../types";
 
 export interface BrushSettings {
   size: number;
@@ -18,11 +18,20 @@ export interface BrushSettings {
   pressure: boolean;
   layer: string;
   mask?: boolean;
+  /** What the fog tool does; reveal when unset. */
+  fog?: "reveal" | "hide" | "room";
 }
 export interface EditorHandle {
   fit: () => void;
   zoom: (factor: number) => void;
-  exportCanvas: (player: boolean, scale: number) => HTMLCanvasElement;
+  /** `fog: false` leaves the fog of war out, for formats where the table software keeps its own. */
+  exportCanvas: (
+    player: boolean,
+    scale: number,
+    fog?: boolean,
+  ) => HTMLCanvasElement;
+  /** The map point in the middle of the view, kept inside the map. */
+  viewCentre: () => Point;
   /** Draws the river made of the points placed so far, then clears them. */
   finishRiver: () => void;
   /** Throws away the river being placed. */

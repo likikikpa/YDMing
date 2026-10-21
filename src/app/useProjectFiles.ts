@@ -11,12 +11,14 @@ export function useProjectFiles({
   setMenu,
   notify,
   lang,
+  backupSaved,
 }: {
   project: Project | null;
   importWorld: (project: Project) => Promise<void>;
   setMenu: (open: boolean) => void;
   notify: (message: string) => void;
   lang: string;
+  backupSaved: (id: string) => void;
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [exportFormat, setExportFormat] = useState("png");
@@ -30,6 +32,7 @@ export function useProjectFiles({
       }),
       `${slug(project.name)}.ydming`,
     );
+    backupSaved(project.id);
     setMenu(false);
   }
   async function openProjectFile(file: File) {

@@ -1,5 +1,6 @@
 import { LoaderCircle, Mountain } from "lucide-react";
 import { isReady, useAppModel } from "./app/useAppModel";
+import { BackupBanner } from "./layout/BackupBanner";
 import { CanvasWorkspace } from "./layout/CanvasWorkspace";
 import { HiddenFileInputs } from "./layout/HiddenFileInputs";
 import { ProjectMenu } from "./layout/ProjectMenu";
@@ -38,6 +39,7 @@ export default function App() {
       </main>
       <StatusBar app={app} />
       <SaveErrorBanner app={app} />
+      <BackupBanner app={app} />
       <ToastMessage app={app} />
       <HiddenFileInputs app={app} />
       <ModalHost app={app} />

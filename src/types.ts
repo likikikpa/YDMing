@@ -24,6 +24,7 @@ export type Tool =
   | "road"
   | "wall"
   | "room"
+  | "fog"
   | "eyedropper";
 export type StampKind =
   | "tree"
@@ -193,6 +194,18 @@ export interface TextureLayer {
   cover?: string;
 }
 export type TextureTiling = "tiled" | "blended" | "unveil";
+/**
+ * Fog of war: a coarse grid over the map, stored as run lengths that
+ * alternate hidden, revealed, hidden … starting with hidden (it may be 0).
+ * A map without fog hides nothing.
+ */
+export interface FogData {
+  /** Map pixels per fog cell. */
+  cell: number;
+  cols: number;
+  rows: number;
+  runs: number[];
+}
 export interface MapData {
   id: string;
   name: string;
@@ -217,6 +230,8 @@ export interface MapData {
   parentPosition?: Point;
   /** A note about this map outside the app: an obsidian:// or web link. */
   noteUrl?: string;
+  /** Parts of the map hidden from players. */
+  fog?: FogData;
   /** How far resizing has moved the original sheet, so decorations stay on the land. */
   origin?: Point;
   /**

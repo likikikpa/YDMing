@@ -69,3 +69,50 @@ it("rejects malformed geometry and external image references in imported project
     }),
   ).toThrow("embedded");
 });
+it("keeps bundled sprites from every pack as paths and rejects other paths", () => {
+  const map = generateMap("dungeon", defaultSettings);
+  const withImage = (image: string) =>
+    JSON.parse(
+      JSON.stringify({
+        version: 1,
+        id: "p",
+        name: "P",
+        maps: [
+          {
+            ...map,
+            objects: [
+              {
+                id: "s",
+                kind: "image",
+                name: "S",
+                x: 1,
+                y: 1,
+                width: 10,
+                height: 10,
+                rotation: 0,
+                layer: "Objects",
+                color: "#000000",
+                image,
+              },
+            ],
+          },
+        ],
+        activeMapId: map.id,
+        credits: [],
+        commercial: false,
+        updatedAt: "2026-10-21",
+      }),
+    );
+  for (const ok of [
+    "/assets/cartography/house.png",
+    "/assets/medieval/castle.png",
+    "/assets/gosbell/table-long.png",
+  ])
+    expect(() => validateProject(withImage(ok))).not.toThrow();
+  for (const bad of [
+    "/assets/unknown/house.png",
+    "/assets/gosbell/../../secret.png",
+    "https://example.com/a.png",
+  ])
+    expect(() => validateProject(withImage(bad))).toThrow();
+});

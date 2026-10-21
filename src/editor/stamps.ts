@@ -20,7 +20,11 @@ export function createStamps(deps: EditorCore) {
         x: p.x,
         y: p.y,
         name: b.sprite.name,
-        ...spriteSize(b.sprite, b.size),
+        ...spriteSize(
+          b.sprite,
+          b.size,
+          m.kind === "dungeon" ? m.width / m.cols : 0,
+        ),
         rotation: 0,
         layer: b.layer,
         color: b.color,

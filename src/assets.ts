@@ -10,6 +10,7 @@ export interface FitSettings {
 export async function fitImage(
   source: Blob | string,
   settings: FitSettings,
+  maxSize = 1024,
 ): Promise<{ data: string; width: number; height: number }> {
   const url = typeof source === "string" ? source : URL.createObjectURL(source);
   try {
@@ -26,7 +27,7 @@ export async function fitImage(
     });
     const ratio = Math.min(
         1,
-        1024 / Math.max(image.naturalWidth, image.naturalHeight),
+        maxSize / Math.max(image.naturalWidth, image.naturalHeight),
       ),
       w = Math.max(1, Math.round(image.naturalWidth * ratio)),
       h = Math.max(1, Math.round(image.naturalHeight * ratio)),

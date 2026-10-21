@@ -8,6 +8,7 @@ import {
   replaceMaterial,
   TEXTURE_SOFT_LIMIT,
 } from "../materials";
+import { TEXTURE_PRESETS, presetLayer } from "../texture-presets";
 import { setTextureLayers } from "../terrain-render";
 import { uid } from "../types";
 import type { Project, TextureLayer } from "../types";
@@ -88,19 +89,46 @@ export function useTextureLayers({
       notify(t("That image could not be read."));
     }
   }
-  /** Adds a custom texture layer, warning once the soft limit is passed, and selects it. */
-  function addTexture() {
-    const id = uid();
-    changeTextures(
-      (list) => list.push(newTextureLayer(id, list, t("Texture"))),
-      "Add texture layer",
-    );
+  /** Selects a new texture layer for painting, warning once the soft limit is passed. */
+  function selectNewTexture(id: string) {
     setActiveTexture(id);
     setBrush((b) => ({ ...b, material: id }));
     if (textures.length >= TEXTURE_SOFT_LIMIT)
       notify(
         `${t("Many texture layers can slow the map down.")} ${textures.length + 1}/${TEXTURE_SOFT_LIMIT}`,
       );
+  }
+  /** Adds a custom texture layer and selects it. */
+  function addTexture() {
+    const id = uid();
+    changeTextures(
+      (list) => list.push(newTextureLayer(id, list, t("Texture"))),
+      "Add texture layer",
+    );
+    selectNewTexture(id);
+  }
+  /** Adds a texture layer that uses one of the bundled photo tiles, and selects it. */
+  async function addTexturePreset(presetId: string) {
+    const preset = TEXTURE_PRESETS.find((p) => p.id === presetId);
+    if (!preset) return;
+    try {
+      const response = await fetch(preset.src);
+      if (!response.ok) throw new Error(String(response.status));
+      const image = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(reader.error);
+        void response.blob().then((blob) => reader.readAsDataURL(blob));
+      });
+      const id = uid();
+      changeTextures(
+        (list) => list.push(presetLayer(id, preset, image)),
+        "Add texture layer",
+      );
+      selectNewTexture(id);
+    } catch {
+      notify(t("That texture could not be loaded. Check your connection."));
+    }
   }
   /** Deletes a texture layer; ground painted with it on every map becomes `to`. */
   function deleteTexture(id: string, to: string | null) {
@@ -138,6 +166,7 @@ export function useTextureLayers({
     uploadTexture,
     uploadCover,
     addTexture,
+    addTexturePreset,
     deleteTexture,
     changeTextures,
   };

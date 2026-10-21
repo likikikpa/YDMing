@@ -2,6 +2,7 @@ import { useImperativeHandle } from "react";
 import type { ForwardedRef } from "react";
 import type { EditorHandle } from "./types";
 import { drawMap } from "../render";
+import { clamp } from "../random";
 import { riverThrough } from "../rivers";
 import { uid } from "../types";
 import { beginDraft, editable } from "./draft";
@@ -13,11 +14,24 @@ export function useEditorHandle(
   ref: ForwardedRef<EditorHandle>,
   deps: EditorCore & EditorOverlay & EditorRendering,
 ) {
-  const { latest, riverPoints, size, setRiverPoints, fit, refresh, zoomAt } =
-    deps;
+  const {
+    latest,
+    riverPoints,
+    size,
+    setRiverPoints,
+    fit,
+    refresh,
+    zoomAt,
+    worldPoint,
+  } = deps;
   useImperativeHandle(ref, () => ({
     fit,
     zoom: (f) => zoomAt(f, { x: size.current.w / 2, y: size.current.h / 2 }),
+    viewCentre: () => {
+      const m = latest.current.map,
+        at = worldPoint({ x: size.current.w / 2, y: size.current.h / 2 });
+      return { x: clamp(at.x, 0, m.width), y: clamp(at.y, 0, m.height) };
+    },
     finishRiver: () => {
       const p = latest.current,
         river =
@@ -37,18 +51,22 @@ export function useEditorHandle(
     },
     cancelRiver: () => setRiverPoints([]),
     undoRiverPoint: () => setRiverPoints(riverPoints.current.slice(0, -1)),
-    exportCanvas: (player, scale) => {
+    exportCanvas: (player, scale, fog = true) => {
       const canvas = document.createElement("canvas");
       canvas.width = latest.current.map.width * scale;
       canvas.height = latest.current.map.height * scale;
       const ctx = canvas.getContext("2d")!;
       ctx.scale(scale, scale);
-      drawMap(ctx, latest.current.map, {
-        images: latest.current.images,
-        player,
-        contours: latest.current.contours,
-        vector: true,
-      });
+      drawMap(
+        ctx,
+        fog ? latest.current.map : { ...latest.current.map, fog: undefined },
+        {
+          images: latest.current.images,
+          player,
+          contours: latest.current.contours,
+          vector: true,
+        },
+      );
       return canvas;
     },
   }));

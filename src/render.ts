@@ -1,4 +1,5 @@
 import { floodFill } from "./flood";
+import { drawFog } from "./fog-render";
 import { objectImage } from "./images";
 import type { ImageTable } from "./images";
 import { terrainView } from "./terrain";
@@ -18,6 +19,8 @@ export interface RenderOptions {
   /** The world's imported pictures, for stamps that refer to one by `imageId`. */
   images?: ImageTable;
   player?: boolean;
+  /** Dim the parts hidden by fog of war (the GM's view); players always get them covered. */
+  fog?: boolean;
   contours?: boolean;
   grid?: boolean;
   transparent?: boolean;
@@ -340,7 +343,16 @@ function drawObject(
   }
   ctx.restore();
 }
+/** Draws the map, then the fog of war over it. */
 export function drawMap(
+  ctx: CanvasRenderingContext2D,
+  map: MapData,
+  options: RenderOptions = {},
+) {
+  drawMapLayers(ctx, map, options);
+  drawFog(ctx, map, options);
+}
+function drawMapLayers(
   ctx: CanvasRenderingContext2D,
   map: MapData,
   options: RenderOptions = {},
@@ -365,7 +377,7 @@ export function drawMap(
           visible: l.id === layer.id,
         })),
       };
-      drawMap(pc, copy, {
+      drawMapLayers(pc, copy, {
         ...options,
         transparent: true,
         ornaments: false,

@@ -12,6 +12,7 @@ import type { EditorSculpting } from "./sculpting";
 import type { EditorStamps } from "./stamps";
 import type { EditorPinch } from "./pinch";
 import type { EditorSelectTool } from "./select-tool";
+import type { EditorFogTool } from "./fog-tool";
 
 export type EditorPointerDown = ReturnType<typeof createPointerDown>;
 
@@ -22,7 +23,8 @@ export function createPointerDown(
     EditorSculpting &
     EditorStamps &
     EditorPinch &
-    EditorSelectTool,
+    EditorSelectTool &
+    EditorFogTool,
 ) {
   const {
     mapCanvas,
@@ -40,6 +42,7 @@ export function createPointerDown(
     getPoint,
     setRiverPoints,
     selectDown,
+    fogDown,
     drawOverlay,
     refresh,
     sculptFrame,
@@ -115,6 +118,11 @@ export function createPointerDown(
     const m = draft.current;
     if (p.tool === "select") {
       selectDown(e, m, world, screen);
+      return;
+    }
+    if (p.tool === "fog") {
+      refresh(m, undefined, undefined, fogDown(m, world));
+      drawOverlay(screen);
       return;
     }
     if (SCULPT_TOOLS.includes(p.tool)) {

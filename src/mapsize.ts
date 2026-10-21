@@ -1,3 +1,4 @@
+import { shiftFog } from "./fog";
 import type { MapData, Point } from "./types";
 
 /** Map pixels per terrain cell on world and city maps. */
@@ -72,6 +73,7 @@ export function resizeMap(
     materials: grid(map.materials, 0),
     origin: { x: (map.origin?.x ?? 0) + ox, y: (map.origin?.y ?? 0) + oy },
   };
+  next.fog = shiftFog(map, next, ox, oy);
   next.objects = next.objects.map(move);
   next.paths = next.paths.map((p) => ({ ...p, points: p.points.map(move) }));
   next.strokes = next.strokes.map((s) => ({

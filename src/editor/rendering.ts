@@ -124,6 +124,7 @@ export function createRendering(deps: EditorCore & EditorOverlay) {
         images: latest.current.images,
         contours: latest.current.contours,
         player: latest.current.player,
+        fog: true,
         vector: true,
         terrainDetail: terrain,
       });
@@ -157,6 +158,7 @@ export function createRendering(deps: EditorCore & EditorOverlay) {
       images: latest.current.images,
       contours: latest.current.contours,
       player: latest.current.player,
+      fog: true,
       dirty: f.dirty,
       liveStroke: f.live,
       clip: area,

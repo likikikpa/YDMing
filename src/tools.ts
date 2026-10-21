@@ -38,6 +38,7 @@ export const toolDescriptions: Record<Tool, string> = {
   road: "Drag to draw a road. The line is smoothed when you let go.",
   wall: "Drag to draw a wall. Good for cities and fortresses.",
   room: "Drag a rectangle to carve a new dungeon room. Rooms are numbered and keyed automatically.",
+  fog: "Paint over the map to reveal or hide it for players. In Player view hidden ground is black; for you it is dimmed.",
 };
 
 export const toolDescriptionsRu: Record<string, string> = {
@@ -84,4 +85,6 @@ export const toolDescriptionsRu: Record<string, string> = {
   [toolDescriptions.wall]: "Ведите мышь, чтобы нарисовать стену.",
   [toolDescriptions.room]:
     "Перетащите прямоугольник, чтобы вырезать комнату подземелья. Комнаты нумеруются сами.",
+  [toolDescriptions.fog]:
+    "Проведите по карте, чтобы открыть или скрыть её от игроков. В виде игрока скрытое чёрное; для вас оно затемнено.",
 };
