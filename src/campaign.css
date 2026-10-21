@@ -64,3 +64,57 @@ button.world-open:hover {
   flex: 1;
   min-width: 0;
 }
+
+.menu-map {
+  display: flex;
+  align-items: center;
+}
+.menu-map > button:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.menu-map > button:first-child span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.menu-map .icon-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  justify-content: center;
+  opacity: 0.6;
+}
+.menu-map .icon-button:hover {
+  opacity: 1;
+}
+.map-breadcrumb .crumb {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.map-breadcrumb span.current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 1150px) {
+  .map-breadcrumb .crumb {
+    gap: 7px;
+  }
+  .map-breadcrumb .crumb > button,
+  .map-breadcrumb span.current {
+    max-width: 105px;
+  }
+}
+@media (max-width: 700px) {
+  .map-breadcrumb .crumb.far {
+    display: none;
+  }
+}

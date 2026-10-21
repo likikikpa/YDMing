@@ -11,4 +11,11 @@ export const campaignRu: Record<string, string> = {
   "Save world file": "Сохранить файл мира",
   "Maps in this world": "Карты этого мира",
   Maps: "Карты",
+  "Link to map": "Ссылка на карту",
+  "No link": "Без ссылки",
+  "New city map": "Новая карта города",
+  "New dungeon map": "Новая карта подземелья",
+  "Delete map": "Удалить карту",
+  "Link map": "Связать карту",
+  "Remove map link": "Убрать ссылку на карту",
 };

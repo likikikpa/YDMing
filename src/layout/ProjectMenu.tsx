@@ -8,8 +8,11 @@ import {
   HelpCircle,
   Plus,
   Save,
+  Trash2,
 } from "lucide-react";
 import type { ReadyApp } from "../app/useAppModel";
+import { mapTree } from "../map-tree";
+import { IconButton } from "../ui/IconButton";
 
 export function ProjectMenu({ app }: { app: ReadyApp }) {
   const {
@@ -17,6 +20,7 @@ export function ProjectMenu({ app }: { app: ReadyApp }) {
     map,
     menu,
     project,
+    removeMap,
     saveProjectFile,
     setMenu,
     setModal,
@@ -58,24 +62,36 @@ export function ProjectMenu({ app }: { app: ReadyApp }) {
         </button>
         <hr />
         <small>{t("Maps in this world")}</small>
-        {project.maps.map((m) => (
-          <button
+        {mapTree(project.maps).map(({ map: m, depth }) => (
+          <div
             key={m.id}
-            onClick={() => {
-              setProject({ ...project, activeMapId: m.id });
-              setMenu(false);
-            }}
+            className="menu-map"
+            style={{ paddingLeft: depth * 14 }}
           >
-            {m.kind === "world" ? (
-              <Globe2 size={15} />
-            ) : m.kind === "city" ? (
-              <Castle size={15} />
-            ) : (
-              <DoorOpen size={15} />
+            <button
+              onClick={() => {
+                setProject({ ...project, activeMapId: m.id });
+                setMenu(false);
+              }}
+            >
+              {m.kind === "world" ? (
+                <Globe2 size={15} />
+              ) : m.kind === "city" ? (
+                <Castle size={15} />
+              ) : (
+                <DoorOpen size={15} />
+              )}
+              <span>{m.name}</span>
+              {m.id === map.id && <Check size={14} />}
+            </button>
+            {project.maps.length > 1 && (
+              <IconButton
+                icon={Trash2}
+                title={t("Delete map")}
+                onClick={() => removeMap(m.id)}
+              />
             )}
-            <span>{m.name}</span>
-            {m.id === map.id && <Check size={14} />}
-          </button>
+          </div>
         ))}
         <hr />
         <button

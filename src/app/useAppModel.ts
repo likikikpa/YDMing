@@ -4,6 +4,7 @@ import type { MapData, Project } from "../types";
 import { useGenerator } from "./useGenerator";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { useLibrary } from "./useLibrary";
+import { useMapLinks } from "./useMapLinks";
 import { useObjectActions } from "./useObjectActions";
 import { useProjectFiles } from "./useProjectFiles";
 import { useProjectStore } from "./useProjectStore";
@@ -68,6 +69,13 @@ export function useAppModel() {
     notify,
     t: view.t,
   });
+  const links = useMapLinks({
+    project: store.project,
+    map: store.map,
+    commit: store.commit,
+    createMap: generator.createMap,
+    setSelected: view.setSelected,
+  });
   const files = useProjectFiles({
     project: store.project,
     importWorld: worlds.importWorld,
@@ -127,6 +135,7 @@ export function useAppModel() {
     ...files,
     ...library,
     ...worlds,
+    ...links,
   };
 }
 
