@@ -13,6 +13,7 @@ import type { EditorSculpting } from "./sculpting";
 import type { EditorStamps } from "./stamps";
 import type { EditorPinch } from "./pinch";
 import type { EditorSelectTool } from "./select-tool";
+import type { EditorFogTool } from "./fog-tool";
 
 export type EditorPointerMove = ReturnType<typeof createPointerMove>;
 
@@ -23,7 +24,8 @@ export function createPointerMove(
     EditorSculpting &
     EditorStamps &
     EditorPinch &
-    EditorSelectTool,
+    EditorSelectTool &
+    EditorFogTool,
 ) {
   const {
     latest,
@@ -42,6 +44,7 @@ export function createPointerMove(
     placeStamp,
     pinchMove,
     selectMove,
+    fogMove,
   } = deps;
   function pointerMove(e: React.PointerEvent) {
     if (e.pointerType === "touch" && touches.current.has(e.pointerId)) {
@@ -85,6 +88,11 @@ export function createPointerMove(
       sculpt.current.pos = world;
       if (e.pointerType === "pen" && p.brush.pressure)
         sculpt.current.pressure = e.pressure * 2;
+      drawOverlay(screen);
+      return;
+    }
+    if (p.tool === "fog") {
+      refresh(m, undefined, undefined, fogMove(m, world));
       drawOverlay(screen);
       return;
     }

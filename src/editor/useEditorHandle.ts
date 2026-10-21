@@ -37,17 +37,21 @@ export function useEditorHandle(
     },
     cancelRiver: () => setRiverPoints([]),
     undoRiverPoint: () => setRiverPoints(riverPoints.current.slice(0, -1)),
-    exportCanvas: (player, scale) => {
+    exportCanvas: (player, scale, fog = true) => {
       const canvas = document.createElement("canvas");
       canvas.width = latest.current.map.width * scale;
       canvas.height = latest.current.map.height * scale;
       const ctx = canvas.getContext("2d")!;
       ctx.scale(scale, scale);
-      drawMap(ctx, latest.current.map, {
-        player,
-        contours: latest.current.contours,
-        vector: true,
-      });
+      drawMap(
+        ctx,
+        fog ? latest.current.map : { ...latest.current.map, fog: undefined },
+        {
+          player,
+          contours: latest.current.contours,
+          vector: true,
+        },
+      );
       return canvas;
     },
   }));

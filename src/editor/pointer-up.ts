@@ -11,6 +11,7 @@ import type { EditorSculpting } from "./sculpting";
 import type { EditorStamps } from "./stamps";
 import type { EditorPinch } from "./pinch";
 import type { EditorSelectTool } from "./select-tool";
+import type { EditorFogTool } from "./fog-tool";
 
 export type EditorPointerUp = ReturnType<typeof createPointerUp>;
 
@@ -21,7 +22,8 @@ export function createPointerUp(
     EditorSculpting &
     EditorStamps &
     EditorPinch &
-    EditorSelectTool,
+    EditorSelectTool &
+    EditorFogTool,
 ) {
   const {
     latest,
@@ -127,6 +129,8 @@ export function createPointerUp(
         changed = !!d.stroke || !!d.erased;
       } else if (SCULPT_TOOLS.includes(p.tool)) {
         changed = d.sculpted === true;
+      } else if (p.tool === "fog") {
+        changed = d.fogged === true;
       } else if (["stamp", "text", "river"].includes(p.tool)) {
         changed =
           m.objects.length !== p.map.objects.length ||

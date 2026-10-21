@@ -1973,6 +1973,14 @@ input[type="range"]::-webkit-slider-thumb {
 .mask-actions > .button:first-child {
   flex: 1;
 }
+.fog-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.fog-actions .button {
+  flex: 1;
+}
 .mask-actions .mask-active {
   background: #b48c4033;
   border-color: #d1ad66aa;

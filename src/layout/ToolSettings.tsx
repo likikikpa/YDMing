@@ -1,5 +1,6 @@
 import { colourTools, layerTools, paintTools } from "../app/constants";
 import { BIOMES } from "../generator";
+import { FogSettings } from "./FogSettings";
 import { TerrainPaintSettings } from "./TerrainPaintSettings";
 import { MAP_COLORS } from "../types";
 import { Field, HexColorField, Slider } from "../ui/Field";
@@ -41,6 +42,7 @@ export function ToolSettings({ app }: { app: ReadyApp }) {
           />
         )
       )}
+      <FogSettings app={app} />
       <TerrainPaintSettings app={app} />
       {tool === "biome" && (
         <Field label={t("Biome")}>
@@ -115,9 +117,15 @@ export function ToolSettings({ app }: { app: ReadyApp }) {
           </select>
         </Field>
       )}
-      {!["river", "island", "room", "text", "eyedropper", "fill"].includes(
-        tool,
-      ) && (
+      {![
+        "river",
+        "island",
+        "room",
+        "text",
+        "eyedropper",
+        "fill",
+        "fog",
+      ].includes(tool) && (
         <label className="checkbox">
           <input
             type="checkbox"

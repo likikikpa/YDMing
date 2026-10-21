@@ -1,3 +1,4 @@
+import { validFog } from "./fog";
 import { getWithLegacy } from "./legacy-keys";
 import { BUILTIN_MATERIALS, PATTERNS } from "./materials";
 import { isNoteUrl } from "./note-link";
@@ -97,6 +98,8 @@ export function validateProject(value: unknown): Project {
           !m.materialKeys.every((k) => typeof k === "string"))
       )
         throw new Error("The project contains invalid ground materials.");
+    if (m.fog !== undefined && !validFog(m.fog, m))
+      throw new Error("The project contains invalid fog of war.");
     if (
       m.decorErased !== undefined &&
       (!Array.isArray(m.decorErased) ||

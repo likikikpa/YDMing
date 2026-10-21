@@ -84,7 +84,11 @@ export function ExportModal({ app }: { app: ReadyApp }) {
             await exportMap(
               project,
               map,
-              editor.current!.exportCanvas(!exportSecrets, exportScale),
+              editor.current!.exportCanvas(
+                !exportSecrets,
+                exportScale,
+                exportFormat !== "vtt",
+              ),
               exportFormat,
               !exportSecrets,
             );

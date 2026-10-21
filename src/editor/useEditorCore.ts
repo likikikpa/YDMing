@@ -1,5 +1,6 @@
 import type { EditorProps } from "./types";
 import { useRef, useState } from "react";
+import type { FogGrid } from "../fog";
 import type { CellRect } from "../terrain-render";
 import type { MapData, MapObject, MapPath, Point, Stroke } from "../types";
 import type { GpuTile } from "./gpu-tiles";
@@ -38,6 +39,9 @@ export function useEditorCore(props: EditorProps) {
       erased?: boolean;
       /** Cells a terrain tool has changed during this drag. */
       sculptDirty?: CellRect;
+      /** The fog tool's working copy of the map's fog, and whether it changed. */
+      fog?: FogGrid;
+      fogged?: boolean;
     } | null>(null),
     [ready, setReady] = useState(false),
     [renderError, setRenderError] = useState("");

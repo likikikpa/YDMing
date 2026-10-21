@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import { createDoubleClick } from "./double-click";
+import { createFogTool } from "./fog-tool";
 import { createOverlay } from "./overlay";
 import { createPinch } from "./pinch";
 import { createPointerDown } from "./pointer-down";
@@ -28,6 +29,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(
     const stamps = createStamps(core);
     const pinch = createPinch({ ...core, ...rendering });
     const selectTool = createSelectTool({ ...core, ...overlayTools });
+    const fogTool = createFogTool(core);
     const all = {
       ...core,
       ...overlayTools,
@@ -36,6 +38,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(
       ...stamps,
       ...pinch,
       ...selectTool,
+      ...fogTool,
     };
     const { pointerDown } = createPointerDown(all);
     const { pointerMove } = createPointerMove(all);

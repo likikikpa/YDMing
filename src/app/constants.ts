@@ -3,6 +3,7 @@ import {
   Blend,
   Castle,
   Circle,
+  CloudFog,
   Droplets,
   Eraser,
   Equal,
@@ -63,6 +64,7 @@ export const toolInfo: Record<Tool, [string, LucideIcon, string]> = {
   road: ["Road", Route, "K"],
   wall: ["Wall", Castle, "J"],
   room: ["Room", Grid2X2, "P"],
+  fog: ["Fog of war", CloudFog, ""],
 };
 export const paintTools: Tool[] = [
   "brush",
@@ -108,7 +110,7 @@ export const primaryTools: Tool[][] = [
   ["brush", "rectangle", "text", "eyedropper"],
   ["raise", "dig", "smooth", "ridge", "terrain"],
   ["stamp", "river"],
-  ["eraser"],
+  ["eraser", "fog"],
 ];
 
 /** The dialogs that can be open. */
