@@ -44,7 +44,7 @@ export function TopBar({ app }: { app: ReadyApp }) {
           <Mountain size={27} />
         </span>
         <span>
-          ATLAS<span className="brand-gold">FORGE</span>
+          YD<span className="brand-gold">MING</span>
         </span>
         <ChevronDown size={13} />
       </button>
