@@ -1,4 +1,9 @@
-import { setMaterial } from "./materials";
+import {
+  BUILTIN_MATERIALS,
+  DEEP_WATER,
+  SHALLOW_WATER,
+  setMaterial,
+} from "./materials";
 import { clamp, hash, noise } from "./random";
 import { editableTerrain } from "./terrain";
 import type { CellRect } from "./terrain-render";
@@ -70,6 +75,34 @@ function settle(terrain: TerrainData, i: number, sea: number) {
         : h < ROCK_FROM && b !== 0
           ? GRASS
           : 0;
+}
+
+/**
+ * What the terrain paint tool builds for a ground: the height it brings the
+ * land to and the biome that goes with it. These are the bands the raise tool
+ * climbs through, so a snow peak stands on slopes of rock, grass, dirt and
+ * sand, and digging it away cuts back down through each. Water digs a basin
+ * below the sea line; any other (custom) texture stands on grass-height ground.
+ */
+export function groundTarget(material: string, sea: number) {
+  const dirtTop = sea + DIRT_TOP,
+    grass = dirtTop + Math.max(0.02, ROCK_FROM - dirtTop) * 0.35;
+  switch (material) {
+    case DEEP_WATER:
+      return { height: Math.max(0, sea - 0.14), biome: 0 };
+    case SHALLOW_WATER:
+      return { height: Math.max(0, sea - 0.04), biome: 0 };
+    case "sand":
+      return { height: sea + (SAND_START + SAND_TOP) / 2, biome: 0 };
+    case "dirt":
+      return { height: sea + (SAND_TOP + DIRT_TOP) / 2, biome: DIRT };
+    case "rock":
+      return { height: (ROCK_FROM + SNOW_FROM) / 2, biome: 0 };
+    case "snow":
+      return { height: Math.min(1, SNOW_FROM + 0.06), biome: 0 };
+    default:
+      return { height: grass, biome: GRASS };
+  }
 }
 
 export interface SculptBrush {
@@ -184,10 +217,51 @@ export function sculptDab(
       } else if (tool === "biome" && w > 0.2) terrain.biomes[i] = brush.biome;
       else if (tool === "terrain") {
         const soft = 1 - (brush.hardness ?? 85) / 100;
-        if (w > 0.2 + (noise(x * 0.7, y * 0.7, seed) - 0.5) * soft * 0.7)
-          setMaterial(m, terrain, i, brush.material || null);
+        if (!brush.material) {
+          // Auto: the ground goes back to what its climate grows; heights stay.
+          if (w > 0.2 + (noise(x * 0.7, y * 0.7, seed) - 0.5) * soft * 0.7)
+            setMaterial(m, terrain, i, null);
+        } else {
+          // Builds the ground: the brush raises (or, for water, digs) the land
+          // towards a profile that is the chosen layer's height in the middle
+          // and falls to the sea at the rim, so the slope passes through every
+          // layer below it. Harder brushes keep the top flatter. Outside the
+          // flat middle it only builds, so it never cuts into the surroundings.
+          const g = groundTarget(brush.material, sea),
+            // The slope runs from the rim in to a flat top; harder brushes
+            // have a narrower slope.
+            t = Math.min(
+              1,
+              (1 - d) / (0.85 - 0.45 * ((brush.hardness ?? 85) / 100)),
+            ),
+            k = t * t * (3 - 2 * t),
+            profile = sea + (g.height - sea) * k,
+            h = heights[i],
+            building = g.height >= sea;
+          // A faint rim over open water is left alone, as raise does.
+          if (building && h < sea && profile < sea + SAND_START) continue;
+          if (k >= 0.5 || (building ? profile > h : profile < h))
+            heights[i] += (profile - h) * Math.min(1, amount * 14);
+          if (k > 0.5) {
+            terrain.biomes[i] = g.biome;
+            // Built-in grounds follow from height; only custom textures are painted on.
+            setMaterial(
+              m,
+              terrain,
+              i,
+              BUILTIN_MATERIALS.includes(brush.material)
+                ? null
+                : brush.material,
+            );
+          }
+        }
       }
-      if (tool === "raise" || tool === "dig") settle(terrain, i, sea);
+      if (
+        tool === "raise" ||
+        tool === "dig" ||
+        (tool === "terrain" && brush.material)
+      )
+        settle(terrain, i, sea);
     }
   return { x0: x0 - 1, y0: y0 - 1, x1: x1 + 1, y1: y1 + 1 };
 }
@@ -271,8 +345,12 @@ export function raiseRange(
       length = Math.hypot(next.x - previous.x, next.y - previous.y) || 1,
       // The crest wanders sideways so ranges do not look ruler-straight.
       wander = (noise(n * 0.12, 3, seed) - 0.5) * radius * 4.5,
-      cx = (point.x - ((next.y - previous.y) / length) * wander) / (m.width / m.cols),
-      cy = (point.y + ((next.x - previous.x) / length) * wander) / (m.height / m.rows),
+      cx =
+        (point.x - ((next.y - previous.y) / length) * wander) /
+        (m.width / m.cols),
+      cy =
+        (point.y + ((next.x - previous.x) / length) * wander) /
+        (m.height / m.rows),
       local = radius * (0.75 + noise(n * 0.2, 9, seed) * 0.6),
       top = peak * (0.7 + noise(n * 0.25, 5, seed) * 0.6),
       x0 = Math.max(1, Math.floor(cx - local)),

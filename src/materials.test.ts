@@ -66,19 +66,19 @@ describe("ground materials", () => {
     list.push(newTextureLayer("a", list, "Texture"));
     expect(newTextureLayer("b", list, "Texture").name).toBe("Texture 2");
   });
-  it("terrain paint lays the chosen material under the brush only", () => {
+  it("terrain paint with a custom texture raises grass-height land and paints it on", () => {
     const map = world();
-    sculptDab(map, "terrain", { x: 600, y: 425 }, 0, 0, {
+    sculptDab(map, "terrain", { x: 600, y: 425 }, 0.5, 0, {
       size: 40,
       strength: 50,
       biome: 0,
-      material: "sand",
+      material: "mud",
       hardness: 100,
     });
     const centre = 85 * map.cols + 120;
-    expect(paintedMaterial(map, map, centre)).toBe("sand");
+    expect(paintedMaterial(map, map, centre)).toBe("mud");
     expect(paintedMaterial(map, map, 10 * map.cols + 10)).toBeUndefined();
-    expect(map.heights[centre]).toBe(0.5);
+    expect(map.heights[10 * map.cols + 10]).toBe(0.5);
   });
   it("generates tiles that wrap without a seam", () => {
     for (const pattern of PATTERNS) {

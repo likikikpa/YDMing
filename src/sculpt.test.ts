@@ -45,18 +45,102 @@ describe("sculpting", () => {
       }
     });
   });
-  it("digging peels painted ground off first instead of sinking it into the sea", () => {
+  it("digging peels a custom texture off first instead of sinking it into the sea", () => {
     const map = flatWorld(map0Sea() + 0.015),
       centre = Math.round(425 / 5) * map.cols + Math.round(600 / 5);
-    setMaterial(map, map, centre, "rock");
+    setMaterial(map, map, centre, "mud");
     const height = map.heights[centre];
     sculptDab(map, "dig", { x: 600, y: 425 }, 0.5, 0, brush);
-    // The painted layer is gone and the land beneath is untouched.
     expect(paintedMaterial(map, map, centre)).toBeUndefined();
     expect(map.heights[centre]).toBe(height);
-    // Only once it is bare does further digging lower the ground.
     sculptDab(map, "dig", { x: 600, y: 425 }, 0.5, 0, brush);
     expect(map.heights[centre]).toBeLessThan(height);
+  });
+  describe("terrain paint builds ground", () => {
+    const sea = defaultSettings.seaLevel,
+      paint = (
+        map: ReturnType<typeof flatWorld>,
+        material: string,
+        frames = 40,
+      ) => {
+        for (let n = 0; n < frames; n++)
+          sculptDab(
+            map,
+            "terrain",
+            { x: 600, y: 425 },
+            sculptAmount(55, 1 / 60),
+            0,
+            {
+              ...brush,
+              size: 200,
+              material,
+              hardness: 85,
+            },
+          );
+      },
+      centre = (map: ReturnType<typeof flatWorld>) =>
+        Math.round(425 / 5) * map.cols + Math.round(600 / 5);
+    it("paints land out of open sea, one band per material", () => {
+      const heights: Record<string, number> = {};
+      for (const m of ["sand", "dirt", "grass", "rock", "snow"]) {
+        const map = flatWorld(sea - 0.1);
+        paint(map, m);
+        heights[m] = map.heights[centre(map)];
+        expect(heights[m]).toBeGreaterThan(sea);
+      }
+      expect(heights.sand).toBeLessThan(heights.dirt);
+      expect(heights.dirt).toBeLessThan(heights.grass);
+      expect(heights.grass).toBeLessThan(heights.rock);
+      expect(heights.rock).toBeLessThan(heights.snow);
+    });
+    it("shows the chosen ground in the middle and lower layers on the slope", () => {
+      const map = flatWorld(sea - 0.1);
+      paint(map, "snow", 80);
+      const row = Math.round(425 / 5),
+        col = Math.round(600 / 5),
+        cell = (dx: number) => map.heights[row * map.cols + col + dx],
+        seen = new Set<number>();
+      expect(biomeAt(map, col, row)).toBe(1);
+      for (let dx = 0; dx <= 20; dx++) {
+        seen.add(biomeAt(map, col + dx, row));
+        if (dx) expect(cell(dx)).toBeLessThanOrEqual(cell(dx - 1));
+      }
+      // Walking out from the peak passes snow, rock, lower ground and sand,
+      // then reaches the sea.
+      for (const biome of [1, 2, 11, 12]) expect(seen.has(biome)).toBe(true);
+      expect([...seen].some((b) => ![1, 2, 11, 12].includes(b))).toBe(true);
+      // Holding the brush longer does not make the slope steeper.
+      const slope = cell(14);
+      paint(map, "snow", 200);
+      expect(cell(14)).toBeCloseTo(slope, 2);
+    });
+    it("digging a painted peak cuts back down through the layers", () => {
+      const map = flatWorld(sea - 0.1);
+      paint(map, "snow", 80);
+      const seen = new Set<number>(),
+        i = centre(map);
+      for (let n = 0; n < 600 && map.heights[i] > sea; n++) {
+        sculptDab(
+          map,
+          "dig",
+          { x: 600, y: 425 },
+          sculptAmount(55, 1 / 60, 1, "dig"),
+          0,
+          brush,
+        );
+        seen.add(biomeAt(map, Math.round(600 / 5), Math.round(425 / 5)));
+      }
+      expect(map.heights[i]).toBeLessThanOrEqual(sea);
+      for (const biome of [1, 2, 11]) expect(seen.has(biome)).toBe(true);
+    });
+    it("water digs a basin and Auto leaves heights alone", () => {
+      const map = flatWorld(sea + 0.2);
+      paint(map, "deep-water");
+      expect(map.heights[centre(map)]).toBeLessThan(sea);
+      const land = flatWorld(sea + 0.2);
+      paint(land, "");
+      expect(land.heights[centre(land)]).toBe(sea + 0.2);
+    });
   });
   it("digs back below the sea line and never leaves the 0–1 range", () => {
     const map = flatWorld(0.6);
@@ -96,7 +180,9 @@ describe("sculpting", () => {
       brush,
     );
     expect(range).toBeDefined();
-    expect(Math.max(...sea.heights)).toBeGreaterThan(sea.settings.seaLevel + 0.15);
+    expect(Math.max(...sea.heights)).toBeGreaterThan(
+      sea.settings.seaLevel + 0.15,
+    );
     const water = flatWorld(0.2);
     raiseIsland(water, { x: 400, y: 300 }, { x: 600, y: 500 });
     expect(at(water, 500, 400)).toBeGreaterThan(water.settings.seaLevel);
@@ -108,11 +194,20 @@ describe("freehand helpers", () => {
   it("simplify keeps corners and drops collinear points", () => {
     const line = Array.from({ length: 20 }, (_, i) => ({ x: i * 10, y: 0 }));
     expect(simplify(line, 1)).toHaveLength(2);
-    const bent = [...line, ...Array.from({ length: 10 }, (_, i) => ({ x: 190, y: (i + 1) * 10 }))];
+    const bent = [
+      ...line,
+      ...Array.from({ length: 10 }, (_, i) => ({ x: 190, y: (i + 1) * 10 })),
+    ];
     expect(simplify(bent, 1)).toHaveLength(3);
   });
   it("resample spaces points evenly along the path", () => {
-    const points = resample([{ x: 0, y: 0 }, { x: 100, y: 0 }], 10);
+    const points = resample(
+      [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+      ],
+      10,
+    );
     expect(points).toHaveLength(11);
     expect(points[5].x).toBeCloseTo(50);
   });
@@ -132,7 +227,14 @@ describe("freehand helpers", () => {
     };
     it("turns open water into sand at once, only where the brush is", () => {
       const map = flatWorld(0.2);
-      sculptDab(map, "raise", { x: 600, y: 425 }, sculptAmount(55, 0.01, 1, "raise"), 0, brush);
+      sculptDab(
+        map,
+        "raise",
+        { x: 600, y: 425 },
+        sculptAmount(55, 0.01, 1, "raise"),
+        0,
+        brush,
+      );
       const above = map.heights[centre(map)] - map.settings.seaLevel;
       expect(above).toBeGreaterThan(0);
       expect(above).toBeLessThan(SAND_TOP);
@@ -158,16 +260,39 @@ describe("freehand helpers", () => {
       const slow = flatWorld(0.2),
         fast = flatWorld(0.2);
       for (let f = 0; f < 20; f++) {
-        sculptDab(slow, "raise", { x: 600, y: 425 }, sculptAmount(30, 1 / 60, 1, "raise"), 0, brush);
-        sculptDab(fast, "raise", { x: 600, y: 425 }, sculptAmount(90, 1 / 60, 1, "raise"), 0, brush);
+        sculptDab(
+          slow,
+          "raise",
+          { x: 600, y: 425 },
+          sculptAmount(30, 1 / 60, 1, "raise"),
+          0,
+          brush,
+        );
+        sculptDab(
+          fast,
+          "raise",
+          { x: 600, y: 425 },
+          sculptAmount(90, 1 / 60, 1, "raise"),
+          0,
+          brush,
+        );
       }
-      expect(fast.heights[centre(fast)]).toBeGreaterThan(slow.heights[centre(slow)]);
+      expect(fast.heights[centre(fast)]).toBeGreaterThan(
+        slow.heights[centre(slow)],
+      );
     });
     it("lets digging lower the pile back through the same materials", () => {
       const map = flatWorld(0.2);
       pour(map, 40);
       for (let f = 0; f < 200 && biomeAt(map, 120, 85) !== 11; f++)
-        sculptDab(map, "dig", { x: 600, y: 425 }, sculptAmount(55, 1 / 60, 1, "dig"), 0, brush);
+        sculptDab(
+          map,
+          "dig",
+          { x: 600, y: 425 },
+          sculptAmount(55, 1 / 60, 1, "dig"),
+          0,
+          brush,
+        );
       expect(biomeAt(map, 120, 85)).toBe(11);
       expect(map.biomes[centre(map)]).toBe(0);
     });
