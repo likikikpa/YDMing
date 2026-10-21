@@ -105,23 +105,11 @@ export function groundTarget(material: string, sea: number) {
   }
 }
 
-/** Biome a slope cell gets at height `h`: dirt and grass are explicit, the rest follow height. */
-function bandBiome(h: number, sea: number) {
-  const above = h - sea;
-  return above < SAND_TOP
-    ? 0
-    : above < DIRT_TOP
-      ? DIRT
-      : h < ROCK_FROM
-        ? GRASS
-        : 0;
-}
-
 /**
  * Terrain paint with a ground picked: everything under the brush becomes that
- * ground at once, and a skirt around it holds every layer below, each one band
- * of the same width, down to the sea. The skirt only ever builds land up, so
- * painting next to higher ground leaves that ground alone. Water digs a basin.
+ * ground at once, with no rings of other grounds around it. The ground is
+ * raised (or lowered) to its own height, so the layers below it are still
+ * there: digging it away cuts down through them. Water digs a basin.
  */
 export function buildGround(
   m: MapData,
@@ -137,41 +125,19 @@ export function buildGround(
     cx = (p.x / m.width) * m.cols,
     cy = (p.y / m.height) * m.rows,
     r = Math.max(1.5, ((brush.size / m.width) * m.cols) / 2),
-    // Boundaries of the layers below the chosen one, highest first, down to the shore.
-    below =
-      g.height < sea
-        ? []
-        : [SNOW_FROM, ROCK_FROM, sea + DIRT_TOP, sea + SAND_TOP, sea].filter(
-            (b) => b < g.height,
-          ),
-    band = Math.max(1.5, r * 0.3),
-    skirt = Math.max(0, below.length - 1) * band,
-    reach = r + skirt,
-    x0 = Math.max(1, Math.floor(cx - reach)),
-    x1 = Math.min(m.cols - 2, Math.ceil(cx + reach)),
-    y0 = Math.max(1, Math.floor(cy - reach)),
-    y1 = Math.min(m.rows - 2, Math.ceil(cy + reach));
+    x0 = Math.max(1, Math.floor(cx - r)),
+    x1 = Math.min(m.cols - 2, Math.ceil(cx + r)),
+    y0 = Math.max(1, Math.floor(cy - r)),
+    y1 = Math.min(m.rows - 2, Math.ceil(cy + r));
   if (x1 < x0 || y1 < y0) return null;
   for (let y = y0; y <= y1; y++)
     for (let x = x0; x <= x1; x++) {
-      const d = Math.hypot(x - cx, y - cy),
-        i = y * m.cols + x;
-      if (d < r) {
-        heights[i] = g.height;
-        terrain.biomes[i] = g.biome;
-        // Built-in grounds follow from height; only custom textures are painted on.
-        setMaterial(m, terrain, i, custom ? material : null);
-        continue;
-      }
-      if (d >= reach) continue;
-      // Out on the skirt: which band, and how far through it.
-      const u = (d - r) / band,
-        k = Math.min(below.length - 2, Math.floor(u)),
-        profile = below[k] + (below[k + 1] - below[k]) * (u - k);
-      if (profile > heights[i]) {
-        heights[i] = profile;
-        terrain.biomes[i] = bandBiome(profile, sea);
-      }
+      if (Math.hypot(x - cx, y - cy) >= r) continue;
+      const i = y * m.cols + x;
+      heights[i] = g.height;
+      terrain.biomes[i] = g.biome;
+      // Built-in grounds follow from height; only custom textures are painted on.
+      setMaterial(m, terrain, i, custom ? material : null);
     }
   return { x0: x0 - 1, y0: y0 - 1, x1: x1 + 1, y1: y1 + 1 };
 }

@@ -1849,14 +1849,7 @@ export default function App() {
             <div className="busy-overlay">
               <div className="busy-card wood">
                 <LoaderCircle className="spin" size={27} />
-                <h3>
-                  {lang === "ru" ? "Создаём карту…" : "Charting new territory…"}
-                </h3>
-                <span>
-                  {lang === "ru"
-                    ? "Горы, реки и новые истории."
-                    : "Mountains, rivers, and stories to be told."}
-                </span>
+                <h3>{lang === "ru" ? "Создаём карту…" : "Generating…"}</h3>
               </div>
             </div>
           )}
@@ -2651,11 +2644,6 @@ export default function App() {
               <>
                 <div className="panel-heading">
                   <span className="section-kicker">{t("Layers")}</span>
-                  <h2>
-                    {lang === "ru"
-                      ? "Всё на своём месте"
-                      : "A place for everything"}
-                  </h2>
                 </div>
                 <div className="layers-list">
                   {[...map.layers].reverse().map((l) => (
@@ -3095,11 +3083,6 @@ export default function App() {
               <>
                 <div className="panel-heading">
                   <span className="section-kicker">{t("Library")}</span>
-                  <h2>
-                    {lang === "ru"
-                      ? "Добавьте немного жизни"
-                      : "A little life, a little lore"}
-                  </h2>
                 </div>
                 <div className="segmented">
                   {["Built-in", "Search web", "My stamps"].map((v) => (
@@ -3281,11 +3264,6 @@ export default function App() {
               <>
                 <div className="panel-heading">
                   <span className="section-kicker">{t("History")}</span>
-                  <h2>
-                    {lang === "ru"
-                      ? "Каждый шаг вашей истории"
-                      : "Every step of the story"}
-                  </h2>
                 </div>
                 <div className="snapshot-form">
                   <input
@@ -3345,11 +3323,6 @@ export default function App() {
               <>
                 <div className="panel-heading">
                   <span className="section-kicker">{t("More tools")}</span>
-                  <h2>
-                    {lang === "ru"
-                      ? "Инструменты ремесленника"
-                      : "Tools of the trade"}
-                  </h2>
                 </div>
                 <div className="all-tools">
                   {Object.entries(toolInfo).map(
@@ -3785,7 +3758,7 @@ export default function App() {
                       notify(
                         lang === "ru"
                           ? "Карта экспортирована."
-                          : "Your map is ready to share.",
+                          : "Map exported.",
                       );
                     } catch (e) {
                       notify(String(e));

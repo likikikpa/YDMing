@@ -2462,29 +2462,31 @@ input[type="range"]::-webkit-slider-thumb {
     justify-content: center;
     border-radius: 22px;
   }
+  /* The sheet runs from the top of the screen down to the tool bar, tool
+     settings in its top half and the panels in the bottom half. */
   .sidebar {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: 0;
+    top: 0;
+    bottom: 56px;
     width: 100%;
-    height: 64dvh;
     z-index: 30;
     border-left: 0;
-    border-top: 1px solid #b08c4d66;
-    border-radius: 14px 14px 0 0;
-    transform: translateY(105%);
+    border-bottom: 1px solid #b08c4d66;
+    transform: translateY(calc(100% + 56px));
     transition: transform 0.2s ease;
     box-shadow: 0 -10px 30px #000a;
   }
   .sheet-open .sidebar {
     transform: none;
   }
-  .sheet-open .sheet-toggle {
-    bottom: calc(64dvh + 10px);
+  .sidebar .tool-card:not(.collapsed) {
+    height: 50%;
+    max-height: 50%;
   }
   .panel-scroll {
-    padding: 16px 14px;
+    padding: 16px 14px 64px;
   }
   .modal {
     width: calc(100vw - 20px);

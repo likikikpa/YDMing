@@ -89,30 +89,24 @@ describe("sculpting", () => {
       expect(biomeAt(map, col, row)).toBe(1);
       expect(biomeAt(map, col + 5, row)).toBe(1);
     });
-    it("puts every lower layer around the chosen one, even with a small brush", () => {
-      const map = flatWorld(sea - 0.1);
+    it("shows only the chosen ground, with no rings of other grounds around it", () => {
+      const map = flatWorld(sea - 0.1),
+        before = map.heights.slice();
       touch(map, "snow", 30);
-      const seen: number[] = [];
-      for (let dx = 0; dx <= 20; dx++) {
-        const b = biomeAt(map, col + dx, row);
-        if (seen[seen.length - 1] !== b) seen.push(b);
-        if (dx)
-          expect(map.heights[centre(map) + dx]).toBeLessThanOrEqual(
-            map.heights[centre(map) + dx - 1],
-          );
+      const r = 30 / 2 / 5;
+      for (let dx = 0; dx <= 10; dx++) {
+        const i = centre(map) + dx;
+        if (dx < r - 0.5) expect(biomeAt(map, col + dx, row)).toBe(1);
+        // Outside the brush nothing changes: the sea stays sea.
+        else if (dx > r + 0.5) expect(map.heights[i]).toBe(before[i]);
       }
-      // Snow, rock, grass, dirt, sand, then the sea, in that order.
-      expect(seen).toEqual([1, 2, 5, 13, 11, 12]);
     });
-    it("touching again changes nothing, and the skirt never cuts higher ground", () => {
+    it("touching again changes nothing", () => {
       const map = flatWorld(sea - 0.1);
       touch(map, "snow");
       const once = map.heights.slice();
       touch(map, "snow");
       expect(map.heights).toEqual(once);
-      const high = flatWorld(0.8);
-      touch(high, "sand");
-      expect(high.heights[centre(high) + 20]).toBe(0.8);
     });
     it("digging a painted peak cuts back down through the layers", () => {
       const map = flatWorld(sea - 0.1);
