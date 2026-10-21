@@ -155,11 +155,17 @@ export function sculptDab(
           heights[i] = clamp(
             heights[i] + amount * w * pourRate(heights[i], sea),
           );
-      } else if (tool === "dig")
-        heights[i] = clamp(
-          heights[i] - amount * w * pourRate(heights[i], sea),
-        );
-      else if (tool === "flatten")
+      } else if (tool === "dig") {
+        // Hand-painted ground is a layer on top of the land: digging peels it
+        // off first and shows what lies beneath (sand, say) instead of
+        // sinking straight through it into the sea.
+        if (terrain.materials?.[i]) {
+          if (w > 0.2) setMaterial(m, terrain, i, null);
+        } else
+          heights[i] = clamp(
+            heights[i] - amount * w * pourRate(heights[i], sea),
+          );
+      } else if (tool === "flatten")
         heights[i] += (flat - heights[i]) * Math.min(1, amount * 14 * w);
       else if (tool === "roughen")
         heights[i] = clamp(
