@@ -4,7 +4,8 @@ import type { AssetResult } from "./types";
 export type SearchProblem = "no-server" | "offline" | "message";
 
 export type SearchReply =
-  | { results: AssetResult[] }
+  /** `unavailable` names sources that did not answer, so the list may be short. */
+  | { results: AssetResult[]; unavailable?: string[] }
   | { problem: SearchProblem; message?: string };
 
 /**
@@ -20,9 +21,20 @@ export function readSearchReply(ok: boolean, body: string): SearchReply {
   } catch {
     return { problem: "no-server" };
   }
-  const reply = data as { results?: unknown; error?: unknown };
-  if (ok && Array.isArray(reply?.results))
-    return { results: reply.results as AssetResult[] };
+  const reply = data as {
+    results?: unknown;
+    unavailable?: unknown;
+    error?: unknown;
+  };
+  if (ok && Array.isArray(reply?.results)) {
+    const unavailable = Array.isArray(reply.unavailable)
+      ? reply.unavailable.filter((s) => typeof s === "string")
+      : [];
+    return {
+      results: reply.results as AssetResult[],
+      ...(unavailable.length && { unavailable }),
+    };
+  }
   if (typeof reply?.error === "string" && reply.error)
     return { problem: "message", message: reply.error };
   return { problem: "no-server" };

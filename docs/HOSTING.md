@@ -90,7 +90,13 @@ and Openverse illustrations. A query that asks for a picture (`cloud realistic
 picture`, or a long description) goes to Wikimedia Commons photos and Openverse
 first. Wikimedia Commons and Openverse can also be picked by hand. The server
 keeps only results with a licence that permits reuse and modification, and
-relays the thumbnails; game-icons are recoloured to map ink on the way. Upstream services see your
+relays the thumbnails; game-icons are recoloured to map ink on the way.
+
+A query of several words ("sea port") shows sprites that have all the words
+first, then sprites of each word. A source that has not answered a second after
+another one has is left out of that search (Openverse is often slow), and the
+answer is kept for two minutes instead of a day so the next search asks again.
+When nothing is found and a source was left out, the library says so. Upstream services see your
 server's address, never the visitor's. The proxy is rate limited per visitor,
 caches results for 24 hours, only relays images that appeared in a search
 result, caps image size at 10 MB and serves images with a sandboxing header.

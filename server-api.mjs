@@ -7,6 +7,7 @@ import { inkIcon, loadSpriteIndex } from "./server-sprites.mjs";
 const DAY = 24 * 60 * 60 * 1000;
 const MAX_IMAGE_BYTES = 10_000_000;
 const MAX_ALLOWED = 4000;
+const PARTIAL_MS = 2 * 60 * 1000;
 const BUILT_IN = /^\/assets\/(cartography|medieval)\/[\w.-]+\.png$/;
 
 function send(res, status, body, headers = {}) {
@@ -88,17 +89,21 @@ export function createSearchMiddleware({
           return send(res, 400, { error: "Enter at least two characters." });
         const key = `${source}:${style}:${q.toLowerCase()}`;
         const saved = cache.get(key);
-        if (saved && now() - saved.at < DAY) return send(res, 200, saved.data);
-        let results =
-          source === "auto"
-            ? await searchAuto({
-                index: spriteIndex,
-                fetchImpl,
-                userAgent,
-                q,
-                style,
-              })
-            : source === "openverse"
+        if (saved && now() - saved.at < saved.ttl)
+          return send(res, 200, saved.data);
+        let results,
+          unavailable = [];
+        if (source === "auto")
+          ({ results, unavailable } = await searchAuto({
+            index: spriteIndex,
+            fetchImpl,
+            userAgent,
+            q,
+            style,
+          }));
+        else
+          results =
+            source === "openverse"
               ? await searchOpenverse({ fetchImpl, userAgent, q })
               : await searchCommons({ fetchImpl, userAgent, q });
         results = results.filter((r) => {
@@ -122,8 +127,14 @@ export function createSearchMiddleware({
         for (const [asset, at] of allowed)
           if (time - at > DAY || allowed.size > MAX_ALLOWED)
             allowed.delete(asset);
-        const data = { results };
-        cache.set(key, { at: time, data });
+        const data = unavailable.length ? { results, unavailable } : { results };
+        // An answer that missed a source is only kept briefly, so the next
+        // search asks that source again.
+        cache.set(key, {
+          at: time,
+          ttl: unavailable.length ? PARTIAL_MS : DAY,
+          data,
+        });
         if (cache.size > 100) cache.delete(cache.keys().next().value);
         return send(res, 200, data);
       }

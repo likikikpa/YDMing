@@ -21,6 +21,9 @@ const MODERN = new Set(
   ),
 );
 
+/** Words that describe more than they name: they only fill what the other words leave. */
+const GENERIC = new Set("old new big small large little tiny huge".split(" "));
+
 /** Words a DM types, and the names the sprite sets use for the same thing. */
 const SYNONYMS = {
   tree: ["forest", "oak", "pine", "birch", "willow", "palm"],
@@ -44,7 +47,15 @@ const SYNONYMS = {
   temple: ["church", "shrine"],
   fort: ["castle", "tower", "fortress"],
   castle: ["fort", "fortress", "tower"],
-  sea: ["wave", "water"],
+  sea: ["ocean", "wave", "water"],
+  ocean: ["sea", "wave", "water"],
+  port: ["harbor", "harbour", "dock", "pier", "wharf", "anchor"],
+  harbor: ["port", "harbour", "dock", "pier", "wharf", "anchor"],
+  harbour: ["port", "harbor", "dock", "pier", "wharf", "anchor"],
+  bridge: ["arch"],
+  tower: ["turret", "keep"],
+  swamp: ["marsh", "bog"],
+  desert: ["dune", "cactus"],
   lake: ["water", "pond"],
   monster: ["dragon", "beast"],
 };
@@ -134,8 +145,10 @@ export function loadSpriteIndex(
 }
 
 /**
- * Sprites whose name has every query word (or a synonym of it), best first:
- * exact words beat synonyms, short names beat long ones, and ink sprites suit
+ * Sprites whose name has a query word (or a synonym of it), best first: those
+ * with every word, then those with some, since few names hold two words
+ * ("sea port" has no sprite of its own, but sea and port sprites help).
+ * Exact words beat synonyms, short names beat long ones, and ink sprites suit
  * parchment and atlas maps while coloured ones suit painted maps.
  */
 export function searchIndex(
@@ -144,27 +157,46 @@ export function searchIndex(
   { style = "parchment", limit = 30 } = {},
 ) {
   if (!terms.length) return [];
-  const scored = [];
+  const byHits = terms.map(() => []),
+    single = terms.map(() => []);
   for (const e of index.entries) {
     let score = 0;
-    for (const t of terms) {
+    const hits = [];
+    terms.forEach((t, i) => {
       if (e.tags.has(t)) score += 3;
       else if (SYNONYMS[t]?.some((s) => e.tags.has(s))) score += 1.5;
-      else {
-        score = -1;
-        break;
-      }
-    }
-    if (score < 0) continue;
-    score -= 0.2 * Math.max(0, e.tags.size - terms.length);
+      else return;
+      hits.push(i);
+    });
+    if (!hits.length) continue;
+    score -= 0.2 * Math.max(0, e.tags.size - hits.length);
     for (const tag of e.tags) if (MODERN.has(tag)) score -= 2;
     if ((style === "painted") === (e.look === "colour")) score += 0.5;
-    scored.push({ score, result: e.result });
+    const hit = { score, result: e.result };
+    if (hits.length > 1) byHits[hits.length - 1].push(hit);
+    else single[hits[0]].push(hit);
   }
-  return scored
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map((s) => s.result);
+  const best = (a, b) => b.score - a.score;
+  // Sprites with the most of the words first: all of them, then fewer.
+  const out = [];
+  for (let n = terms.length - 1; n >= 1; n--)
+    out.push(...byHits[n].sort(best).map((h) => h.result));
+  // Sprites with a single word: the best of each word in turn, so a word with
+  // fifty sprites does not push out another's. Weak words ("old") only fill
+  // what the other words leave.
+  const seen = new Set(out);
+  const lists = (weak) =>
+    terms
+      .map((t, i) => (GENERIC.has(t) === weak ? single[i].sort(best) : []))
+      .filter((l) => l.length);
+  for (const group of [lists(false), lists(true)])
+    for (let n = 0; out.length < limit && group.some((l) => n < l.length); n++)
+      for (const list of group)
+        if (n < list.length && !seen.has(list[n].result)) {
+          seen.add(list[n].result);
+          out.push(list[n].result);
+        }
+  return out.slice(0, limit);
 }
 
 /** game-icons are white on a black square; a map stamp wants dark ink on nothing. */
