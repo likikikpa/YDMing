@@ -1,0 +1,288 @@
+import { useEffect, useRef, useState } from "react";
+import { get, set } from "idb-keyval";
+import { fitImage } from "../assets";
+import type { BrushSettings } from "../Editor";
+import { searchImages } from "../search";
+import { uid } from "../types";
+import type { AssetResult, Credit, MapObject, Project } from "../types";
+import { emptyFit } from "./constants";
+import type { ModalName, Panel } from "./constants";
+
+/** The Library panel: built-in packs, web search, imported stamps and snapshots. */
+export function useLibrary({
+  project,
+  projectRef,
+  commit,
+  notify,
+  t,
+  brush,
+  setModal,
+  setPanel,
+  setSelected,
+  chooseTool,
+}: {
+  project: Project | null;
+  projectRef: React.RefObject<Project | null>;
+  commit: (next: Project, label: string) => void;
+  notify: (message: string) => void;
+  t: (s: string) => string;
+  brush: BrushSettings;
+  setModal: (modal: ModalName | null) => void;
+  setPanel: (panel: Panel) => void;
+  setSelected: (ids: string[]) => void;
+  chooseTool: (tool: "select") => void;
+}) {
+  const imageInput = useRef<HTMLInputElement>(null);
+  const [snapshots, setSnapshots] = useState<
+    { id: string; name: string; project: Project }[]
+  >([]);
+  const [snapshotName, setSnapshotName] = useState("");
+  const [libraryTab, setLibraryTab] = useState("Built-in");
+  const [assetSearch, setAssetSearch] = useState("");
+  const [assetPack, setAssetPack] = useState("cartography");
+  const [webQuery, setWebQuery] = useState("");
+  const [webSource, setWebSource] = useState("commons");
+  const [webResults, setWebResults] = useState<AssetResult[]>([]);
+  const [webBusy, setWebBusy] = useState(false);
+  const [webError, setWebError] = useState("");
+  const [myStamps, setMyStamps] = useState<MapObject[]>([]);
+  const [fitSource, setFitSource] = useState<Blob | string | null>(null);
+  const [fitSettings, setFitSettings] = useState(emptyFit);
+  const [fitPreview, setFitPreview] = useState<{
+    data: string;
+    width: number;
+    height: number;
+  } | null>(null);
+  const [fitBusy, setFitBusy] = useState(false);
+  const [fitCredit, setFitCredit] = useState<Credit>({
+    id: "",
+    name: "",
+    author: "",
+    license: "Private asset",
+    url: "",
+  });
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      try {
+        const [sn, st] = await Promise.all([
+          get("atlasforge-snapshots"),
+          get("atlasforge-stamps"),
+        ]);
+        if (live) {
+          setSnapshots(sn || []);
+          setMyStamps(st || []);
+        }
+      } catch {}
+    })();
+    return () => {
+      live = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (!fitSource) return;
+    let cancelled = false;
+    setFitBusy(true);
+    const timer = setTimeout(() => {
+      void fitImage(fitSource, fitSettings)
+        .then((value) => {
+          if (!cancelled) setFitPreview(value);
+        })
+        .catch((e) => notify(e.message))
+        .finally(() => {
+          if (!cancelled) setFitBusy(false);
+        });
+    }, 150);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [fitSource, fitSettings]);
+  async function searchWeb() {
+    if (!webQuery.trim()) return;
+    setWebBusy(true);
+    setWebError("");
+    try {
+      const reply = await searchImages(
+        `/api/search?${new URLSearchParams({ q: webQuery, source: webSource, commercial: String(project?.commercial || false) })}`,
+      );
+      if ("results" in reply) {
+        setWebResults(reply.results);
+        if (!reply.results.length) setWebError(t("No results"));
+      } else
+        setWebError(
+          reply.problem === "message"
+            ? reply.message!
+            : reply.problem === "offline"
+              ? t("Image search needs an internet connection.")
+              : t(
+                  "Image search is not available here. It needs the Atlasforge server.",
+                ),
+        );
+    } finally {
+      setWebBusy(false);
+    }
+  }
+  async function importWeb(asset: AssetResult) {
+    try {
+      setWebBusy(true);
+      const response = await fetch(
+        `/api/image?${new URLSearchParams({ url: asset.image })}`,
+      );
+      if (!response.ok) throw new Error("The source could not be downloaded.");
+      setFitSource(await response.blob());
+      setFitSettings({ ...emptyFit });
+      setFitCredit({
+        id: uid(),
+        name: asset.name,
+        author: asset.author,
+        license: asset.license,
+        url: asset.url,
+      });
+      setFitPreview(null);
+      setModal("fit");
+    } catch (e) {
+      notify(String(e));
+    } finally {
+      setWebBusy(false);
+    }
+  }
+  async function importLocal(file: File) {
+    if (file.size > 10_000_000) {
+      notify("Images must be smaller than 10 MB.");
+      return;
+    }
+    setFitSource(file);
+    setFitSettings({ ...emptyFit });
+    setFitCredit({
+      id: uid(),
+      name: file.name.replace(/\.[^.]+$/, ""),
+      author: "You",
+      license: "Private asset",
+      url: "",
+    });
+    setFitPreview(null);
+    setModal("fit");
+  }
+  async function addStamp() {
+    if (!fitPreview || !project) return;
+    const stamp: MapObject = {
+      id: uid(),
+      kind: "image",
+      x: 600,
+      y: 425,
+      name: fitCredit.name || "Imported stamp",
+      width: 80,
+      height: (80 * fitPreview.height) / fitPreview.width,
+      rotation: 0,
+      layer: "Objects",
+      color: brush.color,
+      image: fitPreview.data,
+      creditId: fitCredit.id,
+    };
+    const next = [...myStamps, stamp];
+    try {
+      await set("atlasforge-stamps", next);
+    } catch {
+      notify(
+        "Stamp storage is unavailable. The project still includes this image.",
+      );
+    }
+    try {
+      const known: Credit[] = (await get("atlasforge-library-credits")) || [];
+      await set("atlasforge-library-credits", [
+        ...known.filter((c) => c.id !== fitCredit.id),
+        fitCredit,
+      ]);
+    } catch {}
+    setMyStamps(next);
+    commit(
+      {
+        ...project,
+        credits: [
+          ...project.credits.filter((c) => c.id !== fitCredit.id),
+          fitCredit,
+        ],
+      },
+      "Import asset",
+    );
+    setModal(null);
+    setLibraryTab("My stamps");
+    setPanel("library");
+  }
+  async function dropMyStamp(stamp: MapObject) {
+    const p = projectRef.current;
+    if (!p) return;
+    const active = p.maps.find((m) => m.id === p.activeMapId)!;
+    const next = structuredClone(active),
+      o = { ...stamp, id: uid(), x: 600, y: 425 };
+    next.objects.push(o);
+    let credits = p.credits;
+    try {
+      const known: Credit[] = (await get("atlasforge-library-credits")) || [];
+      const credit = known.find((c) => c.id === stamp.creditId);
+      if (credit && !credits.some((c) => c.id === credit.id))
+        credits = [...credits, credit];
+    } catch {}
+    commit(
+      { ...p, maps: p.maps.map((m) => (m.id === next.id ? next : m)), credits },
+      "Place imported stamp",
+    );
+    setSelected([o.id]);
+    chooseTool("select");
+  }
+
+  async function takeSnapshot() {
+    if (!project) return;
+    const next = [
+      ...snapshots,
+      {
+        id: uid(),
+        name: snapshotName.trim() || `Snapshot ${snapshots.length + 1}`,
+        project: structuredClone(project),
+      },
+    ];
+    try {
+      await set("atlasforge-snapshots", next);
+      setSnapshots(next);
+      setSnapshotName("");
+      notify(t("Snapshot") + " ✓");
+    } catch {
+      notify("Could not store snapshot. Download a project backup.");
+    }
+  }
+  return {
+    imageInput,
+    snapshots,
+    snapshotName,
+    setSnapshotName,
+    libraryTab,
+    setLibraryTab,
+    assetSearch,
+    setAssetSearch,
+    assetPack,
+    setAssetPack,
+    webQuery,
+    setWebQuery,
+    webSource,
+    setWebSource,
+    webResults,
+    webBusy,
+    webError,
+    myStamps,
+    fitSource,
+    setFitSource,
+    fitSettings,
+    setFitSettings,
+    fitPreview,
+    fitBusy,
+    fitCredit,
+    setFitCredit,
+    searchWeb,
+    importWeb,
+    importLocal,
+    addStamp,
+    dropMyStamp,
+    takeSnapshot,
+  };
+}
