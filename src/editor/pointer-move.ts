@@ -12,6 +12,7 @@ import type { EditorRendering } from "./rendering";
 import type { EditorSculpting } from "./sculpting";
 import type { EditorStamps } from "./stamps";
 import type { EditorPinch } from "./pinch";
+import type { EditorSelectTool } from "./select-tool";
 
 export type EditorPointerMove = ReturnType<typeof createPointerMove>;
 
@@ -21,7 +22,8 @@ export function createPointerMove(
     EditorRendering &
     EditorSculpting &
     EditorStamps &
-    EditorPinch,
+    EditorPinch &
+    EditorSelectTool,
 ) {
   const {
     latest,
@@ -39,6 +41,7 @@ export function createPointerMove(
     refresh,
     placeStamp,
     pinchMove,
+    selectMove,
   } = deps;
   function pointerMove(e: React.PointerEvent) {
     if (e.pointerType === "touch" && touches.current.has(e.pointerId)) {
@@ -112,87 +115,7 @@ export function createPointerMove(
       d.last = world;
     }
     if (p.tool === "select" && d.objects.length) {
-      const dx = world.x - d.start.x,
-        dy = world.y - d.start.y,
-        center = {
-          x:
-            (Math.min(...d.objects.map((o) => o.x - o.width / 2)) +
-              Math.max(...d.objects.map((o) => o.x + o.width / 2))) /
-            2,
-          y:
-            (Math.min(...d.objects.map((o) => o.y - o.height / 2)) +
-              Math.max(...d.objects.map((o) => o.y + o.height / 2))) /
-            2,
-        };
-      const boundsWidth =
-        Math.max(...d.objects.map((o) => o.x + o.width / 2)) -
-        Math.min(...d.objects.map((o) => o.x - o.width / 2));
-      const boundsHeight =
-        Math.max(...d.objects.map((o) => o.y + o.height / 2)) -
-        Math.min(...d.objects.map((o) => o.y - o.height / 2));
-      d.objects.forEach((before) => {
-        const o = m.objects.find((o) => o.id === before.id)!;
-        if (d.handle === "rotate") {
-          let angle =
-            ((Math.atan2(world.y - center.y, world.x - center.x) -
-              Math.atan2(d.start.y - center.y, d.start.x - center.x)) *
-              180) /
-            Math.PI;
-          o.rotation =
-            before.rotation +
-            (e.shiftKey ? Math.round(angle / 15) * 15 : angle);
-          const radians = ((o.rotation - before.rotation) * Math.PI) / 180;
-          o.x =
-            center.x +
-            (before.x - center.x) * Math.cos(radians) -
-            (before.y - center.y) * Math.sin(radians);
-          o.y =
-            center.y +
-            (before.x - center.x) * Math.sin(radians) +
-            (before.y - center.y) * Math.cos(radians);
-        } else if (d.handle) {
-          let sx = d.handle.includes("w")
-              ? 1 - (dx / boundsWidth) * (e.altKey ? 2 : 1)
-              : d.handle.includes("e")
-                ? 1 + (dx / boundsWidth) * (e.altKey ? 2 : 1)
-                : 1,
-            sy = d.handle.includes("n")
-              ? 1 - (dy / boundsHeight) * (e.altKey ? 2 : 1)
-              : d.handle.includes("s")
-                ? 1 + (dy / boundsHeight) * (e.altKey ? 2 : 1)
-                : 1;
-          if (e.shiftKey)
-            sx = sy = Math.abs(sx - 1) > Math.abs(sy - 1) ? sx : sy;
-          sx = Math.max(0.05, sx);
-          sy = Math.max(0.05, sy);
-          o.width = Math.max(4, before.width * sx);
-          o.height = Math.max(4, before.height * sy);
-          const anchorX = e.altKey
-            ? center.x
-            : d.handle.includes("w")
-              ? center.x + boundsWidth / 2
-              : d.handle.includes("e")
-                ? center.x - boundsWidth / 2
-                : center.x;
-          const anchorY = e.altKey
-            ? center.y
-            : d.handle.includes("n")
-              ? center.y + boundsHeight / 2
-              : d.handle.includes("s")
-                ? center.y - boundsHeight / 2
-                : center.y;
-          o.x = anchorX + (before.x - anchorX) * sx;
-          o.y = anchorY + (before.y - anchorY) * sy;
-        } else {
-          o.x = before.x + dx;
-          o.y = before.y + dy;
-          if (p.brush.snap) {
-            const step = m.kind === "dungeon" ? m.width / m.cols : 10;
-            o.x = Math.round(o.x / step) * step;
-            o.y = Math.round(o.y / step) * step;
-          }
-        }
-      });
+      selectMove(e, m, world);
     } else if (d.stroke) {
       const before = d.stroke.points,
         from = before.length;

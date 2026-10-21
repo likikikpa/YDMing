@@ -10,6 +10,7 @@ import type { EditorRendering } from "./rendering";
 import type { EditorSculpting } from "./sculpting";
 import type { EditorStamps } from "./stamps";
 import type { EditorPinch } from "./pinch";
+import type { EditorSelectTool } from "./select-tool";
 
 export type EditorPointerUp = ReturnType<typeof createPointerUp>;
 
@@ -19,7 +20,8 @@ export function createPointerUp(
     EditorRendering &
     EditorSculpting &
     EditorStamps &
-    EditorPinch,
+    EditorPinch &
+    EditorSelectTool,
 ) {
   const {
     latest,
@@ -34,6 +36,7 @@ export function createPointerUp(
     drawOverlay,
     refresh,
     endSculpt,
+    selectBox,
   } = deps;
   function pointerUp(e: React.PointerEvent) {
     if (e.pointerType === "touch") {
@@ -56,21 +59,7 @@ export function createPointerUp(
       let changed = true,
         dirty: CellRect | undefined;
       if (d.box && !["island", "room"].includes(p.tool)) {
-        const left = Math.min(d.start.x, world.x),
-          right = Math.max(d.start.x, world.x),
-          top = Math.min(d.start.y, world.y),
-          bottom = Math.max(d.start.y, world.y);
-        const ids = m.objects
-          .filter(
-            (o) =>
-              editable(m, o.layer) &&
-              o.x >= left &&
-              o.x <= right &&
-              o.y >= top &&
-              o.y <= bottom,
-          )
-          .map((o) => o.id);
-        p.setSelected(e.shiftKey ? [...new Set([...p.selected, ...ids])] : ids);
+        selectBox(e, m, world);
         changed = false;
       } else if (
         (p.tool === "road" || p.tool === "wall") &&

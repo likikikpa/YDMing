@@ -1,5 +1,4 @@
 import { eraseAt } from "../erase";
-import { hitObject } from "../hit-test";
 import { clamp } from "../random";
 import { SCULPT_TOOLS } from "../sculpt";
 import { editableTerrain } from "../terrain";
@@ -12,6 +11,7 @@ import type { EditorRendering } from "./rendering";
 import type { EditorSculpting } from "./sculpting";
 import type { EditorStamps } from "./stamps";
 import type { EditorPinch } from "./pinch";
+import type { EditorSelectTool } from "./select-tool";
 
 export type EditorPointerDown = ReturnType<typeof createPointerDown>;
 
@@ -21,7 +21,8 @@ export function createPointerDown(
     EditorRendering &
     EditorSculpting &
     EditorStamps &
-    EditorPinch,
+    EditorPinch &
+    EditorSelectTool,
 ) {
   const {
     mapCanvas,
@@ -38,7 +39,7 @@ export function createPointerDown(
     worldPoint,
     getPoint,
     setRiverPoints,
-    selectedBounds,
+    selectDown,
     drawOverlay,
     refresh,
     sculptFrame,
@@ -113,50 +114,7 @@ export function createPointerDown(
     draft.current = beginDraft(p.map, p.tool);
     const m = draft.current;
     if (p.tool === "select") {
-      const bounds = selectedBounds();
-      if (bounds) {
-        const a = screenPoint(bounds),
-          w = bounds.w * view.current.scale,
-          h = bounds.h * view.current.scale;
-        if (Math.hypot(screen.x - a.x - w / 2, screen.y - a.y + 25) < 9)
-          drag.current.handle = "rotate";
-        else
-          for (const [name, x, y] of [
-            ["nw", 0, 0],
-            ["n", 0.5, 0],
-            ["ne", 1, 0],
-            ["w", 0, 0.5],
-            ["e", 1, 0.5],
-            ["sw", 0, 1],
-            ["s", 0.5, 1],
-            ["se", 1, 1],
-          ] as [string, number, number][])
-            if (Math.hypot(screen.x - a.x - w * x, screen.y - a.y - h * y) < 9)
-              drag.current.handle = name;
-        if (drag.current.handle) {
-          drag.current.objects = structuredClone(bounds.objects);
-          return;
-        }
-      }
-      const hit = [...m.objects]
-        .reverse()
-        .find((o) => editable(m, o.layer) && hitObject(o, world));
-      if (hit) {
-        let ids = e.shiftKey
-          ? [...new Set([...p.selected, hit.id])]
-          : p.selected.includes(hit.id)
-            ? p.selected
-            : [hit.id];
-        if (hit.group)
-          ids = m.objects.filter((o) => o.group === hit.group).map((o) => o.id);
-        p.setSelected(ids);
-        drag.current.objects = structuredClone(
-          m.objects.filter((o) => ids.includes(o.id) && editable(m, o.layer)),
-        );
-      } else {
-        if (!e.shiftKey) p.setSelected([]);
-        drag.current.box = world;
-      }
+      selectDown(e, m, world, screen);
       return;
     }
     if (SCULPT_TOOLS.includes(p.tool)) {
