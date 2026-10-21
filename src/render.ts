@@ -10,7 +10,7 @@ import type { CellRect, TerrainDetail } from "./terrain-render";
 import { hash } from "./random";
 import { drawStamp, path } from "./stamps";
 import { SYMBOL_SCALE, SYMBOL_SPRITES } from "./symbols";
-import type { MapData, MapObject, MapPath, Stroke } from "./types";
+import type { MapData, MapObject, MapPath, Point, Stroke } from "./types";
 export { drawStamp, stampSvg } from "./stamps";
 export interface RenderOptions {
   player?: boolean;
@@ -26,6 +26,11 @@ export interface RenderOptions {
   vector?: boolean;
   /** Terrain pixels already painted for this view, so a vector draw can skip that work. */
   terrainDetail?: TerrainDetail;
+  /**
+   * Only this part of the map has changed: drawing is clipped to it and
+   * anything wholly outside it is skipped, so a brush stroke stays cheap.
+   */
+  clip?: { x: number; y: number; w: number; h: number };
 }
 export const imageCache = new Map<string, HTMLImageElement>();
 export function loadImage(src: string): Promise<HTMLImageElement> {
@@ -375,6 +380,30 @@ export function drawMap(
     return;
   }
   ctx.save();
+  const clip = options.clip;
+  if (clip) {
+    ctx.beginPath();
+    ctx.rect(clip.x, clip.y, clip.w, clip.h);
+    ctx.clip();
+  }
+  // Whether something within `reach` of these points can show inside the clip.
+  const inClip = (points: Point[], reach: number) =>
+    !clip ||
+    points.some(
+      (q) =>
+        q.x > clip.x - reach &&
+        q.x < clip.x + clip.w + reach &&
+        q.y > clip.y - reach &&
+        q.y < clip.y + clip.h + reach,
+    ) ||
+    // A long segment can cross the clip with both ends outside it.
+    (points.length > 1 &&
+      Math.min(...points.map((q) => q.x)) < clip.x + clip.w + reach &&
+      Math.max(...points.map((q) => q.x)) > clip.x - reach &&
+      Math.min(...points.map((q) => q.y)) < clip.y + clip.h + reach &&
+      Math.max(...points.map((q) => q.y)) > clip.y - reach);
+  const objectInClip = (o: MapObject) =>
+    inClip([o], Math.hypot(o.width, o.height) / 2 + 80);
   ctx.clearRect(0, 0, map.width, map.height);
   if (!options.transparent) {
     ctx.fillStyle = "#e5dfc5";
@@ -397,7 +426,11 @@ export function drawMap(
     ctx.save();
     ctx.globalAlpha = l.opacity;
     ctx.globalCompositeOperation = l.blend;
-    const paths = map.paths.filter((p) => p.layer === l.id),
+    const paths = map.paths.filter(
+        (p) =>
+          p.layer === l.id &&
+          inClip(p.points, Math.max(p.width, ...(p.widths ?? [])) + 20),
+      ),
       borders = paths.filter((p) => p.kind === "border");
     const rivers = paths.filter((p) => p.kind === "river");
     if (rivers.length) drawRivers(ctx, rivers, map);
@@ -443,14 +476,17 @@ export function drawMap(
     }
     map.objects
       .filter((o) => o.layer === l.id)
-      .forEach((o, i) => drawObject(ctx, o, i));
+      .forEach((o, i) => objectInClip(o) && drawObject(ctx, o, i));
     ctx.restore();
   }
   if (map.kind === "world" && visible("Labels")) {
     ctx.save();
     ctx.globalAlpha = layer("Labels")?.opacity ?? 1;
     map.objects
-      .filter((o) => ["city", "village", "dungeon"].includes(o.kind))
+      .filter(
+        (o) =>
+          ["city", "village", "dungeon"].includes(o.kind) && objectInClip(o),
+      )
       .forEach((o) => {
         ctx.font = `${o.kind === "city" ? "bold 12" : "10"}px Georgia`;
         ctx.textAlign = "center";

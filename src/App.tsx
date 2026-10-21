@@ -126,6 +126,7 @@ import type {
   TextureTiling,
 } from "./types";
 import { translate } from "./i18n";
+import { cursorStatus, useCursorStatus } from "./status";
 import { loadProject, saveProject, validateProject } from "./storage";
 import { creditsText, download, exportMap, slug } from "./export";
 import { fitImage } from "./assets";
@@ -385,6 +386,28 @@ function MapSizeFields({
     </>
   );
 }
+function ZoomReadout() {
+  return <>{Math.round(useCursorStatus().zoom)}</>;
+}
+function CursorReadout({ world }: { world: boolean }) {
+  const status = useCursorStatus();
+  return (
+    <>
+      <span>
+        X <b>{status.x}</b>
+      </span>
+      <span>
+        Y <b>{status.y}</b>
+      </span>
+      {world && (
+        <span>
+          ↟ <b>{status.height} m</b>
+        </span>
+      )}
+      <span>{BIOMES[status.biome] || "Auto"}</span>
+    </>
+  );
+}
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="field">
@@ -537,13 +560,6 @@ export default function App() {
     [hidePanels, setHidePanels] = useState(false),
     // On a phone the side panel is a sheet that slides up over the map.
     [sheet, setSheet] = useState(false),
-    [status, setStatus] = useState({
-      zoom: 100,
-      x: 0,
-      y: 0,
-      height: 0,
-      biome: 0,
-    }),
     [saveState, setSaveState] = useState("Saved locally"),
     [saveError, setSaveError] = useState(""),
     [busy, setBusy] = useState(false),
@@ -1781,7 +1797,7 @@ export default function App() {
             contours={contours}
             player={player}
             textureVersion={textureVersion}
-            onStatus={setStatus}
+            onStatus={cursorStatus.set}
           />
           <div className="map-corner-note">
             <span className="seed-dot" />
@@ -1806,7 +1822,7 @@ export default function App() {
               title={t("Fit map")}
               onClick={() => editor.current?.fit()}
             >
-              {Math.round(status.zoom)}
+              <ZoomReadout />
               <span>%</span>
             </button>
             <IconButton
@@ -3469,18 +3485,7 @@ export default function App() {
           <span className="status-tool">{t(toolInfo[tool][0])}</span>
         </div>
         <div className="cursor-status">
-          <span>
-            X <b>{status.x}</b>
-          </span>
-          <span>
-            Y <b>{status.y}</b>
-          </span>
-          {map.kind === "world" && (
-            <span>
-              ↟ <b>{status.height} m</b>
-            </span>
-          )}
-          <span>{BIOMES[status.biome] || "Auto"}</span>
+          <CursorReadout world={map.kind === "world"} />
           <span className="status-separator" />
           {map.kind === "dungeon" ? (
             <span>

@@ -5,7 +5,7 @@ import {
   useImperativeHandle,
   forwardRef,
 } from "react";
-import { Application, Sprite, Texture } from "pixi.js";
+import { Application, Container, Sprite, Texture } from "pixi.js";
 import { eraseAt } from "./erase";
 import { drawMap, loadImage } from "./render";
 import { hitObject, navigationTarget } from "./hit-test";
@@ -131,12 +131,50 @@ function beginDraft(m: MapData, tool: Tool): MapData {
   return draft;
 }
 
+/** Edge of one GPU tile of the map, in map pixels. */
+const GPU_TILE = 256;
+interface GpuTile {
+  x: number;
+  y: number;
+  canvas: HTMLCanvasElement;
+  sprite: Sprite;
+}
+/** Map pixels a terrain edit of `dirty` cells can change, with room for coasts and symbols. */
+function dirtyArea(m: MapData, dirty: CellRect) {
+  const cx = m.width / m.cols,
+    cy = m.height / m.rows,
+    x = Math.max(0, Math.floor((dirty.x0 - 3) * cx) - 72),
+    y = Math.max(0, Math.floor((dirty.y0 - 3) * cy) - 72);
+  return {
+    x,
+    y,
+    w: Math.min(m.width, Math.ceil((dirty.x1 + 4) * cx) + 72) - x,
+    h: Math.min(m.height, Math.ceil((dirty.y1 + 4) * cy) + 72) - y,
+  };
+}
+function makeTiles(width: number, height: number): GpuTile[] {
+  const out: GpuTile[] = [];
+  for (let y = 0; y < height; y += GPU_TILE)
+    for (let x = 0; x < width; x += GPU_TILE) {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.min(GPU_TILE, width - x);
+      canvas.height = Math.min(GPU_TILE, height - y);
+      const sprite = new Sprite(Texture.from(canvas, true));
+      sprite.position.set(x, y);
+      out.push({ x, y, canvas, sprite });
+    }
+  return out;
+}
+
 export const Editor = forwardRef<EditorHandle, Props>(
   function Editor(props, ref) {
     const host = useRef<HTMLDivElement>(null),
       overlay = useRef<HTMLCanvasElement>(null),
       application = useRef<Application | null>(null),
-      sprite = useRef<Sprite | null>(null),
+      // The map is shown as a grid of GPU tiles, so a brush stroke uploads
+      // only the tiles it touched instead of the whole map every frame.
+      sprite = useRef<Container | null>(null),
+      tiles = useRef<GpuTile[]>([]),
       mapCanvas = useRef(document.createElement("canvas")),
       latest = useRef(props),
       view = useRef<View>({ x: 0, y: 0, scale: 1 }),
@@ -301,7 +339,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
       };
       work();
     }
-    /** Draws the map now and uploads it to the GPU. */
+    /** Draws the map now and uploads the changed part to the GPU. */
     const render = (f: Frame) => {
       const canvas = mapCanvas.current;
       let resized = false;
@@ -310,27 +348,40 @@ export const Editor = forwardRef<EditorHandle, Props>(
         canvas.height = f.map.height;
         resized = true;
       }
+      // A terrain edit changes only the cells under the brush, plus the
+      // coastlines and symbols that reach a little past them.
+      const area =
+        f.dirty && !resized && tiles.current.length
+          ? dirtyArea(f.map, f.dirty)
+          : undefined;
       drawMap(canvas.getContext("2d")!, f.map, {
         contours: latest.current.contours,
         player: latest.current.player,
         dirty: f.dirty,
         liveStroke: f.live,
+        clip: area,
       });
-      if (sprite.current) {
-        if (sprite.current.texture === Texture.EMPTY)
-          sprite.current.texture = Texture.from(canvas);
-        else if (resized) {
-          // A sprite keeps the size of its first texture, so a resized map
-          // gets a fresh sprite and texture in the same place.
-          const old = sprite.current,
-            next = new Sprite(Texture.from(canvas, true)),
-            stage = application.current?.stage;
-          stage?.addChildAt(next, stage.getChildIndex(old));
-          stage?.removeChild(old);
-          old.destroy({ texture: true, textureSource: true });
-          sprite.current = next;
+      const stage = sprite.current;
+      if (stage) {
+        if (resized || !tiles.current.length) {
+          for (const t of tiles.current)
+            t.sprite.destroy({ texture: true, textureSource: true });
+          tiles.current = makeTiles(canvas.width, canvas.height);
+          for (const t of tiles.current) stage.addChild(t.sprite);
         }
-        else sprite.current.texture.source.update();
+        for (const t of tiles.current)
+          if (
+            !area ||
+            (t.x < area.x + area.w &&
+              t.x + t.canvas.width > area.x &&
+              t.y < area.y + area.h &&
+              t.y + t.canvas.height > area.y)
+          ) {
+            const c = t.canvas.getContext("2d")!;
+            c.clearRect(0, 0, t.canvas.width, t.canvas.height);
+            c.drawImage(canvas, -t.x, -t.y);
+            t.sprite.texture.source.update();
+          }
         position();
       }
     };
@@ -578,7 +629,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
           }
           application.current = app;
           host.current!.prepend(app.canvas);
-          const sp = new Sprite(Texture.EMPTY);
+          const sp = new Container();
           sprite.current = sp;
           app.stage.addChild(sp);
           const observer = new ResizeObserver((entries) => {
@@ -651,6 +702,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
         }
         application.current = null;
         sprite.current = null;
+        tiles.current = [];
       };
     }, []);
     useEffect(() => {
