@@ -23,7 +23,7 @@ export function HelpModal({ app }: { app: ReadyApp }) {
           ["Ctrl Shift Z", "Redo"],
           ["Ctrl G", "Group"],
           ["Ctrl D", "Duplicate"],
-          ["Ctrl S", "Save project"],
+          ["Ctrl S", "Save world file"],
           ["Tab", "Hide panels"],
         ].map(([key, name]) => (
           <div key={key}>

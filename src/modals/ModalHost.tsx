@@ -4,6 +4,7 @@ import { FitImageModal } from "./FitImageModal";
 import { HelpModal } from "./HelpModal";
 import { NewMapModal } from "./NewMapModal";
 import { ResizeModal } from "./ResizeModal";
+import { WorldsModal } from "./WorldsModal";
 import { X } from "lucide-react";
 import type { ReadyApp } from "../app/useAppModel";
 
@@ -35,33 +36,38 @@ export function ModalHost({ app }: { app: ReadyApp }) {
           {t(
             modal === "new"
               ? "New adventure"
-              : modal === "export"
-                ? "Export"
-                : modal === "credits"
-                  ? "Credits"
-                  : modal === "help"
-                    ? "Keyboard shortcuts"
-                    : modal === "resize"
-                      ? "Map size"
-                      : "Library",
+              : modal === "worlds"
+                ? "Worlds"
+                : modal === "export"
+                  ? "Export"
+                  : modal === "credits"
+                    ? "Credits"
+                    : modal === "help"
+                      ? "Keyboard shortcuts"
+                      : modal === "resize"
+                        ? "Map size"
+                        : "Library",
           )}
         </span>
         <h2 id="modal-title">
           {t(
             modal === "new"
               ? "New map"
-              : modal === "export"
-                ? "Export map"
-                : modal === "credits"
-                  ? "Credits"
-                  : modal === "help"
-                    ? "Keyboard shortcuts"
-                    : modal === "resize"
-                      ? "Resize map"
-                      : "Make it fit",
+              : modal === "worlds"
+                ? "Worlds"
+                : modal === "export"
+                  ? "Export map"
+                  : modal === "credits"
+                    ? "Credits"
+                    : modal === "help"
+                      ? "Keyboard shortcuts"
+                      : modal === "resize"
+                        ? "Resize map"
+                        : "Make it fit",
           )}
         </h2>
         {modal === "new" && <NewMapModal app={app} />}
+        {modal === "worlds" && <WorldsModal app={app} />}
         {modal === "resize" && <ResizeModal app={app} />}
         {modal === "export" && <ExportModal app={app} />}
         {modal === "credits" && <CreditsModal app={app} />}

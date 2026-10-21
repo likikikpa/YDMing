@@ -1,0 +1,66 @@
+/* Worlds, map links and note links. */
+
+.world-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 50vh;
+  overflow-y: auto;
+  margin-bottom: 18px;
+}
+.world-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #a78a4b22;
+  padding: 4px 0;
+}
+.world-open {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 9px 6px;
+  font-size: 13px;
+  color: #bc9f70;
+  text-align: left;
+  border-radius: 3px;
+}
+button.world-open:hover {
+  background: #c19b5515;
+  color: #ebca8e;
+}
+.world-open span,
+.world-open input {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.world-row.current .world-open {
+  color: #e6ce9e;
+}
+.world-open input {
+  font: inherit;
+  color: inherit;
+  background: #0002;
+  border: 1px solid #b7944e33;
+  border-radius: 3px;
+  padding: 4px 6px;
+}
+.world-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #8b7d68;
+}
+.world-new {
+  display: flex;
+  gap: 8px;
+}
+.world-new input {
+  flex: 1;
+  min-width: 0;
+}

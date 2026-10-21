@@ -1,4 +1,3 @@
-import { set } from "idb-keyval";
 import { getWithLegacy } from "./legacy-keys";
 import { BUILTIN_MATERIALS, PATTERNS } from "./materials";
 import { CELL, MAX_CELLS } from "./mapsize";
@@ -23,12 +22,15 @@ function mapGrids(project: Project, convert: (v: ArrayLike<number>) => ArrayLike
     }),
   } as Project;
 }
+/** Grids as Float32Array for IndexedDB, and back to plain arrays when loaded. */
+export const packProject = (project: Project) =>
+  mapGrids(project, (v) => Float32Array.from(v));
+export const unpackProject = (project: Project) =>
+  mapGrids(project, (v) => Array.from(v));
+/** The single project saved before worlds existed; `worlds.ts` moves it into the world list. */
 export async function loadProject(): Promise<Project | undefined> {
   const project = await getWithLegacy<Project>(key);
-  return project && mapGrids(project, (v) => Array.from(v));
-}
-export async function saveProject(project: Project) {
-  await set(key, mapGrids(project, (v) => Float32Array.from(v)));
+  return project && unpackProject(project);
 }
 export function validateProject(value: unknown): Project {
   const p = value as Project;

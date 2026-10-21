@@ -114,6 +114,7 @@ export const primaryTools: Tool[][] = [
 /** The dialogs that can be open. */
 export type ModalName =
   | "new"
+  | "worlds"
   | "export"
   | "credits"
   | "help"

@@ -3,6 +3,7 @@ import { registerSW } from "virtual:pwa-register";
 import App from "./App";
 import { ErrorBoundary } from "./ErrorBoundary";
 import "./style.css";
+import "./campaign.css";
 registerSW({ immediate: true });
 createRoot(document.getElementById("root")!).render(
   <ErrorBoundary>

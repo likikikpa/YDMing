@@ -11,6 +11,7 @@ import { useTextureLayers } from "./useTextureLayers";
 import { useToast } from "./useToast";
 import { useToolState } from "./useToolState";
 import { useViewState } from "./useViewState";
+import { useWorlds } from "./useWorlds";
 
 /**
  * Everything the screen needs, built from small hooks. Each hook gets only the
@@ -56,13 +57,21 @@ export function useAppModel() {
     selected: view.selected,
     setSelected: view.setSelected,
   });
-  const files = useProjectFiles({
+  const worlds = useWorlds({
     project: store.project,
+    projectRef: store.projectRef,
     setProject: store.setProject,
     setHistory: store.setHistory,
     setHistoryIndex: store.setHistoryIndex,
-    setMenu: view.setMenu,
     setSelected: view.setSelected,
+    setModal: view.setModal,
+    notify,
+    t: view.t,
+  });
+  const files = useProjectFiles({
+    project: store.project,
+    importWorld: worlds.importWorld,
+    setMenu: view.setMenu,
     notify,
     lang: view.lang,
   });
@@ -117,6 +126,7 @@ export function useAppModel() {
     ...objects,
     ...files,
     ...library,
+    ...worlds,
   };
 }
 

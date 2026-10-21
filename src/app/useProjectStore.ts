@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { createEmptyMap } from "../generator";
-import { loadProject, saveProject } from "../storage";
-import { defaultSettings, uid } from "../types";
+import { loadStartWorld, newWorld, saveWorld } from "../worlds";
 import type { MapData, Project } from "../types";
 import { HISTORY_LIMIT } from "./constants";
 
-/** The open project, its undo history, and saving it in the browser. */
+/** The open world (a `Project`), its undo history, and saving it in the browser. */
 export function useProjectStore({
   notify,
   setSelected,
@@ -73,25 +71,13 @@ export function useProjectStore({
     (async () => {
       let initial: Project | undefined;
       try {
-        initial = await loadProject();
+        initial = await loadStartWorld();
       } catch {
         setSaveError(
           "Browser storage is unavailable. Download a project backup.",
         );
       }
-      if (!initial) {
-        const world = createEmptyMap("world", defaultSettings);
-        initial = {
-          version: 1,
-          id: uid(),
-          name: "The Eldermere Reach",
-          maps: [world],
-          activeMapId: world.id,
-          credits: [],
-          commercial: false,
-          updatedAt: new Date().toISOString(),
-        };
-      }
+      if (!initial) initial = newWorld("The Eldermere Reach");
       if (live) {
         setProject(initial);
         setHistory([{ project: initial, label: "Starting map" }]);
@@ -105,7 +91,7 @@ export function useProjectStore({
     if (!project) return;
     setSaveState("Saving…");
     const timer = setTimeout(() => {
-      void saveProject(project)
+      void saveWorld(project)
         .then(() => {
           setSaveState("Saved locally");
           setSaveError("");

@@ -1,3 +1,4 @@
+import { campaignRu } from "./i18n-campaign";
 import { toolDescriptionsRu } from "./tools";
 export const ru: Record<string, string> = {
   "Your world, made by you": "Ваш мир — в ваших руках",
@@ -354,3 +355,5 @@ Object.assign(ru, toolDescriptionsRu, {
   "Lock seed": "Закрепить сид",
   "Keep the same seed when generating": "Сохранять сид при генерации",
 });
+
+Object.assign(ru, campaignRu);

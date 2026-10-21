@@ -31,6 +31,15 @@ export function ProjectMenu({ app }: { app: ReadyApp }) {
         <div className="menu-title">{project.name}</div>
         <button
           onClick={() => {
+            setModal("worlds");
+            setMenu(false);
+          }}
+        >
+          <Globe2 size={16} />
+          {t("Worlds")}
+        </button>
+        <button
+          onClick={() => {
             setModal("new");
             setMenu(false);
           }}
@@ -40,15 +49,15 @@ export function ProjectMenu({ app }: { app: ReadyApp }) {
         </button>
         <button onClick={() => fileInput.current?.click()}>
           <FolderOpen size={16} />
-          {t("Open project")}
+          {t("Import world file")}
         </button>
         <button onClick={saveProjectFile}>
           <Save size={16} />
-          {t("Save project")}
+          {t("Save world file")}
           <kbd>Ctrl S</kbd>
         </button>
         <hr />
-        <small>{t("Maps in this project")}</small>
+        <small>{t("Maps in this world")}</small>
         {project.maps.map((m) => (
           <button
             key={m.id}
