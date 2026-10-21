@@ -1,4 +1,4 @@
-/** Russian for worlds, map links, note links and sprite search. */
+/** Russian for worlds, map links, note links, sprite search and copy and paste. */
 export const campaignRu: Record<string, string> = {
   Worlds: "Миры",
   "New world": "Новый мир",
@@ -22,4 +22,9 @@ export const campaignRu: Record<string, string> = {
   "Map note": "Заметка карты",
   "Open note": "Открыть заметку",
   "Edit note link": "Изменить ссылку на заметку",
+  Copy: "Копировать",
+  Cut: "Вырезать",
+  Paste: "Вставить",
+  "Paste at the pointer": "Вставить под курсором",
+  "Paste in place": "Вставить на то же место",
 };

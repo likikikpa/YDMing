@@ -115,7 +115,7 @@ export function createPointerMove(
       removed = m.objects.length + m.paths.length !== things;
       d.last = world;
     }
-    if (p.tool === "select" && d.objects.length) {
+    if (p.tool === "select" && (d.objects.length || d.paths?.length)) {
       selectMove(e, m, world);
     } else if (d.stroke) {
       const before = d.stroke.points,

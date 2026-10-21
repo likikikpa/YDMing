@@ -1,4 +1,5 @@
 import { hitObject } from "../hit-test";
+import { movedPath, nearestPath, pathInBox } from "../path-select";
 import type { MapData, Point } from "../types";
 import { editable } from "./draft";
 import type { EditorCore } from "./useEditorCore";
@@ -6,10 +7,13 @@ import type { EditorOverlay } from "./overlay";
 
 export type EditorSelectTool = ReturnType<typeof createSelectTool>;
 
-/** The select tool: pick, move, resize and rotate objects, and the marquee. */
+/**
+ * The select tool: pick, move, resize and rotate objects, pick and move
+ * rivers, roads and walls, and the marquee.
+ */
 export function createSelectTool(deps: EditorCore & EditorOverlay) {
   const { latest, view, drag, screenPoint, selectedBounds } = deps;
-  /** A press: on a handle of the selection, on an object, or on empty map. */
+  /** A press: on a handle of the selection, on an object or path, or on empty map. */
   function selectDown(
     e: React.PointerEvent,
     m: MapData,
@@ -46,24 +50,34 @@ export function createSelectTool(deps: EditorCore & EditorOverlay) {
     const hit = [...m.objects]
       .reverse()
       .find((o) => editable(m, o.layer) && hitObject(o, world));
-    if (hit) {
+    // A path is picked within a few screen pixels of its line, at any zoom.
+    const hitLine = hit
+      ? undefined
+      : nearestPath(m.paths, world, 6 / view.current.scale, (q) =>
+          editable(m, q.layer),
+        );
+    const target = hit || hitLine;
+    if (target) {
       let ids = e.shiftKey
-        ? [...new Set([...p.selected, hit.id])]
-        : p.selected.includes(hit.id)
+        ? [...new Set([...p.selected, target.id])]
+        : p.selected.includes(target.id)
           ? p.selected
-          : [hit.id];
-      if (hit.group)
+          : [target.id];
+      if (hit?.group)
         ids = m.objects.filter((o) => o.group === hit.group).map((o) => o.id);
       p.setSelected(ids);
       drag.current.objects = structuredClone(
         m.objects.filter((o) => ids.includes(o.id) && editable(m, o.layer)),
+      );
+      drag.current.paths = structuredClone(
+        m.paths.filter((q) => ids.includes(q.id) && editable(m, q.layer)),
       );
     } else {
       if (!e.shiftKey) p.setSelected([]);
       drag.current.box = world;
     }
   }
-  /** Moves, resizes or rotates the objects being dragged. */
+  /** Moves, resizes or rotates the objects being dragged, and moves the paths. */
   function selectMove(e: React.PointerEvent, m: MapData, world: Point) {
     const p = latest.current,
       d = drag.current!;
@@ -146,8 +160,16 @@ export function createSelectTool(deps: EditorCore & EditorOverlay) {
         }
       }
     });
+    // The draft shares path objects with the saved map, so a moved path is
+    // replaced in the draft's own array, never changed in place.
+    if (!d.handle)
+      for (const before of d.paths ?? []) {
+        const i = m.paths.findIndex((q) => q.id === before.id);
+        if (i >= 0)
+          m.paths[i] = { ...m.paths[i], points: movedPath(before, dx, dy) };
+      }
   }
-  /** Selects the objects whose centre is inside the marquee. */
+  /** Selects the objects whose centre, and the paths that are wholly, inside the marquee. */
   function selectBox(e: React.PointerEvent, m: MapData, world: Point) {
     const p = latest.current,
       d = drag.current!;
@@ -165,6 +187,9 @@ export function createSelectTool(deps: EditorCore & EditorOverlay) {
           o.y <= bottom,
       )
       .map((o) => o.id);
+    for (const q of m.paths)
+      if (editable(m, q.layer) && pathInBox(q, { left, top, right, bottom }))
+        ids.push(q.id);
     p.setSelected(e.shiftKey ? [...new Set([...p.selected, ...ids])] : ids);
   }
   return { selectDown, selectMove, selectBox };
