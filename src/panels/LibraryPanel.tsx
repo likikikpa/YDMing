@@ -1,4 +1,4 @@
-import kenney from "../data/kenney.json";
+import { PACK_STAMPS, STAMP_PACKS } from "../packs";
 import { assetUrl } from "../search";
 import { Field } from "../ui/Field";
 import { ScenesTab } from "./ScenesTab";
@@ -63,8 +63,11 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
               value={assetPack}
               onChange={(e) => setAssetPack(e.target.value)}
             >
-              <option value="cartography">Kenney Cartography · 83</option>
-              <option value="medieval">Kenney Medieval RTS · 126</option>
+              {STAMP_PACKS.map((p) => (
+                <option key={p.key} value={p.key}>
+                  {p.label}
+                </option>
+              ))}
             </select>
           </Field>
           <div className="search-input">
@@ -76,7 +79,7 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
             />
           </div>
           <div className="stamp-grid">
-            {[...kenney]
+            {[...PACK_STAMPS]
               // Map symbols first; arrows, path pieces and textures last.
               .sort(
                 (x, y) =>
@@ -97,7 +100,12 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
                     // Pick a sprite, then click or drag on the map to place it.
                     setBrush((b) => ({
                       ...b,
-                      sprite: { src: a.src, name: a.name },
+                      sprite: {
+                        src: a.src,
+                        name: a.name,
+                        aspect: a.aspect,
+                        cells: a.cells,
+                      },
                       layer: "Objects",
                       mask: false,
                     }));
@@ -109,7 +117,9 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
                 </button>
               ))}
           </div>
-          <p className="panel-footnote">Kenney · CC0 1.0</p>
+          <p className="panel-footnote">
+            {STAMP_PACKS.find((p) => p.key === assetPack)?.credit}
+          </p>
         </>
       )}
       {libraryTab === "Search web" && (

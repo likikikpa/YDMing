@@ -93,3 +93,19 @@ describe("stamp brush", () => {
     expect(withStampCredits(credited, placed, [credit])).toBe(credited);
   });
 });
+
+describe("sprites that fill dungeon grid squares", () => {
+  const bed = { src: "/assets/gosbell/bed.png", name: "Bed", cells: [1, 2] as [number, number] };
+
+  it("are drawn to their squares on a dungeon, scaled by the brush size", () => {
+    expect(spriteSize(bed, 48, 25)).toEqual({ width: 25, height: 50 });
+    expect(spriteSize(bed, 96, 25)).toEqual({ width: 50, height: 100 });
+  });
+
+  it("follow the brush size on maps without a dungeon grid", () => {
+    expect(spriteSize({ ...bed, aspect: 0.5 }, 60)).toEqual({
+      width: 30,
+      height: 60,
+    });
+  });
+});

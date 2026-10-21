@@ -1,4 +1,5 @@
 import { validFog } from "./fog";
+import { isBundledSprite } from "./bundled-assets";
 import { getWithLegacy } from "./legacy-keys";
 import { BUILTIN_MATERIALS, PATTERNS } from "./materials";
 import { isNoteUrl } from "./note-link";
@@ -129,7 +130,7 @@ export function validateProject(value: unknown): Project {
         o.image &&
         !/^data:image\/(png|jpeg|webp);base64,/.test(o.image) &&
         // Sprites that ship with the app are referenced by path, not copied in.
-        !/^\/assets\/(cartography|medieval)\/[\w.-]+\.png$/.test(o.image)
+        !isBundledSprite(o.image)
       )
         throw new Error(
           "Imported images must be embedded PNG, JPEG, or WebP files.",
