@@ -179,7 +179,15 @@ export interface TextureLayer {
   /** How strongly the pattern shows, 0–100. */
   strength: number;
   visible: boolean;
+  /**
+   * How the tile covers the ground: repeated as is, blended from randomly
+   * shifted copies so no repeat shows (the default), or unveiled from `cover`.
+   */
+  tiling?: TextureTiling;
+  /** A map-wide image (JPEG data URL) that painting this layer unveils. */
+  cover?: string;
 }
+export type TextureTiling = "tiled" | "blended" | "unveil";
 export interface MapData {
   id: string;
   name: string;

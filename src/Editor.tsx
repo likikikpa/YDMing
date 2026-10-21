@@ -6,6 +6,7 @@ import {
   forwardRef,
 } from "react";
 import { Application, Sprite, Texture } from "pixi.js";
+import { eraseAt } from "./erase";
 import { drawMap, loadImage } from "./render";
 import { hitObject, navigationTarget } from "./hit-test";
 import { biomeAt, keyRoom } from "./generator";
@@ -152,6 +153,8 @@ export const Editor = forwardRef<EditorHandle, Props>(
         flat?: number;
         trail?: Point[];
         sculpted?: boolean;
+        /** The eraser removed a stamp, label or path during this drag. */
+        erased?: boolean;
       } | null>(null),
       [ready, setReady] = useState(false),
       [renderError, setRenderError] = useState("");
@@ -928,7 +931,18 @@ export const Editor = forwardRef<EditorHandle, Props>(
         drawOverlay(screen);
         return;
       } else if (PAINT_TOOLS.includes(p.tool)) {
-        if (!editable(m, p.brush.layer)) return;
+        if (p.tool === "eraser") {
+          // The eraser also lifts stamps, labels and whole paths, even when
+          // the active paint layer itself cannot be erased.
+          drag.current.erased = eraseAt(m, world, p.brush.size / 2, (l) =>
+            editable(m, l),
+          );
+          if (!editable(m, p.brush.layer)) {
+            refresh(m);
+            drawOverlay(screen);
+            return;
+          }
+        } else if (!editable(m, p.brush.layer)) return;
         const stroke: Stroke = {
           id: uid(),
           points:
@@ -1037,6 +1051,22 @@ export const Editor = forwardRef<EditorHandle, Props>(
         d.box = world;
         drawOverlay(screen);
         return;
+      }
+      if (p.tool === "eraser") {
+        // Steps along the drag so a fast swipe cannot skip over a stamp.
+        const step = Math.max(2, p.brush.size / 4),
+          n = Math.ceil(
+            Math.hypot(world.x - d.last.x, world.y - d.last.y) / step,
+          );
+        for (let k = 1; k <= n; k++) {
+          const at = {
+            x: d.last.x + ((world.x - d.last.x) * k) / n,
+            y: d.last.y + ((world.y - d.last.y) * k) / n,
+          };
+          if (eraseAt(m, at, p.brush.size / 2, (l) => editable(m, l)))
+            d.erased = true;
+        }
+        d.last = world;
       }
       if (p.tool === "select" && d.objects.length) {
         const dx = world.x - d.start.x,
@@ -1256,7 +1286,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
         } else if (p.tool === "select") {
           changed = Math.hypot(world.x - d.start.x, world.y - d.start.y) > 0.1;
         } else if (PAINT_TOOLS.includes(p.tool)) {
-          changed = !!d.stroke;
+          changed = !!d.stroke || !!d.erased;
         } else if (SCULPT_TOOLS.includes(p.tool)) {
           changed = d.sculpted === true;
         } else if (["stamp", "text", "river"].includes(p.tool)) {

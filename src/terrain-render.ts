@@ -14,7 +14,7 @@ import {
 import { hash, noise, random } from "./random";
 import { imageCache } from "./render";
 import { DECOR_SPRITES } from "./symbols";
-import type { MapData, TextureLayer } from "./types";
+import type { MapData, TextureLayer, TextureTiling } from "./types";
 
 /** Inclusive rectangle of terrain cells. */
 export interface CellRect {
@@ -102,6 +102,8 @@ let textureLayers: TextureLayer[] = defaultTextures(),
   textureVersion = 0;
 /** Decoded uploaded tiles, keyed by their data URL. */
 const uploads = new Map<string, Float32Array[]>();
+/** Decoded map-wide cover images for unveiled layers, keyed by their data URL. */
+const covers = new Map<string, Cover>();
 /** Generated pattern tiles, shared by every style and colour. */
 const patterns = new Map<string, Float32Array[]>();
 
@@ -110,8 +112,8 @@ const patterns = new Map<string, Float32Array[]>();
  * promise settles once the next draw will show the new textures.
  */
 export async function setTextureLayers(layers: TextureLayer[]) {
-  await Promise.all(
-    layers
+  await Promise.all([
+    ...layers
       .filter((l) => l.image && !uploads.has(l.image))
       .map(async (l) => {
         try {
@@ -120,7 +122,16 @@ export async function setTextureLayers(layers: TextureLayer[]) {
           // A broken image falls back to the generated pattern.
         }
       }),
-  );
+    ...layers
+      .filter((l) => l.cover && !covers.has(l.cover))
+      .map(async (l) => {
+        try {
+          covers.set(l.cover!, await decodeCover(l.cover!));
+        } catch {
+          // A broken cover falls back to blended tiles.
+        }
+      }),
+  ]);
   textureLayers = layers;
   textureVersion++;
   entries.clear();
@@ -141,11 +152,64 @@ async function decodeTile(src: string) {
   return mipChain(rgb, TILE, 3);
 }
 
+/** A map-wide image, RGB bytes. */
+interface Cover {
+  rgb: Uint8ClampedArray;
+  width: number;
+  height: number;
+}
+async function decodeCover(src: string): Promise<Cover> {
+  const img = new Image();
+  img.src = src;
+  await img.decode();
+  const c = document.createElement("canvas");
+  c.width = img.naturalWidth;
+  c.height = img.naturalHeight;
+  const ctx = c.getContext("2d")!;
+  ctx.drawImage(img, 0, 0);
+  const data = ctx.getImageData(0, 0, c.width, c.height).data,
+    rgb = new Uint8ClampedArray(c.width * c.height * 3);
+  for (let i = 0; i < c.width * c.height; i++)
+    for (let k = 0; k < 3; k++) rgb[i * 3 + k] = data[i * 4 + k];
+  return { rgb, width: c.width, height: c.height };
+}
+
 /** A material ready to sample: RGB mip levels for the current style. */
 interface Material {
   levels: Float32Array[];
   /** Tile texels per map pixel at full size. */
   density: number;
+  tiling: TextureTiling;
+  /** Average colour of the tile, which blending and unveiling keep. */
+  mean: [number, number, number];
+  /** How much the tile's detail shows on top of an unveiled cover, 0–1. */
+  detail: number;
+  cover?: Cover;
+}
+
+const tilingOf = (layer: TextureLayer): TextureTiling =>
+  layer.tiling === "unveil" && !(layer.cover && covers.has(layer.cover))
+    ? "blended"
+    : (layer.tiling ?? "blended");
+
+function withMean(
+  layer: TextureLayer,
+  levels: Float32Array[],
+  density: number,
+): Material {
+  const last = levels[levels.length - 1],
+    n = last.length / 3,
+    mean: [number, number, number] = [0, 0, 0];
+  for (let i = 0; i < n; i++)
+    for (let k = 0; k < 3; k++) mean[k] += last[i * 3 + k] / n;
+  return {
+    levels,
+    density,
+    tiling: tilingOf(layer),
+    mean,
+    detail: layer.visible ? layer.strength / 100 : 0,
+    cover: layer.cover ? covers.get(layer.cover) : undefined,
+  };
 }
 
 /** The colour a texture layer starts from: its own tint, else the map style's. */
@@ -166,7 +230,7 @@ export const textureColour = (layer: TextureLayer, style: string) =>
 function buildMaterial(layer: TextureLayer, style: string): Material {
   const density = TILE / ((WORLD_TILE * layer.scale) / 100),
     upload = layer.image ? uploads.get(layer.image) : undefined;
-  if (upload) return { levels: upload, density };
+  if (upload) return withMean(layer, upload, density);
   let detail = patterns.get(layer.pattern);
   if (!detail)
     patterns.set(layer.pattern, (detail = patternTile(layer.pattern)));
@@ -174,9 +238,9 @@ function buildMaterial(layer: TextureLayer, style: string): Material {
     deep = layer.id === DEEP_WATER && !layer.tint,
     darken = deep ? (style === "parchment" ? 3 : 10) : 0,
     contrast = layer.visible ? (layer.strength / 100) * 0.3 : 0;
-  return {
-    density,
-    levels: detail.map((level) => {
+  return withMean(
+    layer,
+    detail.map((level) => {
       const rgb = new Float32Array(level.length * 3);
       for (let i = 0; i < level.length; i++) {
         const f = 1 + level[i] * contrast;
@@ -184,7 +248,8 @@ function buildMaterial(layer: TextureLayer, style: string): Material {
       }
       return rgb;
     }),
-  };
+    density,
+  );
 }
 
 interface Entry {
@@ -302,6 +367,106 @@ function classifyCells(
     }
 }
 
+/** Tile texels at one mip level. */
+interface Tile {
+  rgb: Float32Array;
+  size: number;
+  k: number;
+}
+/** How many blended copies span one tile; more means smaller patches. */
+const HEX_SCALE = 1.7;
+function latticeHash(x: number, y: number) {
+  let h = Math.imul(x, 0x27d4eb2d) ^ Math.imul(y, 0x165667b1);
+  h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
+  return (h ^ (h >>> 12)) >>> 0;
+}
+const hexU = [0, 0, 0],
+  hexV = [0, 0, 0],
+  hexW = [0, 0, 0];
+/**
+ * Hex tiling (Heitz and Neyret, as simplified by Mikkelsen): the ground is
+ * split into a triangle grid, every grid point takes a randomly shifted and
+ * turned copy of the tile, and each pixel blends the three copies around it.
+ * Blending pulls colours towards the average, so the contrast is restored
+ * afterwards. `u` and `v` are in tiles; the result goes into `out`.
+ */
+function hexBlend(
+  t: Tile,
+  mean: number[],
+  u: number,
+  v: number,
+  out: number[],
+) {
+  const gu = u * HEX_SCALE,
+    gv = v * HEX_SCALE,
+    sx = gu,
+    sy = -0.57735027 * gu + 1.15470054 * gv,
+    bx = Math.floor(sx),
+    by = Math.floor(sy),
+    fx = sx - bx,
+    fy = sy - by,
+    z = 1 - fx - fy;
+  if (z > 0) {
+    hexW[0] = z;
+    hexW[1] = fy;
+    hexW[2] = fx;
+    hexU[0] = bx;
+    hexV[0] = by;
+    hexU[1] = bx;
+    hexV[1] = by + 1;
+    hexU[2] = bx + 1;
+    hexV[2] = by;
+  } else {
+    hexW[0] = -z;
+    hexW[1] = 1 - fy;
+    hexW[2] = 1 - fx;
+    hexU[0] = bx + 1;
+    hexV[0] = by + 1;
+    hexU[1] = bx + 1;
+    hexV[1] = by;
+    hexU[2] = bx;
+    hexV[2] = by + 1;
+  }
+  // Sharper weights keep each copy crisp in the middle of its patch.
+  let total = 0;
+  for (let n = 0; n < 3; n++) total += hexW[n] = hexW[n] ** 3;
+  let squares = 0;
+  out[0] = out[1] = out[2] = 0;
+  for (let n = 0; n < 3; n++) {
+    const w = hexW[n] / total,
+      h = latticeHash(hexU[n], hexV[n]),
+      ox = (h & 1023) / 1024,
+      oy = ((h >>> 10) & 1023) / 1024,
+      turn = (h >>> 20) & 3,
+      ru = turn === 0 ? u : turn === 1 ? -v : turn === 2 ? -u : v,
+      rv = turn === 0 ? v : turn === 1 ? u : turn === 2 ? -v : -u,
+      tx = ((Math.floor((ru + ox) * t.size) % t.size) + t.size) % t.size,
+      ty = ((Math.floor((rv + oy) * t.size) % t.size) + t.size) % t.size,
+      p = (ty * t.size + tx) * 3;
+    out[0] += t.rgb[p] * w;
+    out[1] += t.rgb[p + 1] * w;
+    out[2] += t.rgb[p + 2] * w;
+    squares += w * w;
+  }
+  const restore = 1 / Math.sqrt(squares);
+  for (let k = 0; k < 3; k++) out[k] = mean[k] + (out[k] - mean[k]) * restore;
+}
+/** Bilinear sample of a cover image at (`u`, `v`) in 0–1 map coordinates. */
+function coverAt(c: Cover, u: number, v: number, out: number[]) {
+  const x = Math.min(c.width - 1.001, Math.max(0, u * c.width - 0.5)),
+    y = Math.min(c.height - 1.001, Math.max(0, v * c.height - 0.5)),
+    ix = Math.floor(x),
+    iy = Math.floor(y),
+    fx = x - ix,
+    fy = y - iy,
+    p = (iy * c.width + ix) * 3,
+    q = p + c.width * 3;
+  for (let k = 0; k < 3; k++)
+    out[k] =
+      (c.rgb[p + k] * (1 - fx) + c.rgb[p + 3 + k] * fx) * (1 - fy) +
+      (c.rgb[q + k] * (1 - fx) + c.rgb[q + 3 + k] * fx) * fy;
+}
+
 /**
  * Paints terrain pixels into `data` (`dataWidth` wide). Output pixel (u, v)
  * shows map point (ox + (u + 0.5) / scale, oy + (v + 0.5) / scale), so the same
@@ -345,13 +510,29 @@ function paintPixels(
     tiles = entry.layers.map(pick),
     sample = (m: number, mx: number, my: number, out: number[], w: number) => {
       const t = tiles[m],
-        tx = ((Math.floor(mx * t.k) % t.size) + t.size) % t.size,
-        ty = ((Math.floor(my * t.k) % t.size) + t.size) % t.size,
-        p = (ty * t.size + tx) * 3;
-      out[0] += t.rgb[p] * w;
-      out[1] += t.rgb[p + 1] * w;
-      out[2] += t.rgb[p + 2] * w;
+        mat = entry.layers[m];
+      if (mat.tiling === "tiled") {
+        const tx = ((Math.floor(mx * t.k) % t.size) + t.size) % t.size,
+          ty = ((Math.floor(my * t.k) % t.size) + t.size) % t.size,
+          p = (ty * t.size + tx) * 3;
+        out[0] += t.rgb[p] * w;
+        out[1] += t.rgb[p + 1] * w;
+        out[2] += t.rgb[p + 2] * w;
+        return;
+      }
+      hexBlend(t, mat.mean, (mx * t.k) / t.size, (my * t.k) / t.size, blended);
+      if (mat.cover) {
+        // Unveiled: the cover image spread over the whole map, with the
+        // tile's fine detail as light and shade on top.
+        coverAt(mat.cover, mx / map.width, my / map.height, covered);
+        const lum = (c: number[]) => c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11,
+          base = Math.max(1, lum(mat.mean)),
+          f = 1 + ((lum(blended) - base) / base) * mat.detail;
+        for (let k = 0; k < 3; k++) out[k] += covered[k] * f * w;
+      } else for (let k = 0; k < 3; k++) out[k] += blended[k] * w;
     },
+    blended = [0, 0, 0],
+    covered = [0, 0, 0],
     colour = [0, 0, 0],
     candidates = [0, 0, 0, 0],
     weights = [0, 0, 0, 0];
@@ -824,6 +1005,9 @@ export function texturePreview(layer: TextureLayer, style: string, size = 48) {
     layer.pattern,
     layer.image?.length,
     layer.image?.slice(-32),
+    layer.cover?.length,
+    layer.cover?.slice(-32),
+    layer.tiling,
     layer.tint,
     layer.scale,
     layer.strength,
@@ -839,7 +1023,22 @@ export function texturePreview(layer: TextureLayer, style: string, size = 48) {
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!,
     image = ctx.createImageData(size, size),
-    rgb = material.levels[0];
+    rgb = material.levels[0],
+    cover = material.tiling === "unveil" ? material.cover : undefined;
+  if (cover) {
+    // An unveiled layer shows its map-wide image.
+    const pixel = [0, 0, 0];
+    for (let y = 0; y < size; y++)
+      for (let x = 0; x < size; x++) {
+        coverAt(cover, (x + 0.5) / size, (y + 0.5) / size, pixel);
+        const q = (y * size + x) * 4;
+        image.data.set([pixel[0], pixel[1], pixel[2], 255], q);
+      }
+    ctx.putImageData(image, 0, 0);
+    url = canvas.toDataURL();
+    previews.set(key, url);
+    return url;
+  }
   // The swatch shows one tile squeezed into the square, a little larger than on the map.
   for (let y = 0; y < size; y++)
     for (let x = 0; x < size; x++) {

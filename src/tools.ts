@@ -9,7 +9,7 @@ export const toolDescriptions: Record<Tool, string> = {
     "Paint freehand colour on the Paint layer. [ and ] change the brush size.",
   pencil: "Draw a thin, hard-edged line with square ends.",
   eraser:
-    "Rub out painted strokes on the active layer. Terrain and objects stay untouched.",
+    "Rub out painted strokes on the active layer, and remove stamps and labels under the brush. Touching any part of a river, road or wall removes it whole. Terrain stays untouched; settlements with their own map are kept.",
   fill: "Fill a connected area of the active layer with the chosen colour.",
   line: "Drag to draw a straight line.",
   rectangle: "Drag to draw a rectangle outline.",
@@ -49,7 +49,7 @@ export const toolDescriptionsRu: Record<string, string> = {
     "Рисуйте цветом на слое «Paint». Клавиши [ и ] меняют размер кисти.",
   [toolDescriptions.pencil]: "Тонкая линия с чёткими краями.",
   [toolDescriptions.eraser]:
-    "Стирает мазки активного слоя. Рельеф и объекты не затрагиваются.",
+    "Стирает мазки активного слоя, а также штампы и надписи под кистью. Касание любой части реки, дороги или стены убирает её целиком. Рельеф не меняется; поселения со своей картой остаются.",
   [toolDescriptions.fill]:
     "Заливает выбранным цветом связную область активного слоя.",
   [toolDescriptions.line]: "Перетащите, чтобы провести прямую линию.",

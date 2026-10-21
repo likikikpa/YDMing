@@ -123,6 +123,7 @@ import type {
   StampKind,
   Tool,
   TextureLayer,
+  TextureTiling,
 } from "./types";
 import { translate } from "./i18n";
 import { loadProject, saveProject, validateProject } from "./storage";
@@ -603,6 +604,7 @@ export default function App() {
     fileInput = useRef<HTMLInputElement>(null),
     imageInput = useRef<HTMLInputElement>(null),
     textureInput = useRef<HTMLInputElement>(null),
+    coverInput = useRef<HTMLInputElement>(null),
     toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const t = (s: string) => translate(lang, s);
   const historyRef = useRef(history),
@@ -639,6 +641,30 @@ export default function App() {
         notify(
           `${t("Texture replaced on painted ground:")} ${cells} · ${t("Undo brings the old one back.")}`,
         );
+    } catch {
+      notify(t("That image could not be read."));
+    }
+  }
+  /**
+   * Uses an image as a layer's map-wide cover, which painting that layer
+   * unveils. It is shrunk to at most 2048 px and stored as JPEG to keep saves small.
+   */
+  async function uploadCover(id: string, file: File) {
+    try {
+      const bitmap = await createImageBitmap(file),
+        fit = Math.min(1, 2048 / Math.max(bitmap.width, bitmap.height)),
+        canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(bitmap.width * fit));
+      canvas.height = Math.max(1, Math.round(bitmap.height * fit));
+      canvas
+        .getContext("2d")!
+        .drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const cover = canvas.toDataURL("image/jpeg", 0.85);
+      changeTextures((list) => {
+        const n = list.find((n) => n.id === id)!;
+        n.cover = cover;
+        n.tiling = "unveil";
+      }, "Texture map image");
     } catch {
       notify(t("That image could not be read."));
     }
@@ -1381,9 +1407,10 @@ export default function App() {
     }, "Update layer");
   const primaryTools: Tool[][] = [
     ["select", "hand"],
-    ["brush", "eraser", "rectangle", "text", "eyedropper"],
+    ["brush", "rectangle", "text", "eyedropper"],
     ["raise", "dig", "smooth", "ridge", "terrain"],
     ["stamp", "river"],
+    ["eraser"],
   ];
   const [activeLayer, setActiveLayer] = useState("Objects");
   const [dragLayer, setDragLayer] = useState<string | null>(null);
@@ -2618,6 +2645,17 @@ export default function App() {
                 if (file) void uploadTexture(activeTexture, file);
               }}
             />
+            <input
+              ref={coverInput}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void uploadCover(activeTexture, file);
+              }}
+            />
             {panel === "layers" && (
               <>
                 <div className="panel-heading">
@@ -2981,6 +3019,63 @@ export default function App() {
                           edit((n) => (n.strength = v), "Texture strength")
                         }
                       />
+                      <Field label={t("Repetition")}>
+                        <select
+                          value={l.tiling ?? "blended"}
+                          onChange={(e) => {
+                            const tiling = e.target.value as TextureTiling;
+                            if (tiling === "unveil" && !l.cover)
+                              coverInput.current?.click();
+                            else
+                              edit(
+                                (n) => (n.tiling = tiling),
+                                "Texture repetition",
+                              );
+                          }}
+                        >
+                          <option value="blended">
+                            {t("Blended (no visible repeats)")}
+                          </option>
+                          <option value="tiled">
+                            {t("Tiled (repeats exactly)")}
+                          </option>
+                          <option value="unveil">
+                            {t("Unveil a map-wide image")}
+                          </option>
+                        </select>
+                      </Field>
+                      {(l.tiling === "unveil" || l.cover) && (
+                        <div className="texture-actions">
+                          <button
+                            className="button subtle"
+                            onClick={() => coverInput.current?.click()}
+                          >
+                            <ImagePlus size={13} />
+                            {t(l.cover ? "Replace map image" : "Upload map image")}
+                          </button>
+                          {l.cover && (
+                            <button
+                              className="button subtle"
+                              onClick={() =>
+                                edit((n) => {
+                                  delete n.cover;
+                                  if (n.tiling === "unveil") n.tiling = "blended";
+                                }, "Remove texture map image")
+                              }
+                            >
+                              <X size={13} />
+                              {t("Remove map image")}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {l.tiling === "unveil" && l.cover && (
+                        <p className="panel-footnote">
+                          {t(
+                            "The image covers the whole map; ground painted with this layer shows its part of it. Pattern strength sets how much fine detail is added on top.",
+                          )}
+                        </p>
+                      )}
                       {custom && (
                         <div className="texture-delete">
                           <Field label={t("Replace painted ground with")}>
