@@ -120,6 +120,8 @@ export function useAppModel() {
     setSelected: view.setSelected,
     commit: store.commit,
     chooseTool: tools.chooseTool,
+    notify,
+    t: view.t,
   });
   useKeyboardShortcuts({
     ...view,

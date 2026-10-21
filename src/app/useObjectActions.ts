@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { objectBounds } from "../extent";
+import { idSet } from "../id-set";
 import { uid } from "../types";
 import type { MapData, MapKind, MapObject, Project } from "../types";
 
@@ -32,7 +34,8 @@ export function useObjectActions({
 }) {
   const [activeLayer, setActiveLayer] = useState("Objects");
   const [dragLayer, setDragLayer] = useState<string | null>(null);
-  const selection = map?.objects.filter((o) => selected.includes(o.id)) || [];
+  const chosen = idSet(selected);
+  const selection = map?.objects.filter((o) => chosen.has(o.id)) || [];
   function openObject(o: MapObject) {
     if (!project) return;
     // A link to a map that no longer exists counts as no link.
@@ -54,10 +57,7 @@ export function useObjectActions({
   function updateSelected(change: Partial<MapObject>, label = "Edit object") {
     mutateMap((m) => {
       for (const o of m.objects)
-        if (
-          selected.includes(o.id) &&
-          !m.layers.find((l) => l.id === o.layer)?.locked
-        )
+        if (chosen.has(o.id) && !m.layers.find((l) => l.id === o.layer)?.locked)
           Object.assign(o, change);
     }, label);
   }
@@ -66,13 +66,11 @@ export function useObjectActions({
     mutateMap((m) => {
       m.objects = m.objects.filter(
         (o) =>
-          !selected.includes(o.id) ||
-          m.layers.find((l) => l.id === o.layer)?.locked,
+          !chosen.has(o.id) || m.layers.find((l) => l.id === o.layer)?.locked,
       );
       m.paths = m.paths.filter(
         (q) =>
-          !selected.includes(q.id) ||
-          m.layers.find((l) => l.id === q.layer)?.locked,
+          !chosen.has(q.id) || m.layers.find((l) => l.id === q.layer)?.locked,
       );
     }, "Delete objects");
     setSelected([]);
@@ -81,13 +79,18 @@ export function useObjectActions({
     if (!selection.length) return;
     const ids: string[] = [];
     mutateMap((m) => {
-      m.objects.push(
-        ...selection.map((o) => {
-          const id = uid();
-          ids.push(id);
-          return { ...o, id, x: o.x + 15, y: o.y + 15, group: undefined };
-        }),
-      );
+      // One at a time: push(...list) throws for about 120,000 stamps.
+      for (const o of selection) {
+        const id = uid();
+        ids.push(id);
+        m.objects.push({
+          ...o,
+          id,
+          x: o.x + 15,
+          y: o.y + 15,
+          group: undefined,
+        });
+      }
     }, "Duplicate objects");
     setSelected(ids);
   }
@@ -100,17 +103,17 @@ export function useObjectActions({
   function arrange(mode: string) {
     if (!selection.length) return;
     mutateMap((m) => {
-      const list = m.objects.filter((o) => selected.includes(o.id));
+      const list = m.objects.filter((o) => chosen.has(o.id));
       if (mode === "front" || mode === "back") {
         m.objects =
           mode === "front"
-            ? [...m.objects.filter((o) => !selected.includes(o.id)), ...list]
-            : [...list, ...m.objects.filter((o) => !selected.includes(o.id))];
+            ? [...m.objects.filter((o) => !chosen.has(o.id)), ...list]
+            : [...list, ...m.objects.filter((o) => !chosen.has(o.id))];
       } else if (mode === "left") {
-        const x = Math.min(...list.map((o) => o.x - o.width / 2));
+        const x = objectBounds(list).left;
         list.forEach((o) => (o.x = x + o.width / 2));
       } else if (mode === "top") {
-        const y = Math.min(...list.map((o) => o.y - o.height / 2));
+        const y = objectBounds(list).top;
         list.forEach((o) => (o.y = y + o.height / 2));
       } else if (list.length > 2) {
         list.sort((a, b) => a.x - b.x);

@@ -164,3 +164,26 @@ describe("copy and paste", () => {
     expect(cut.paths.map((p) => p.id)).toEqual(["r"]);
   });
 });
+
+describe("very large selections", () => {
+  // Spreading 100,000 stamps into Math.min threw a RangeError, which left the
+  // clipboard empty; testing each stamp against the id list took minutes.
+  it("copies, pastes and cuts 100,000 stamps", { timeout: 30_000 }, () => {
+    const { project, map } = setup();
+    map.objects = Array.from({ length: 100_000 }, (_, i) =>
+      stamp(`s${i}`, i % 1000, Math.floor(i / 1000)),
+    );
+    const ids = map.objects.map((o) => o.id);
+    const clip = copySelection(project, map, ids)!;
+    expect(clip.objects).toHaveLength(100_000);
+    expect(clip.centre).toEqual({ x: 499.5, y: 49.5 });
+    const { project: next, ids: pasted } = pasteClip(project, map, clip, {
+      x: 0,
+      y: 0,
+    });
+    expect(next.maps[0].objects).toHaveLength(200_000);
+    expect(pasted).toHaveLength(100_000);
+    const left = removeSelection(next.maps[0], pasted);
+    expect(left.objects).toHaveLength(100_000);
+  });
+});

@@ -15,6 +15,8 @@ export function useClipboard({
   setSelected,
   commit,
   chooseTool,
+  notify,
+  t,
 }: {
   project: Project | null;
   map: MapData | undefined;
@@ -22,43 +24,79 @@ export function useClipboard({
   setSelected: (ids: string[]) => void;
   commit: (next: Project, label: string) => void;
   chooseTool: (tool: Tool) => void;
+  notify: (message: string) => void;
+  t: (s: string) => string;
 }) {
   const clip = useRef<Clip | null>(null);
+  /** Runs a clipboard action; a failure is reported instead of vanishing from a key handler. */
+  function guarded<T>(action: () => T, fallback: T, message: string): T {
+    try {
+      return action();
+    } catch (error) {
+      console.error(error);
+      notify(t(message));
+      return fallback;
+    }
+  }
   function copy() {
     if (!project || !map) return false;
-    const next = copySelection(project, map, selected);
-    if (next) clip.current = next;
-    return !!next;
+    return guarded(
+      () => {
+        const next = copySelection(project, map, selected);
+        if (next) clip.current = next;
+        return !!next;
+      },
+      false,
+      "Could not copy. Select fewer objects and try again.",
+    );
   }
   function cut() {
     if (!project || !map || !copy()) return;
-    const next = removeSelection(map, selected);
-    commit(
-      {
-        ...project,
-        maps: project.maps.map((m) => (m.id === map.id ? next : m)),
+    guarded(
+      () => {
+        const next = removeSelection(map, selected);
+        commit(
+          {
+            ...project,
+            maps: project.maps.map((m) => (m.id === map.id ? next : m)),
+          },
+          "Cut",
+        );
+        setSelected([]);
       },
-      "Cut",
+      undefined,
+      "Could not cut. Select fewer objects and try again.",
     );
-    setSelected([]);
   }
   /** Centred on the pointer when it is over the map; `inPlace` keeps the copied position. */
   function paste(inPlace = false) {
-    if (!project || !map || !clip.current) return;
-    const overMap = document
-      .querySelector(".interaction-canvas")
-      ?.matches(":hover");
-    const { x, y } = cursorStatus.get();
-    const { project: next, ids } = pasteClip(
-      project,
-      map,
-      clip.current,
-      inPlace || !overMap ? undefined : { x, y },
+    if (!project || !map) return;
+    if (!clip.current) {
+      // The clipboard lives as long as the page, so a reload empties it.
+      notify(t("Nothing copied yet. Select something and press Ctrl C."));
+      return;
+    }
+    const copied = clip.current;
+    guarded(
+      () => {
+        const overMap = document
+          .querySelector(".interaction-canvas")
+          ?.matches(":hover");
+        const { x, y } = cursorStatus.get();
+        const { project: next, ids } = pasteClip(
+          project,
+          map,
+          copied,
+          inPlace || !overMap ? undefined : { x, y },
+        );
+        commit(next, "Paste");
+        // The copies come in selected, ready to be dragged into place.
+        chooseTool("select");
+        setSelected(ids);
+      },
+      undefined,
+      "Could not paste. Copy fewer objects and try again.",
     );
-    commit(next, "Paste");
-    // The copies come in selected, ready to be dragged into place.
-    chooseTool("select");
-    setSelected(ids);
   }
   return { copy, cut, paste };
 }
