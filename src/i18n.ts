@@ -51,8 +51,8 @@ export const ru: Record<string, string> = {
   "No stamps yet": "Штампов пока нет",
   "Image search needs an internet connection.":
     "Для поиска картинок нужен интернет.",
-  "Image search is not available here. It needs the Atlasforge server.":
-    "Поиск картинок здесь недоступен: нужен сервер Atlasforge.",
+  "Image search is not available here. It needs the YDMing server.":
+    "Поиск картинок здесь недоступен: нужен сервер YDMing.",
   "Blended (no visible repeats)": "Смешанное (без видимых повторов)",
   "Tiled (repeats exactly)": "Плиткой (точные повторы)",
   "Unveil a map-wide image": "Открывать картинку на всю карту",

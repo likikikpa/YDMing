@@ -5,7 +5,7 @@ describe("image search replies", () => {
   it("returns the results of a normal reply", () => {
     expect(readSearchReply(true, '{"results":[]}')).toEqual({ results: [] });
   });
-  it("treats a plain-text page as having no Atlasforge server", () => {
+  it("treats a plain-text page as having no YDMing server", () => {
     // A static host answers /api/search with "not found " instead of JSON.
     expect(readSearchReply(false, "not found ")).toEqual({
       problem: "no-server",

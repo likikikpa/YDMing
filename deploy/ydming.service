@@ -1,13 +1,13 @@
-# Optional: run without Docker. Copy to /etc/systemd/system/atlasforge.service,
-# adjust the paths, then: systemctl enable --now atlasforge
+# Optional: run without Docker. Copy to /etc/systemd/system/ydming.service,
+# adjust the paths, then: systemctl enable --now ydming
 [Unit]
-Description=Atlasforge map studio
+Description=YDMing map studio
 After=network.target
 
 [Service]
 Type=simple
-User=atlasforge
-WorkingDirectory=/opt/atlasforge
+User=ydming
+WorkingDirectory=/opt/ydming
 Environment=NODE_ENV=production
 Environment=HOST=127.0.0.1
 Environment=PORT=5173

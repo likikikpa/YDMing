@@ -1,6 +1,6 @@
 # SITE_ADDRESS is a domain name (automatic HTTPS) or ":80" (plain HTTP by IP).
 {$SITE_ADDRESS::80} {
 	encode zstd gzip
-	reverse_proxy atlasforge:5173
+	reverse_proxy ydming:5173
 	header ?Strict-Transport-Security "max-age=31536000"
 }

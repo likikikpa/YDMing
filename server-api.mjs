@@ -43,7 +43,7 @@ function createLimiter(limit, windowMs, now) {
  */
 export function createSearchMiddleware({
   fetchImpl = fetch,
-  contact = process.env.ATLASFORGE_CONTACT,
+  contact = process.env.YDMING_CONTACT || process.env.ATLASFORGE_CONTACT,
   searchLimit = 30,
   imageLimit = 400,
   windowMs = 60_000,
@@ -53,7 +53,7 @@ export function createSearchMiddleware({
   const allowed = new Map();
   const searchWait = createLimiter(searchLimit, windowMs, now);
   const imageWait = createLimiter(imageLimit, windowMs, now);
-  const userAgent = `Atlasforge/1.0 (self-hosted map editor${contact ? `; contact: ${contact}` : ""})`;
+  const userAgent = `YDMing/1.0 (self-hosted map editor${contact ? `; contact: ${contact}` : ""})`;
   let downloads = 0;
 
   return async function searchMiddleware(req, res, next) {

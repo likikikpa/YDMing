@@ -10,7 +10,7 @@ export type SearchReply =
 /**
  * Reads the reply of the local server's `/api/search`. That server always
  * answers in JSON, so anything else (a plain "not found" page from a static
- * host, a proxy's error page) means the page runs without the Atlasforge
+ * host, a proxy's error page) means the page runs without the YDMing
  * server, and saying so beats a JSON parse error.
  */
 export function readSearchReply(ok: boolean, body: string): SearchReply {

@@ -31,7 +31,7 @@ export function useProjectFiles({
     if (!project) return;
     download(
       new Blob([JSON.stringify(project)], { type: "application/json" }),
-      `${slug(project.name)}.atlasforge`,
+      `${slug(project.name)}.ydming`,
     );
     setMenu(false);
   }

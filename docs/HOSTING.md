@@ -1,6 +1,6 @@
-# Hosting Atlasforge for other people
+# Hosting YDMing for other people
 
-Atlasforge is a static web app plus a tiny Node server. The server serves the
+YDMing is a static web app plus a tiny Node server. The server serves the
 app, answers `/healthz`, and proxies the optional image search. There are no
 accounts and no database: every visitor's maps are saved in **their own
 browser** (IndexedDB) and can be moved with **Save project / Open project**.
@@ -22,8 +22,8 @@ renews a free HTTPS certificate automatically.
 Log in to the VPS and run:
 
 ```sh
-git clone https://github.com/likikikpa/atlasforge.git
-cd atlasforge
+git clone https://github.com/likikikpa/YDMing.git
+cd YDMing
 sh deploy/install.sh maps.example.com     # your domain
 ```
 
@@ -35,7 +35,7 @@ Before running it with a domain, create a DNS **A record** for that name that
 points at the server's IP address. Caddy requests the certificate the first
 time someone opens the site; allow a minute.
 
-No domain yet? Leave the argument out (`sh deploy/install.sh`) and Atlasforge
+No domain yet? Leave the argument out (`sh deploy/install.sh`) and YDMing
 is served over plain HTTP at `http://<server-ip>`. Run the script again with a
 domain later; nothing is lost.
 
@@ -49,7 +49,7 @@ docker compose up -d --build
 ## Updating
 
 ```sh
-cd atlasforge
+cd YDMing
 sh deploy/install.sh        # pulls the latest source, rebuilds, restarts
 ```
 
@@ -72,8 +72,8 @@ Set these in `.env` next to `docker-compose.yml`:
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `SITE_ADDRESS` | `:80` | A domain name for automatic HTTPS, or `:80` for plain HTTP on the IP. |
-| `ATLASFORGE_SEARCH` | `on` | `off` disables the web image search (the built-in sprite library keeps working). |
-| `ATLASFORGE_CONTACT` | empty | An email or URL included in requests to Wikimedia, as their API etiquette asks. |
+| `YDMING_SEARCH` | `on` | `off` disables the web image search (the built-in sprite library keeps working). |
+| `YDMING_CONTACT` | empty | An email or URL included in requests to Wikimedia, as their API etiquette asks. |
 
 The Node server itself also reads `HOST` (default `127.0.0.1`), `PORT`
 (default `5173`) and `TRUST_PROXY` (`1` when exactly one reverse proxy such as
@@ -88,16 +88,16 @@ reuse and modification, and relays the thumbnails. Upstream services see your
 server's address, never the visitor's. The proxy is rate limited per visitor,
 caches results for 24 hours, only relays images that appeared in a search
 result, caps image size at 10 MB and serves images with a sandboxing header.
-Set `ATLASFORGE_SEARCH=off` if you would rather not make any outgoing requests.
+Set `YDMING_SEARCH=off` if you would rather not make any outgoing requests.
 
 ## Without Docker
 
 ```sh
-git clone https://github.com/likikikpa/atlasforge.git /opt/atlasforge
-cd /opt/atlasforge && npm ci && npm run build
+git clone https://github.com/likikikpa/YDMing.git /opt/ydming
+cd /opt/ydming && npm ci && npm run build
 ```
 
-Then use `deploy/atlasforge.service` as a systemd unit (it listens on
+Then use `deploy/ydming.service` as a systemd unit (it listens on
 `127.0.0.1:5173`) and put any reverse proxy in front of it. For nginx:
 
 ```nginx
@@ -120,13 +120,13 @@ that (Caddy is configured to in `deploy/Caddyfile`).
 ## Troubleshooting
 
 - **The site shows "connection refused".** Check `docker compose ps`; both
-  `atlasforge` and `caddy` should be `running`. `docker compose logs` explains
+  `ydming` and `caddy` should be `running`. `docker compose logs` explains
   the rest.
 - **HTTPS does not appear.** The domain's A record must point at this server
   and ports 80 and 443 must be open in the provider's firewall too. Caddy's log
   (`docker compose logs caddy`) shows the certificate attempts.
 - **Port 80 or 443 is already in use.** Another web server is running on the
-  VPS. Stop it, or run Atlasforge without Docker behind that server.
+  VPS. Stop it, or run YDMing without Docker behind that server.
 - **Searches say "Too many searches".** Each visitor may do 30 searches a
   minute; the message clears on its own.
 - **Backups.** There is nothing to back up for maps (they live in browsers).

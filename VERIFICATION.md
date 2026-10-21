@@ -32,8 +32,8 @@ Browser checks used an isolated production origin on port 5174 so the editable d
 ## Windows PowerShell launcher
 
 - Removed the generated Windows executable, unpacked runtime, Electron wrapper, and Electron packaging dependencies. `npm uninstall` reports zero known vulnerabilities.
-- `Start-Atlasforge.ps1` was run in Windows PowerShell 5.1. The default build/start path and `-SkipBuild -NoBrowser -Port 5176` both served the production app successfully; `/healthz` returned `{"status":"ok"}`.
-- A second launch on the same port reused the running Atlasforge server. Ctrl+C stopped the server owned by the launcher and released its port.
+- `Start-YDMing.ps1` was run in Windows PowerShell 5.1. The default build/start path and `-SkipBuild -NoBrowser -Port 5176` both served the production app successfully; `/healthz` returned `{"status":"ok"}`.
+- A second launch on the same port reused the running YDMing server. Ctrl+C stopped the server owned by the launcher and released its port.
 - The production build, all 19 tests, and all 276 import/asset casing checks pass after removing the desktop dependencies.
 - Browser opening was disabled during launcher checks; dependencies were already installed. First-time `npm ci` follows the existing lockfile.
 

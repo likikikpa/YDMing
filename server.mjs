@@ -11,10 +11,10 @@ try {
         : host.includes(":")
           ? `[${host}]`
           : host;
-    console.log(`Atlasforge is ready at http://${displayHost}:${address.port}`);
+    console.log(`YDMing is ready at http://${displayHost}:${address.port}`);
   });
   server.on("error", (error) => {
-    console.error(`Atlasforge could not start: ${error.message}`);
+    console.error(`YDMing could not start: ${error.message}`);
     process.exitCode = 1;
   });
   for (const signal of ["SIGINT", "SIGTERM"]) {
@@ -24,6 +24,6 @@ try {
     });
   }
 } catch (error) {
-  console.error(`Atlasforge could not start: ${error.message}`);
+  console.error(`YDMing could not start: ${error.message}`);
   process.exitCode = 1;
 }

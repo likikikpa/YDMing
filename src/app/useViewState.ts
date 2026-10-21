@@ -1,18 +1,17 @@
 import { useEffect, useState } from "react";
 import type { SrdEntry } from "../types";
 import { translate } from "../i18n";
+import { readSetting } from "../legacy-keys";
 import type { ModalName, Panel } from "./constants";
 
 /** Which panel, dialog and menu are open, and the view switches. */
 export function useViewState() {
-  const [lang, setLang] = useState(
-    () => localStorage.getItem("atlasforge-lang") || "en",
-  );
+  const [lang, setLang] = useState(() => readSetting("ydming-lang") || "en");
   const [panel, setPanel] = useState<Panel>("generate");
   const [selected, setSelected] = useState<string[]>([]);
   const [toolCardOpen, setToolCardOpen] = useState(() => {
     try {
-      return localStorage.getItem("atlasforge-tool-card") !== "closed";
+      return readSetting("ydming-tool-card") !== "closed";
     } catch {
       return true;
     }
@@ -33,7 +32,7 @@ export function useViewState() {
   const [riverCount, setRiverCount] = useState(0);
   const t = (s: string) => translate(lang, s);
   useEffect(() => {
-    localStorage.setItem("atlasforge-lang", lang);
+    localStorage.setItem("ydming-lang", lang);
     document.documentElement.lang = lang;
   }, [lang]);
   return {

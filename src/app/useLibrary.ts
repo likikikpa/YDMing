@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { get, set } from "idb-keyval";
+import { set } from "idb-keyval";
 import { fitImage } from "../assets";
+import { getWithLegacy } from "../legacy-keys";
 import type { BrushSettings } from "../editor/types";
 import { searchImages } from "../search";
 import { uid } from "../types";
@@ -66,8 +67,10 @@ export function useLibrary({
     (async () => {
       try {
         const [sn, st] = await Promise.all([
-          get("atlasforge-snapshots"),
-          get("atlasforge-stamps"),
+          getWithLegacy<{ id: string; name: string; project: Project }[]>(
+            "ydming-snapshots",
+          ),
+          getWithLegacy<MapObject[]>("ydming-stamps"),
         ]);
         if (live) {
           setSnapshots(sn || []);
@@ -116,7 +119,7 @@ export function useLibrary({
             : reply.problem === "offline"
               ? t("Image search needs an internet connection.")
               : t(
-                  "Image search is not available here. It needs the Atlasforge server.",
+                  "Image search is not available here. It needs the YDMing server.",
                 ),
         );
     } finally {
@@ -182,15 +185,16 @@ export function useLibrary({
     };
     const next = [...myStamps, stamp];
     try {
-      await set("atlasforge-stamps", next);
+      await set("ydming-stamps", next);
     } catch {
       notify(
         "Stamp storage is unavailable. The project still includes this image.",
       );
     }
     try {
-      const known: Credit[] = (await get("atlasforge-library-credits")) || [];
-      await set("atlasforge-library-credits", [
+      const known: Credit[] =
+        (await getWithLegacy<Credit[]>("ydming-library-credits")) || [];
+      await set("ydming-library-credits", [
         ...known.filter((c) => c.id !== fitCredit.id),
         fitCredit,
       ]);
@@ -219,7 +223,8 @@ export function useLibrary({
     next.objects.push(o);
     let credits = p.credits;
     try {
-      const known: Credit[] = (await get("atlasforge-library-credits")) || [];
+      const known: Credit[] =
+        (await getWithLegacy<Credit[]>("ydming-library-credits")) || [];
       const credit = known.find((c) => c.id === stamp.creditId);
       if (credit && !credits.some((c) => c.id === credit.id))
         credits = [...credits, credit];
@@ -243,7 +248,7 @@ export function useLibrary({
       },
     ];
     try {
-      await set("atlasforge-snapshots", next);
+      await set("ydming-snapshots", next);
       setSnapshots(next);
       setSnapshotName("");
       notify(t("Snapshot") + " ✓");

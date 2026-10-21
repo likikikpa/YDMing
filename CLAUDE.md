@@ -1,4 +1,4 @@
-# Atlasforge
+# YDMing
 
 Browser map studio (React + TypeScript + Vite, PixiJS for the map view). Maps are saved in the browser; `server.mjs` serves the build and the image-search proxy (`/api/search`, `/api/image`).
 
@@ -55,7 +55,7 @@ Tests cover logic only. Rendering, touch and layout have none, so look at the re
 
 ## Saves and data
 
-Projects are stored in users' browsers and in `.atlasforge` files, so old saves must keep loading.
+Projects are stored in users' browsers and in `.ydming` files (older `.atlasforge` files and `atlasforge-*` browser keys still load, see `src/legacy-keys.ts`), so old saves must keep loading.
 
 - New fields on `Project`, `MapData` or `TextureLayer` are optional, and `validateProject` in `src/storage.ts` checks them.
 - Never change what an existing field means. Add a new field instead.
@@ -63,8 +63,9 @@ Projects are stored in users' browsers and in `.atlasforge` files, so old saves 
 ## UI text
 
 - No filler: no taglines, slogans, descriptions of tools or explanatory footnotes. Short labels, error messages and hover tooltips are fine.
+- Do not add text that describes a tool in the YDMing interface (captions, hints, help blocks) until the owner asks for it or it is clearly needed. Extra text hides the tools, most of all on a phone. Comments, docs and other descriptions outside the UI are still fine.
 - English strings go through `t()`; add the Russian translation to `src/i18n.ts`.
-- Error messages say what to do ("Image search needs the Atlasforge server"), never a raw exception. Image search only works with `server.mjs`; a static host answers `/api/search` with plain text, which `src/search.ts` turns into a clear message.
+- Error messages say what to do ("Image search needs the YDMing server"), never a raw exception. Image search only works with `server.mjs`; a static host answers `/api/search` with plain text, which `src/search.ts` turns into a clear message.
 
 ## Formatting
 

@@ -1,8 +1,9 @@
-import { get, set } from "idb-keyval";
+import { set } from "idb-keyval";
+import { getWithLegacy } from "./legacy-keys";
 import { BUILTIN_MATERIALS, PATTERNS } from "./materials";
 import { CELL, MAX_CELLS } from "./mapsize";
 import type { Project } from "./types";
-const key = "atlasforge-project-v1";
+const key = "ydming-project-v1";
 /** Per-cell grids that are stored as Float32Array: a large map's heights stay a few MB. */
 const GRIDS = ["heights", "biomes", "materials"] as const;
 type Grids = Partial<Record<(typeof GRIDS)[number], ArrayLike<number>>>;
@@ -23,7 +24,7 @@ function mapGrids(project: Project, convert: (v: ArrayLike<number>) => ArrayLike
   } as Project;
 }
 export async function loadProject(): Promise<Project | undefined> {
-  const project = await get<Project>(key);
+  const project = await getWithLegacy<Project>(key);
   return project && mapGrids(project, (v) => Array.from(v));
 }
 export async function saveProject(project: Project) {
@@ -39,7 +40,7 @@ export function validateProject(value: unknown): Project {
     p.maps.length > 100 ||
     !Array.isArray(p.credits)
   )
-    throw new Error("This is not a valid Atlasforge project.");
+    throw new Error("This is not a valid YDMing project.");
   for (const m of p.maps) {
     if (
       !["world", "city", "dungeon"].includes(m.kind) ||

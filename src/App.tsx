@@ -20,7 +20,7 @@ export default function App() {
     return (
       <div className="loading-screen wood">
         <Mountain size={54} />
-        <h1>ATLASFORGE</h1>
+        <h1>YDMING</h1>
         <LoaderCircle className="spin" size={20} />
       </div>
     );

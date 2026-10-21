@@ -40,7 +40,7 @@ export function HiddenFileInputs({ app }: { app: ReadyApp }) {
         ref={fileInput}
         className="hidden-input"
         type="file"
-        accept=".atlasforge,.json"
+        accept=".ydming,.atlasforge,.json"
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) void openProjectFile(f);

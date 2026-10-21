@@ -1,4 +1,4 @@
-# Run from PowerShell: .\Start-Atlasforge.ps1
+# Run from PowerShell: .\Start-YDMing.ps1
 # Requires Node.js with npm; compatible with Windows PowerShell 5.1 and PowerShell 7.
 [CmdletBinding()]
 param(
@@ -13,10 +13,10 @@ $ErrorActionPreference = 'Stop'
 $serverProcess = $null
 $url = "http://127.0.0.1:$Port"
 
-function Test-Atlasforge {
+function Test-YDMing {
     try {
         $page = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 2
-        return $page.StatusCode -eq 200 -and $page.Content -match '<title>\s*Atlasforge(?:\s|<)'
+        return $page.StatusCode -eq 200 -and $page.Content -match '<title>\s*YDMing(?:\s|<)'
     } catch {
         return $false
     }
@@ -36,13 +36,13 @@ function Test-PortInUse {
 
 Push-Location -LiteralPath $PSScriptRoot
 try {
-    if (Test-Atlasforge) {
-        Write-Host "Atlasforge is already running at $url"
+    if (Test-YDMing) {
+        Write-Host "YDMing is already running at $url"
         if (-not $NoBrowser) { Start-Process $url }
         return
     }
     if (Test-PortInUse) {
-        throw "Port $Port is in use. Try .\Start-Atlasforge.ps1 -Port $($Port + 1)"
+        throw "Port $Port is in use. Try .\Start-YDMing.ps1 -Port $($Port + 1)"
     }
 
     $node = Get-Command node.exe -ErrorAction SilentlyContinue
@@ -59,7 +59,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed.' }
     }
     if (-not $SkipBuild) {
-        Write-Host 'Building Atlasforge...'
+        Write-Host 'Building YDMing...'
         & $npm.Source run build
         if ($LASTEXITCODE -ne 0) { throw 'The build failed.' }
     }
@@ -67,7 +67,7 @@ try {
         throw 'No production build found. Run this script without -SkipBuild.'
     }
 
-    $logDirectory = Join-Path ([System.IO.Path]::GetTempPath()) ('Atlasforge-' + [Guid]::NewGuid().ToString('N'))
+    $logDirectory = Join-Path ([System.IO.Path]::GetTempPath()) ('YDMing-' + [Guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $logDirectory | Out-Null
     $stdoutPath = Join-Path $logDirectory 'server.log'
     $stderrPath = Join-Path $logDirectory 'server-error.log'
@@ -87,20 +87,20 @@ try {
     $ready = $false
     while ([DateTime]::UtcNow -lt $deadline) {
         if ($serverProcess.HasExited) { break }
-        if (Test-Atlasforge) { $ready = $true; break }
+        if (Test-YDMing) { $ready = $true; break }
         Start-Sleep -Milliseconds 200
     }
     if (-not $ready) {
         $details = Get-Content -LiteralPath $stderrPath -Raw -ErrorAction SilentlyContinue
-        throw "Atlasforge did not start. Logs: $logDirectory`n$details"
+        throw "YDMing did not start. Logs: $logDirectory`n$details"
     }
 
-    Write-Host "Atlasforge is ready: $url"
-    Write-Host 'Keep this PowerShell window open. Press Ctrl+C to stop Atlasforge.'
+    Write-Host "YDMing is ready: $url"
+    Write-Host 'Keep this PowerShell window open. Press Ctrl+C to stop YDMing.'
     if (-not $NoBrowser) { Start-Process $url }
     while (-not $serverProcess.WaitForExit(250)) { }
     if ($serverProcess.ExitCode -ne 0) {
-        throw "Atlasforge stopped unexpectedly. Logs: $logDirectory"
+        throw "YDMing stopped unexpectedly. Logs: $logDirectory"
     }
 } catch {
     Write-Error -Message $_.Exception.Message -ErrorAction Continue

@@ -28,14 +28,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker compose config --quiet
-      - run: docker build --tag atlasforge:test .
+      - run: docker build --tag ydming:test .
       - run: |
-          docker run --detach --name atlasforge --publish 127.0.0.1:5173:5173 atlasforge:test
+          docker run --detach --name ydming --publish 127.0.0.1:5173:5173 ydming:test
           for attempt in $(seq 1 30); do
             if curl --fail http://127.0.0.1:5173/healthz; then exit 0; fi
             sleep 1
           done
-          docker logs atlasforge
+          docker logs ydming
           exit 1
       - if: always()
-        run: docker rm --force atlasforge || true
+        run: docker rm --force ydming || true

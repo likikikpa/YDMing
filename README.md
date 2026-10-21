@@ -1,4 +1,4 @@
-# Atlasforge
+# YDMing
 
 A browser map studio with a tavern-inspired walnut, brass, and parchment interface. Built from the attached D&D Map Maker product plan. All artwork is procedural or openly licensed; no AI-generated images are used.
 
@@ -7,8 +7,8 @@ A browser map studio with a tavern-inspired walnut, brass, and parchment interfa
 On a fresh Debian/Ubuntu VPS with ports 80 and 443 open:
 
 ```sh
-git clone https://github.com/likikikpa/atlasforge.git
-cd atlasforge
+git clone https://github.com/likikikpa/YDMing.git
+cd YDMing
 sh deploy/install.sh maps.example.com   # omit the domain to serve plain HTTP on the IP
 ```
 
@@ -16,15 +16,15 @@ This installs Docker if needed, builds the app and starts it behind Caddy with a
 
 ## Start on Windows
 
-Install Node.js 24 LTS with npm, then double-click `start.bat` in the `atlasforge` folder. It runs the PowerShell launcher below without changing your execution policy and accepts the same options (for example `start.bat -Port 5174`). Or open PowerShell in the folder and run:
+Install Node.js 24 LTS with npm, then double-click `start.bat` in the `YDMing` folder. It runs the PowerShell launcher below without changing your execution policy and accepts the same options (for example `start.bat -Port 5174`). Or open PowerShell in the folder and run:
 
 ```powershell
-.\Start-Atlasforge.ps1
+.\Start-YDMing.ps1
 ```
 
-The launcher installs dependencies when missing, builds the app, starts a local server, and opens your default browser at http://127.0.0.1:5173. First-time dependency installation needs internet. Keep PowerShell open while using the app; press **Ctrl+C** to stop its server. If Atlasforge is already running on that port, the launcher opens the existing app.
+The launcher installs dependencies when missing, builds the app, starts a local server, and opens your default browser at http://127.0.0.1:5173. First-time dependency installation needs internet. Keep PowerShell open while using the app; press **Ctrl+C** to stop its server. If YDMing is already running on that port, the launcher opens the existing app.
 
-Use `.\Start-Atlasforge.ps1 -SkipBuild` for a faster launch after a successful build, `-NoBrowser` to leave the browser closed, or `-Port 5174` if another application occupies port 5173. Browser saves are tied to the browser and port, so keep the same port for existing maps. The script works in Windows PowerShell 5.1 and PowerShell 7 and can be called by its full path from another directory. It uses `npm.cmd` and does not change your PowerShell execution policy.
+Use `.\Start-YDMing.ps1 -SkipBuild` for a faster launch after a successful build, `-NoBrowser` to leave the browser closed, or `-Port 5174` if another application occupies port 5173. Browser saves are tied to the browser and port, so keep the same port for existing maps. The script works in Windows PowerShell 5.1 and PowerShell 7 and can be called by its full path from another directory. It uses `npm.cmd` and does not change your PowerShell execution policy.
 
 Maps are saved in your browser. Use **Save project** and **Open project** to transfer them between browsers or computers. The executable and desktop packaging have been removed.
 
@@ -44,14 +44,14 @@ npm run build
 npm start
 ```
 
-`PORT` overrides the production server port. `HOST` overrides the bind address; the default is `127.0.0.1`. `TRUST_PROXY=1` tells the server a reverse proxy sits in front of it (per-visitor rate limits then use the real address), and `ATLASFORGE_SEARCH=off` disables the image-search proxy; `ATLASFORGE_CONTACT` is an email or URL sent to Wikimedia with searches. Generation, editing, saves, the built-in sprite library, and exports run entirely in the browser. An installed production build works offline after its first successful load; image search needs the local server and a network connection. Development mode does not install an offline service worker.
+`PORT` overrides the production server port. `HOST` overrides the bind address; the default is `127.0.0.1`. `TRUST_PROXY=1` tells the server a reverse proxy sits in front of it (per-visitor rate limits then use the real address), and `YDMING_SEARCH=off` disables the image-search proxy; `YDMING_CONTACT` is an email or URL sent to Wikimedia with searches. Generation, editing, saves, the built-in sprite library, and exports run entirely in the browser. An installed production build works offline after its first successful load; image search needs the local server and a network connection. Development mode does not install an offline service worker.
 
 ## Linux setup
 
 Install Node.js 24 LTS with npm using your preferred Node installer/version manager. If using nvm, run `nvm install` and `nvm use` in this directory. Then:
 
 ```sh
-cd /path/to/atlasforge
+cd /path/to/YDMing
 npm ci
 npm run build
 npm start
@@ -76,8 +76,8 @@ For a development server accessible from a Linux VM/container, use `npm run dev 
 The image builds and tests the app in Linux and runs the server as a non-root user:
 
 ```sh
-docker build -t atlasforge .
-docker run --rm --name atlasforge -p 127.0.0.1:5173:5173 atlasforge
+docker build -t ydming .
+docker run --rm --name ydming -p 127.0.0.1:5173:5173 ydming
 ```
 
 Open http://127.0.0.1:5173. The container binds internally to `0.0.0.0`; the command publishes it only on your computer's loopback address. `/healthz` reports readiness. No volume is needed for map saves because maps remain in IndexedDB in your browser. The runtime image contains only the small Express server (the editor is bundled during the build), so it stays tiny.

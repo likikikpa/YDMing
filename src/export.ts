@@ -13,9 +13,9 @@ export const slug = (name: string) =>
   name
     .replace(/[^\p{L}\p{N} _-]/gu, "")
     .trim()
-    .replace(/\s+/g, "-") || "atlasforge-map";
+    .replace(/\s+/g, "-") || "ydming-map";
 export function creditsText(project: Project) {
-  return `ATLASFORGE — CREDITS\n\nOriginal procedural map symbols and generator artwork: Atlasforge.\n\nThis work includes material from the System Reference Document 5.2 (“SRD 5.2”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.\nSRD data imported via Open5e (https://open5e.com). Adapted and reformatted for room generation.\n\n${project.credits.map((c) => `${c.name}\nAuthor: ${c.author}\nLicence: ${c.license}\nSource: ${c.url}\n`).join("\n")}`;
+  return `YDMING — CREDITS\n\nOriginal procedural map symbols and generator artwork: YDMing.\n\nThis work includes material from the System Reference Document 5.2 (“SRD 5.2”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.\nSRD data imported via Open5e (https://open5e.com). Adapted and reformatted for room generation.\n\n${project.credits.map((c) => `${c.name}\nAuthor: ${c.author}\nLicence: ${c.license}\nSource: ${c.url}\n`).join("\n")}`;
 }
 export async function exportMap(
   project: Project,

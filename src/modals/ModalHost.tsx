@@ -31,7 +31,7 @@ export function ModalHost({ app }: { app: ReadyApp }) {
           <X size={19} />
         </button>
         <span className="section-kicker">
-          ATLASFORGE /{" "}
+          YDMING /{" "}
           {t(
             modal === "new"
               ? "New adventure"

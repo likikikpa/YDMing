@@ -20,7 +20,7 @@ export function ToolCard({ app }: { app: ReadyApp }) {
           setToolCardOpen(open);
           try {
             localStorage.setItem(
-              "atlasforge-tool-card",
+              "ydming-tool-card",
               open ? "open" : "closed",
             );
           } catch {

@@ -17,8 +17,8 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       manifest: {
-        name: "Atlasforge Map Studio",
-        short_name: "Atlasforge",
+        name: "YDMing Map Studio",
+        short_name: "YDMing",
         theme_color: "#29221b",
         background_color: "#29221b",
         display: "standalone",

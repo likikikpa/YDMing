@@ -9,13 +9,13 @@ export class ErrorBoundary extends Component<
     return { error: true };
   }
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("Atlasforge editor error", error, info.componentStack);
+    console.error("YDMing editor error", error, info.componentStack);
   }
   render() {
     if (this.state.error)
       return (
         <div className="loading-screen wood">
-          <h1>ATLASFORGE</h1>
+          <h1>YDMING</h1>
           <p>
             The editor stopped unexpectedly. Your last autosaved project is kept
             in this browser.
