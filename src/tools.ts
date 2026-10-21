@@ -19,7 +19,7 @@ export const toolDescriptions: Record<Tool, string> = {
     "Click the map to pick up the colour under the cursor. Alt-click does this with any tool.",
   raise:
     "Pour land like a god emptying a bag. Touching the sea makes sand at once; keep holding and the pile climbs from sand to dirt to grass to rock to snow, a quarter of a second each. Drag to draw out a continent.",
-  dig: "Lower the land with a shovel. Ground painted with the terrain tool is peeled off first, showing the layer underneath; dig again to cut below the sea line and carve lakes, bays and channels.",
+  dig: "Lower the land with a shovel. It cuts down through the layers the land is made of (snow, rock, grass, dirt, sand) before it reaches the sea. Dig below the sea line to carve lakes, bays and channels.",
   smooth: "Softens sharp peaks and pits so slopes blend into each other.",
   flatten:
     "Levels the ground to the height where you first click. Good for plains and plateaus.",
@@ -27,7 +27,7 @@ export const toolDescriptions: Record<Tool, string> = {
   biome:
     "Repaint the climate zone (forest, desert, snow…) under the brush. Choose the biome in the side panel.",
   terrain:
-    "Paint one exact ground material where you drag: pick sand and it paints sand, pick grass and it paints grass. Auto returns the ground to what its climate grows. Shallow and deep water paint the ocean, and any ground can be painted over the sea. Heights stay as they are.",
+    "Builds ground of one exact kind where you drag: pick snow and a snow peak rises out of the sea, with rock, grass, dirt and sand on its slopes; pick sand and a beach appears. Digging it away cuts back down through the same layers. Shallow and deep water dig a basin. Your own textures are painted on grass-height ground and peel off when dug. Auto returns the ground to what its climate grows and leaves heights alone.",
   stamp:
     "Place symbols from the library: trees, buildings, markers. Drag to scatter trees.",
   river:
@@ -62,7 +62,7 @@ export const toolDescriptionsRu: Record<string, string> = {
   [toolDescriptions.raise]:
     "Насыпает землю, как бог из мешка. Касание моря сразу даёт песок; пока держите, куча растёт: песок, земля, трава, скалы, снег — по четверти секунды на каждый слой. Ведите мышь, чтобы нарисовать материк.",
   [toolDescriptions.dig]:
-    "Лопата понижает землю. Земля, нарисованная инструментом «Земля», сначала снимается, открывая слой под ней; копайте дальше ниже уровня моря, чтобы создавать озёра, заливы и проливы.",
+    "Лопата понижает землю. Она прорезает слои, из которых состоит земля (снег, скалы, трава, земля, песок), и только потом доходит до моря. Копайте ниже уровня моря, чтобы создавать озёра, заливы и проливы.",
   [toolDescriptions.smooth]: "Сглаживает острые пики и ямы.",
   [toolDescriptions.flatten]:
     "Выравнивает землю до высоты в точке первого нажатия. Для равнин и плато.",
@@ -70,7 +70,7 @@ export const toolDescriptionsRu: Record<string, string> = {
   [toolDescriptions.biome]:
     "Перекрашивает климатическую зону (лес, пустыня, снег…) под кистью. Биом выбирается в боковой панели.",
   [toolDescriptions.terrain]:
-    "Рисует точным материалом земли там, где ведёте: выберите песок — будет песок, траву — будет трава. «Авто» возвращает землю к её климату. Мелкая и глубокая вода рисуют океан, а любую землю можно рисовать поверх моря. Высоты не меняются.",
+    "Строит землю одного вида там, где ведёте: выберите снег — из моря поднимется снежная вершина, а на склонах будут скалы, трава, земля и песок; выберите песок — появится пляж. Если её копать, лопата пройдёт по тем же слоям. Мелкая и глубокая вода роют впадину. Ваши текстуры рисуются на земле высоты травы и снимаются лопатой. «Авто» возвращает землю к её климату и не меняет высоты.",
   [toolDescriptions.stamp]:
     "Ставит символы из библиотеки: деревья, здания, метки. Деревья можно «рассыпать», ведя мышь.",
   [toolDescriptions.river]:

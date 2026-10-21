@@ -197,8 +197,6 @@ interface Entry {
   biomeGrid: Uint8Array;
   /** Index into `layers` of each cell's ground material. */
   cellMaterial: Uint8Array;
-  /** Hand-painted ground per cell: 0 none, 1 land, 2 shallow ocean, 3 deep ocean. */
-  painted: Uint8Array;
   slope: Float32Array;
   layers: Material[];
   shallow: number;
@@ -255,7 +253,6 @@ function entryFor(map: MapData) {
         .createImageData(texture.width, texture.height),
       biomeGrid: new Uint8Array(map.cols * map.rows),
       cellMaterial: new Uint8Array(map.cols * map.rows),
-      painted: new Uint8Array(map.cols * map.rows),
       slope: new Float32Array(map.cols * map.rows),
       layers,
       shallow: find(SHALLOW_WATER),
@@ -294,14 +291,6 @@ function classifyCells(
         b = biomeAt(map, x, y);
       entry.biomeGrid[i] = b;
       const painted = paintedMaterial(map, map, i);
-      entry.painted[i] =
-        painted === undefined || !index.has(painted)
-          ? 0
-          : painted === SHALLOW_WATER
-            ? 2
-            : painted === DEEP_WATER
-              ? 3
-              : 1;
       entry.cellMaterial[i] =
         (painted !== undefined ? index.get(painted) : undefined) ??
         index.get(biomeMaterial(b)) ??
@@ -337,7 +326,6 @@ function paintPixels(
     sx = map.width / cols,
     sy = map.height / rows,
     mats = entry.cellMaterial,
-    paint = entry.painted,
     slope = entry.slope,
     // Pick the mip level whose texels are about one output pixel each.
     pick = (m: Material) => {
@@ -389,30 +377,9 @@ function paintPixels(
           heights[i + cols + 1] * wd;
       colour[0] = colour[1] = colour[2] = 0;
       let shade: number;
-      // Painted ground sits on top of the land and the sea alike: land
-      // ground covers open water, and ocean paint floods dry land.
-      const pa = paint[i],
-        pb = paint[i + 1],
-        pc = paint[i + cols],
-        pd = paint[i + cols + 1],
-        share = (kind: number) =>
-          (pa === kind ? wa : 0) +
-          (pb === kind ? wb : 0) +
-          (pc === kind ? wc : 0) +
-          (pd === kind ? wd : 0),
-        land = share(1),
-        shallowPaint = share(2),
-        deepPaint = share(3),
-        floodPaint = shallowPaint + deepPaint,
-        frayed = (noise(mx / 5, my / 5, seed + 977) - 0.5) * 0.3;
-      let isWater = h < sea,
-        depth = Math.min(1, Math.max(0, (sea - h) * 10));
-      if (isWater && land >= 0.5 + frayed) isWater = false;
-      else if (floodPaint >= 0.5 + frayed) isWater = true;
-      if (isWater && floodPaint >= 0.5 + frayed)
-        depth = deepPaint / floodPaint;
-      if (isWater) {
+      if (h < sea) {
         // One water surface: shallow near every shore, deeper further out.
+        const depth = Math.min(1, (sea - h) * 10);
         sample(entry.shallow, mx, my, colour, 1 - depth);
         sample(entry.deep, mx, my, colour, depth);
         shade = 0;
