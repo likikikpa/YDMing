@@ -1,3 +1,5 @@
+import { objectBounds } from "./extent";
+import { idSet } from "./id-set";
 import { uid } from "./types";
 import type {
   Credit,
@@ -29,29 +31,24 @@ export function copySelection(
 ): Clip | null {
   const open = (layer: string) =>
     !map.layers.find((l) => l.id === layer)?.locked;
-  const objects = map.objects.filter(
-      (o) => ids.includes(o.id) && open(o.layer),
-    ),
-    paths = map.paths.filter((p) => ids.includes(p.id) && open(p.layer));
+  const chosen = idSet(ids);
+  const objects = map.objects.filter((o) => chosen.has(o.id) && open(o.layer)),
+    paths = map.paths.filter((p) => chosen.has(p.id) && open(p.layer));
   if (!objects.length && !paths.length) return null;
-  const xs = [
-      ...objects.flatMap((o) => [o.x - o.width / 2, o.x + o.width / 2]),
-      ...paths.flatMap((p) => p.points.map((q) => q.x)),
-    ],
-    ys = [
-      ...objects.flatMap((o) => [o.y - o.height / 2, o.y + o.height / 2]),
-      ...paths.flatMap((p) => p.points.map((q) => q.y)),
-    ];
+  const used = new Set(objects.map((o) => o.creditId));
+  const box = objectBounds(objects);
+  for (const p of paths)
+    for (const q of p.points) {
+      box.left = Math.min(box.left, q.x);
+      box.right = Math.max(box.right, q.x);
+      box.top = Math.min(box.top, q.y);
+      box.bottom = Math.max(box.bottom, q.y);
+    }
   return structuredClone({
     objects,
     paths,
-    credits: project.credits.filter((c) =>
-      objects.some((o) => o.creditId === c.id),
-    ),
-    centre: {
-      x: (Math.min(...xs) + Math.max(...xs)) / 2,
-      y: (Math.min(...ys) + Math.max(...ys)) / 2,
-    },
+    credits: project.credits.filter((c) => used.has(c.id)),
+    centre: { x: (box.left + box.right) / 2, y: (box.top + box.bottom) / 2 },
   });
 }
 
@@ -59,10 +56,11 @@ export function copySelection(
 export function removeSelection(map: MapData, ids: string[]): MapData {
   const open = (layer: string) =>
     !map.layers.find((l) => l.id === layer)?.locked;
+  const chosen = idSet(ids);
   return {
     ...map,
-    objects: map.objects.filter((o) => !ids.includes(o.id) || !open(o.layer)),
-    paths: map.paths.filter((p) => !ids.includes(p.id) || !open(p.layer)),
+    objects: map.objects.filter((o) => !chosen.has(o.id) || !open(o.layer)),
+    paths: map.paths.filter((p) => !chosen.has(p.id) || !open(p.layer)),
   };
 }
 

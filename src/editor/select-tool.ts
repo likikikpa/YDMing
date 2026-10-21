@@ -1,3 +1,4 @@
+import { objectBounds } from "../extent";
 import { hitObject } from "../hit-test";
 import { movedPath, nearestPath, pathInBox } from "../path-select";
 import type { MapData, Point } from "../types";
@@ -66,11 +67,12 @@ export function createSelectTool(deps: EditorCore & EditorOverlay) {
       if (hit?.group)
         ids = m.objects.filter((o) => o.group === hit.group).map((o) => o.id);
       p.setSelected(ids);
+      const chosen = new Set(ids);
       drag.current.objects = structuredClone(
-        m.objects.filter((o) => ids.includes(o.id) && editable(m, o.layer)),
+        m.objects.filter((o) => chosen.has(o.id) && editable(m, o.layer)),
       );
       drag.current.paths = structuredClone(
-        m.paths.filter((q) => ids.includes(q.id) && editable(m, q.layer)),
+        m.paths.filter((q) => chosen.has(q.id) && editable(m, q.layer)),
       );
     } else {
       if (!e.shiftKey) p.setSelected([]);
@@ -83,24 +85,15 @@ export function createSelectTool(deps: EditorCore & EditorOverlay) {
       d = drag.current!;
     const dx = world.x - d.start.x,
       dy = world.y - d.start.y,
-      center = {
-        x:
-          (Math.min(...d.objects.map((o) => o.x - o.width / 2)) +
-            Math.max(...d.objects.map((o) => o.x + o.width / 2))) /
-          2,
-        y:
-          (Math.min(...d.objects.map((o) => o.y - o.height / 2)) +
-            Math.max(...d.objects.map((o) => o.y + o.height / 2))) /
-          2,
-      };
-    const boundsWidth =
-      Math.max(...d.objects.map((o) => o.x + o.width / 2)) -
-      Math.min(...d.objects.map((o) => o.x - o.width / 2));
-    const boundsHeight =
-      Math.max(...d.objects.map((o) => o.y + o.height / 2)) -
-      Math.min(...d.objects.map((o) => o.y - o.height / 2));
+      { left, top, right, bottom } = objectBounds(d.objects),
+      center = { x: (left + right) / 2, y: (top + bottom) / 2 };
+    const boundsWidth = right - left;
+    const boundsHeight = bottom - top;
+    // Looked up by id once; searching the whole map for each dragged object
+    // was quadratic, and this runs on every pointer move.
+    const byId = new Map(m.objects.map((o) => [o.id, o]));
     d.objects.forEach((before) => {
-      const o = m.objects.find((o) => o.id === before.id)!;
+      const o = byId.get(before.id)!;
       if (d.handle === "rotate") {
         let angle =
           ((Math.atan2(world.y - center.y, world.x - center.x) -

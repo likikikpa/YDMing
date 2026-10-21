@@ -1,3 +1,5 @@
+import { objectBounds } from "../extent";
+import { idSet } from "../id-set";
 import { riverThrough } from "../rivers";
 import { SCULPT_TOOLS } from "../sculpt";
 import type { Point } from "../types";
@@ -27,13 +29,11 @@ export function createOverlay(deps: EditorCore) {
   const selectedBounds = () => {
     const p = latest.current,
       m = draft.current || p.map,
-      objects = m.objects.filter((o) => p.selected.includes(o.id));
+      chosen = idSet(p.selected),
+      objects = m.objects.filter((o) => chosen.has(o.id));
     if (!objects.length) return null;
-    const x = Math.min(...objects.map((o) => o.x - o.width / 2)),
-      y = Math.min(...objects.map((o) => o.y - o.height / 2)),
-      right = Math.max(...objects.map((o) => o.x + o.width / 2)),
-      bottom = Math.max(...objects.map((o) => o.y + o.height / 2));
-    return { x, y, w: right - x, h: bottom - y, objects };
+    const { left, top, right, bottom } = objectBounds(objects);
+    return { x: left, y: top, w: right - left, h: bottom - top, objects };
   };
   /** Selected rivers, roads and walls: a dashed line along each. */
   function drawSelectedPaths(c: CanvasRenderingContext2D) {
@@ -42,8 +42,9 @@ export function createOverlay(deps: EditorCore) {
     c.strokeStyle = "#f3d391";
     c.lineWidth = 2;
     c.setLineDash([6, 4]);
+    const chosen = idSet(p.selected);
     for (const q of m.paths) {
-      if (!p.selected.includes(q.id)) continue;
+      if (!chosen.has(q.id)) continue;
       c.beginPath();
       q.points.forEach((pt, i) => {
         const t = screenPoint(pt);

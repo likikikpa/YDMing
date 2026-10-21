@@ -3,6 +3,7 @@ import type { Dispatch, RefObject, SetStateAction } from "react";
 import type { BrushSettings, EditorHandle } from "../editor/types";
 import { MAP_COLORS } from "../types";
 import type { Tool } from "../types";
+import { shortcutKey } from "../shortcut-key";
 import { toolInfo } from "./constants";
 import type { ModalName } from "./constants";
 import type { SrdEntry } from "../types";
@@ -72,6 +73,8 @@ export function useKeyboardShortcuts(app: Shortcuts) {
   } = app;
   useEffect(() => {
     function keyboard(e: KeyboardEvent) {
+      // The letter of the key on any layout (Ctrl+C on a Russian layout reports "с").
+      const letter = shortcutKey(e);
       const typing =
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement ||
@@ -91,9 +94,7 @@ export function useKeyboardShortcuts(app: Shortcuts) {
         if (
           e.key === "Backspace" ||
           e.key === "Delete" ||
-          ((e.ctrlKey || e.metaKey) &&
-            e.key.toLowerCase() === "z" &&
-            !e.shiftKey)
+          ((e.ctrlKey || e.metaKey) && letter === "z" && !e.shiftKey)
         ) {
           e.preventDefault();
           editor.current?.undoRiverPoint();
@@ -114,36 +115,32 @@ export function useKeyboardShortcuts(app: Shortcuts) {
       )
         return;
       if (busy || modal || srdDetail) return;
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+      if ((e.ctrlKey || e.metaKey) && letter === "z") {
         e.preventDefault();
         e.shiftKey ? redo() : undo();
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+      if ((e.ctrlKey || e.metaKey) && letter === "s") {
         e.preventDefault();
         saveProjectFile();
         return;
       }
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        ["c", "x", "v"].includes(e.key.toLowerCase())
-      ) {
+      if ((e.ctrlKey || e.metaKey) && ["c", "x", "v"].includes(letter)) {
         // Text selected on the page is copied by the browser as usual.
-        if (e.key.toLowerCase() !== "v" && window.getSelection()?.toString())
-          return;
+        if (letter !== "v" && window.getSelection()?.toString()) return;
         e.preventDefault();
-        const key = e.key.toLowerCase();
+        const key = letter;
         if (key === "c") copy();
         else if (key === "x") cut();
         else paste(e.shiftKey);
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g") {
+      if ((e.ctrlKey || e.metaKey) && letter === "g") {
         e.preventDefault();
         groupObjects();
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
+      if ((e.ctrlKey || e.metaKey) && letter === "d") {
         e.preventDefault();
         duplicate();
         return;
@@ -168,27 +165,27 @@ export function useKeyboardShortcuts(app: Shortcuts) {
         void regenerate("all", !lockSeed);
         return;
       }
-      if (e.key === "[" || e.key === "]") {
+      if (letter === "[" || letter === "]") {
         setBrush((b) => ({
           ...b,
-          size: Math.max(4, Math.min(240, b.size + (e.key === "[" ? -4 : 4))),
+          size: Math.max(4, Math.min(240, b.size + (letter === "[" ? -4 : 4))),
         }));
         return;
       }
-      if (e.key.toLowerCase() === "x") {
+      if (letter === "x") {
         const old = brush.color;
         color(secondary);
         setSecondary(old);
         return;
       }
-      if (e.key.toLowerCase() === "d") {
+      if (letter === "d") {
         color(MAP_COLORS[0]);
         setSecondary("#eee6ce");
         return;
       }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const entry = Object.entries(toolInfo).find(
-        ([, v]) => v[2] === e.key.toUpperCase(),
+        ([, v]) => v[2] === letter.toUpperCase(),
       );
       if (entry) chooseTool(entry[0] as Tool);
     }

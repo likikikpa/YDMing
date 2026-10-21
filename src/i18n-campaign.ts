@@ -27,4 +27,12 @@ export const campaignRu: Record<string, string> = {
   Paste: "Вставить",
   "Paste at the pointer": "Вставить под курсором",
   "Paste in place": "Вставить на то же место",
+  "Could not copy. Select fewer objects and try again.":
+    "Не удалось скопировать. Выберите меньше объектов и повторите.",
+  "Could not cut. Select fewer objects and try again.":
+    "Не удалось вырезать. Выберите меньше объектов и повторите.",
+  "Could not paste. Copy fewer objects and try again.":
+    "Не удалось вставить. Скопируйте меньше объектов и повторите.",
+  "Nothing copied yet. Select something and press Ctrl C.":
+    "Пока ничего не скопировано. Выберите объекты и нажмите Ctrl C.",
 };
