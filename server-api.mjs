@@ -1,5 +1,6 @@
 import { searchCommons, searchOpenverse } from "./server-sources.mjs";
-import { inkIcon, loadSpriteIndex, searchAuto } from "./server-sprites.mjs";
+import { searchAuto } from "./server-auto.mjs";
+import { inkIcon, loadSpriteIndex } from "./server-sprites.mjs";
 
 // Image search proxy. The browser never talks to Wikimedia/Openverse directly:
 // this keeps licence filtering in one place and lets the server cache results.

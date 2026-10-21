@@ -200,7 +200,7 @@ test("all sources failing with no sprites reports the error", async (t) => {
 });
 
 test("a source that hangs is dropped after the wait", async () => {
-  const { searchAuto } = await import("../server-sprites.mjs");
+  const { searchAuto } = await import("../server-auto.mjs");
   const started = Date.now();
   const results = await searchAuto({
     index,

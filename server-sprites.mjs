@@ -2,11 +2,6 @@
 // (data/sprite-index.json, built by scripts/build-sprite-index.mjs) and the
 // rules that decide whether a query wants sprites or pictures.
 import { readFileSync } from "node:fs";
-import {
-  searchCommons,
-  searchOpenGameArt,
-  searchOpenverse,
-} from "./server-sources.mjs";
 
 const ART_WORDS = new Set(
   "realistic realism photo photograph photography picture painting painted artwork art illustration render rendering portrait scenery concept detailed hd 4k wallpaper image real".split(
@@ -177,58 +172,3 @@ export const inkIcon = (svg, ink = "#3b2a1a") =>
   svg
     .replace(/<path d="M0 0h512v512H0z"\s*\/>/, "")
     .replace(/fill="#fff(?:fff)?"/gi, `fill="${ink}"`);
-
-/**
- * The default search. A sprite query shows the index first, then OpenGameArt
- * and Openverse drawings; a picture query shows Wikimedia and Openverse
- * pictures first, then a few sprites. A source that fails is skipped as long
- * as another one has results.
- */
-export async function searchAuto({
-  index,
-  fetchImpl,
-  userAgent,
-  q,
-  style,
-  wait = 6000,
-}) {
-  const { mode, terms, text } = classifyQuery(q);
-  const local = searchIndex(index, terms, {
-    style,
-    limit: mode === "sprite" ? 30 : 8,
-  });
-  const ask = { fetchImpl, userAgent, mode };
-  // A slow source must not hold up the others: past `wait` it counts as failed.
-  const within = (search, name) => {
-    let timer;
-    const late = new Promise((_, reject) => {
-      timer = setTimeout(
-        () => reject(new Error(`${name} did not answer in time.`)),
-        wait,
-      );
-    });
-    return Promise.race([search, late]).finally(() => clearTimeout(timer));
-  };
-  const settled = await Promise.allSettled(
-    mode === "sprite"
-      ? [
-          within(searchOpenGameArt({ ...ask, q: text }), "OpenGameArt"),
-          within(searchOpenverse({ ...ask, q: text }), "Openverse"),
-        ]
-      : [
-          within(searchCommons({ ...ask, q: text }), "Wikimedia"),
-          within(searchOpenverse({ ...ask, q: text }), "Openverse"),
-        ],
-  );
-  const remote = settled.flatMap((s) =>
-    s.status === "fulfilled" ? s.value : [],
-  );
-  const results =
-    mode === "sprite" ? [...local, ...remote] : [...remote, ...local];
-  if (!results.length) {
-    const failed = settled.find((s) => s.status === "rejected");
-    if (failed) throw failed.reason;
-  }
-  const seen = new Set();
-  return results.filter((r) => !seen.has(r.image) && seen.add(r.image));
-}
