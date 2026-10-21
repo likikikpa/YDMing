@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { EditorHandle } from "../editor/types";
 import type { MapData, Project } from "../types";
+import { useBackupReminder } from "./useBackupReminder";
 import { useClipboard } from "./useClipboard";
 import { useGenerator } from "./useGenerator";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
@@ -77,7 +78,9 @@ export function useAppModel() {
     createMap: generator.createMap,
     setSelected: view.setSelected,
   });
+  const backup = useBackupReminder(store.project);
   const files = useProjectFiles({
+    backupSaved: backup.backupSaved,
     project: store.project,
     importWorld: worlds.importWorld,
     setMenu: view.setMenu,
@@ -145,6 +148,7 @@ export function useAppModel() {
     ...generator,
     ...objects,
     ...files,
+    ...backup,
     ...library,
     ...worlds,
     ...links,

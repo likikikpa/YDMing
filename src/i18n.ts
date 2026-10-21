@@ -241,6 +241,9 @@ export const ru: Record<string, string> = {
   "Town size": "Размер города",
   "Street layout": "План улиц",
   "Player view": "Вид игрока",
+  "Browser data can be cleared. Save this world to a file.":
+    "Данные браузера могут пропасть. Сохраните этот мир в файл.",
+  Later: "Позже",
   "Fog of war": "Туман войны",
   Reveal: "Открыть",
   Hide: "Скрыть",
