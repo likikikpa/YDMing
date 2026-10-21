@@ -27,7 +27,7 @@ export const toolDescriptions: Record<Tool, string> = {
   biome:
     "Repaint the climate zone (forest, desert, snow…) under the brush. Choose the biome in the side panel.",
   terrain:
-    "Builds ground of one exact kind where you drag: pick snow and a snow peak rises out of the sea, with rock, grass, dirt and sand on its slopes; pick sand and a beach appears. Digging it away cuts back down through the same layers. Shallow and deep water dig a basin. Your own textures are painted on grass-height ground and peel off when dug. Auto returns the ground to what its climate grows and leaves heights alone.",
+    "Stamps ground of one exact kind the moment you touch: everything under the brush becomes that ground, and the layers below it appear around it on their own. Pick snow on open sea and you get a snow peak ringed by rock, grass, dirt and sand. Digging cuts back down through the same layers. Shallow and deep water dig a basin. Your own textures are painted on grass-height ground. Auto returns the ground to what its climate grows and leaves heights alone.",
   stamp:
     "Place symbols from the library: trees, buildings, markers. Drag to scatter trees.",
   river:
@@ -70,7 +70,7 @@ export const toolDescriptionsRu: Record<string, string> = {
   [toolDescriptions.biome]:
     "Перекрашивает климатическую зону (лес, пустыня, снег…) под кистью. Биом выбирается в боковой панели.",
   [toolDescriptions.terrain]:
-    "Строит землю одного вида там, где ведёте: выберите снег — из моря поднимется снежная вершина, а на склонах будут скалы, трава, земля и песок; выберите песок — появится пляж. Если её копать, лопата пройдёт по тем же слоям. Мелкая и глубокая вода роют впадину. Ваши текстуры рисуются на земле высоты травы и снимаются лопатой. «Авто» возвращает землю к её климату и не меняет высоты.",
+    "Ставит землю одного вида сразу при касании: всё под кистью становится этой землёй, а нижние слои сами появляются вокруг. Снег на открытом море даёт снежную вершину в кольцах скал, травы, земли и песка. Лопата прорезает те же слои обратно. Мелкая и глубокая вода роют впадину. Ваши текстуры рисуются на земле высоты травы. «Авто» возвращает землю к её климату и не меняет высоты.",
   [toolDescriptions.stamp]:
     "Ставит символы из библиотеки: деревья, здания, метки. Деревья можно «рассыпать», ведя мышь.",
   [toolDescriptions.river]:
