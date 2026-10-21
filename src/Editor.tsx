@@ -194,6 +194,8 @@ export const Editor = forwardRef<EditorHandle, Props>(
         sculpted?: boolean;
         /** The eraser removed a stamp, label or path during this drag. */
         erased?: boolean;
+        /** Cells a terrain tool has changed during this drag. */
+        sculptDirty?: CellRect;
       } | null>(null),
       [ready, setReady] = useState(false),
       [renderError, setRenderError] = useState("");
@@ -229,6 +231,11 @@ export const Editor = forwardRef<EditorHandle, Props>(
       time: number;
       pressure: number;
       frame: number;
+      /**
+       * A touch waits this long (or until the finger moves) before the first
+       * dab, so the first finger of a pinch never changes the terrain.
+       */
+      holdUntil?: number;
     } | null>(null);
     latest.current = props;
     const size = useRef({ w: 1000, h: 700 });
@@ -763,6 +770,18 @@ export const Editor = forwardRef<EditorHandle, Props>(
       const s = sculpt.current,
         m = draft.current;
       if (!s || !m) return;
+      if (s.holdUntil !== undefined) {
+        const moved =
+          Math.hypot(s.pos.x - s.last.x, s.pos.y - s.last.y) *
+          view.current.scale;
+        if (now < s.holdUntil && moved < 6) {
+          s.frame = requestAnimationFrame(sculptFrame);
+          return;
+        }
+        // Not a pinch: the first dab lands as a tap would, from where it began.
+        s.holdUntil = undefined;
+        s.time = now - 120;
+      }
       // A long frame must not make the terrain jump, so time per step is capped.
       const b = latest.current.brush,
         tool = latest.current.tool,
@@ -793,7 +812,10 @@ export const Editor = forwardRef<EditorHandle, Props>(
       s.last = s.pos;
       s.time = now;
       if (dirty) {
-        if (drag.current) drag.current.sculpted = true;
+        if (drag.current) {
+          drag.current.sculpted = true;
+          drag.current.sculptDirty = unionRects(drag.current.sculptDirty, dirty);
+        }
         cancelAnimationFrame(frame.current);
         frame.current = 0;
         queued.current = null;
@@ -801,8 +823,17 @@ export const Editor = forwardRef<EditorHandle, Props>(
       }
       s.frame = requestAnimationFrame(sculptFrame);
     }
-    function endSculpt() {
-      if (sculpt.current) cancelAnimationFrame(sculpt.current.frame);
+    /** Stops the brush loop; a tap still waiting for its first dab gets it now. */
+    function endSculpt(cancelled = false) {
+      const s = sculpt.current;
+      if (s) {
+        cancelAnimationFrame(s.frame);
+        if (!cancelled && s.holdUntil !== undefined) {
+          s.holdUntil = -Infinity;
+          sculptFrame(performance.now());
+          cancelAnimationFrame(s.frame);
+        }
+      }
       sculpt.current = null;
     }
     function placeStamp(p: Point) {
@@ -883,10 +914,16 @@ export const Editor = forwardRef<EditorHandle, Props>(
         if (touches.current.size >= 2) {
           // A second finger turns the touch into a gesture: drop what the
           // first finger had started instead of committing a stray mark.
-          endSculpt();
+          // Terrain it already changed is repainted for that area only; an
+          // untouched map needs no redraw at all.
+          const started = drag.current,
+            sculpting = SCULPT_TOOLS.includes(latest.current.tool);
+          endSculpt(true);
           drag.current = null;
           draft.current = null;
-          refresh();
+          if (!sculpting) refresh();
+          else if (started?.sculptDirty)
+            refresh(latest.current.map, started.sculptDirty);
           pinchStart();
           drawOverlay();
           return;
@@ -1009,9 +1046,13 @@ export const Editor = forwardRef<EditorHandle, Props>(
           frame: 0,
         };
         // Paints the first dab at once (a tap already leaves a visible mark);
-        // the loop then keeps going every frame.
+        // the loop then keeps going every frame. A finger waits a moment in
+        // case a second one turns the touch into a pinch.
         sculpt.current.time = performance.now() - 120;
-        sculptFrame(performance.now());
+        if (e.pointerType === "touch") {
+          sculpt.current.holdUntil = performance.now() + 90;
+          sculpt.current.frame = requestAnimationFrame(sculptFrame);
+        } else sculptFrame(performance.now());
         drawOverlay(screen);
         return;
       } else if (PAINT_TOOLS.includes(p.tool)) {
