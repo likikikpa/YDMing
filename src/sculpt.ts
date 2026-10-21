@@ -105,6 +105,43 @@ export function groundTarget(material: string, sea: number) {
   }
 }
 
+/**
+ * Terrain paint with a ground picked: everything under the brush becomes that
+ * ground at once, with no rings of other grounds around it. The ground is
+ * raised (or lowered) to its own height, so the layers below it are still
+ * there: digging it away cuts down through them. Water digs a basin.
+ */
+export function buildGround(
+  m: MapData,
+  p: Point,
+  brush: SculptBrush,
+): CellRect | null {
+  const terrain = editableTerrain(m),
+    heights = terrain.heights,
+    sea = m.settings.seaLevel,
+    material = brush.material!,
+    g = groundTarget(material, sea),
+    custom = !BUILTIN_MATERIALS.includes(material),
+    cx = (p.x / m.width) * m.cols,
+    cy = (p.y / m.height) * m.rows,
+    r = Math.max(1.5, ((brush.size / m.width) * m.cols) / 2),
+    x0 = Math.max(1, Math.floor(cx - r)),
+    x1 = Math.min(m.cols - 2, Math.ceil(cx + r)),
+    y0 = Math.max(1, Math.floor(cy - r)),
+    y1 = Math.min(m.rows - 2, Math.ceil(cy + r));
+  if (x1 < x0 || y1 < y0) return null;
+  for (let y = y0; y <= y1; y++)
+    for (let x = x0; x <= x1; x++) {
+      if (Math.hypot(x - cx, y - cy) >= r) continue;
+      const i = y * m.cols + x;
+      heights[i] = g.height;
+      terrain.biomes[i] = g.biome;
+      // Built-in grounds follow from height; only custom textures are painted on.
+      setMaterial(m, terrain, i, custom ? material : null);
+    }
+  return { x0: x0 - 1, y0: y0 - 1, x1: x1 + 1, y1: y1 + 1 };
+}
+
 export interface SculptBrush {
   /** Brush diameter in map pixels. */
   size: number;
@@ -151,6 +188,7 @@ export function sculptDab(
   flat: number,
   brush: SculptBrush,
 ): CellRect | null {
+  if (tool === "terrain" && brush.material) return buildGround(m, p, brush);
   const terrain = editableTerrain(m),
     cx = (p.x / m.width) * m.cols,
     cy = (p.y / m.height) * m.rows,
@@ -221,47 +259,9 @@ export function sculptDab(
           // Auto: the ground goes back to what its climate grows; heights stay.
           if (w > 0.2 + (noise(x * 0.7, y * 0.7, seed) - 0.5) * soft * 0.7)
             setMaterial(m, terrain, i, null);
-        } else {
-          // Builds the ground: the brush raises (or, for water, digs) the land
-          // towards a profile that is the chosen layer's height in the middle
-          // and falls to the sea at the rim, so the slope passes through every
-          // layer below it. Harder brushes keep the top flatter. Outside the
-          // flat middle it only builds, so it never cuts into the surroundings.
-          const g = groundTarget(brush.material, sea),
-            // The slope runs from the rim in to a flat top; harder brushes
-            // have a narrower slope.
-            t = Math.min(
-              1,
-              (1 - d) / (0.85 - 0.45 * ((brush.hardness ?? 85) / 100)),
-            ),
-            k = t * t * (3 - 2 * t),
-            profile = sea + (g.height - sea) * k,
-            h = heights[i],
-            building = g.height >= sea;
-          // A faint rim over open water is left alone, as raise does.
-          if (building && h < sea && profile < sea + SAND_START) continue;
-          if (k >= 0.5 || (building ? profile > h : profile < h))
-            heights[i] += (profile - h) * Math.min(1, amount * 14);
-          if (k > 0.5) {
-            terrain.biomes[i] = g.biome;
-            // Built-in grounds follow from height; only custom textures are painted on.
-            setMaterial(
-              m,
-              terrain,
-              i,
-              BUILTIN_MATERIALS.includes(brush.material)
-                ? null
-                : brush.material,
-            );
-          }
         }
       }
-      if (
-        tool === "raise" ||
-        tool === "dig" ||
-        (tool === "terrain" && brush.material)
-      )
-        settle(terrain, i, sea);
+      if (tool === "raise" || tool === "dig") settle(terrain, i, sea);
     }
   return { x0: x0 - 1, y0: y0 - 1, x1: x1 + 1, y1: y1 + 1 };
 }

@@ -9,7 +9,7 @@ export const toolDescriptions: Record<Tool, string> = {
     "Paint freehand colour on the Paint layer. [ and ] change the brush size.",
   pencil: "Draw a thin, hard-edged line with square ends.",
   eraser:
-    "Rub out painted strokes on the active layer. Terrain and objects stay untouched.",
+    "Rub out painted strokes on the active layer, and remove stamps and labels under the brush. Touching any part of a river, road or wall removes it whole. Terrain stays untouched; settlements with their own map are kept.",
   fill: "Fill a connected area of the active layer with the chosen colour.",
   line: "Drag to draw a straight line.",
   rectangle: "Drag to draw a rectangle outline.",
@@ -27,7 +27,7 @@ export const toolDescriptions: Record<Tool, string> = {
   biome:
     "Repaint the climate zone (forest, desert, snow…) under the brush. Choose the biome in the side panel.",
   terrain:
-    "Builds ground of one exact kind where you drag: pick snow and a snow peak rises out of the sea, with rock, grass, dirt and sand on its slopes; pick sand and a beach appears. Digging it away cuts back down through the same layers. Shallow and deep water dig a basin. Your own textures are painted on grass-height ground and peel off when dug. Auto returns the ground to what its climate grows and leaves heights alone.",
+    "Stamps ground of one exact kind the moment you touch, with no rings of other grounds around it. The layers below lie underneath: dig into painted snow and you uncover rock, grass, dirt and sand. Shallow and deep water dig a basin. Your own textures are painted on grass-height ground. Auto returns the ground to what its climate grows and leaves heights alone.",
   stamp:
     "Place symbols from the library: trees, buildings, markers. Drag to scatter trees.",
   river:
@@ -49,7 +49,7 @@ export const toolDescriptionsRu: Record<string, string> = {
     "Рисуйте цветом на слое «Paint». Клавиши [ и ] меняют размер кисти.",
   [toolDescriptions.pencil]: "Тонкая линия с чёткими краями.",
   [toolDescriptions.eraser]:
-    "Стирает мазки активного слоя. Рельеф и объекты не затрагиваются.",
+    "Стирает мазки активного слоя, а также штампы и надписи под кистью. Касание любой части реки, дороги или стены убирает её целиком. Рельеф не меняется; поселения со своей картой остаются.",
   [toolDescriptions.fill]:
     "Заливает выбранным цветом связную область активного слоя.",
   [toolDescriptions.line]: "Перетащите, чтобы провести прямую линию.",
@@ -70,7 +70,7 @@ export const toolDescriptionsRu: Record<string, string> = {
   [toolDescriptions.biome]:
     "Перекрашивает климатическую зону (лес, пустыня, снег…) под кистью. Биом выбирается в боковой панели.",
   [toolDescriptions.terrain]:
-    "Строит землю одного вида там, где ведёте: выберите снег — из моря поднимется снежная вершина, а на склонах будут скалы, трава, земля и песок; выберите песок — появится пляж. Если её копать, лопата пройдёт по тем же слоям. Мелкая и глубокая вода роют впадину. Ваши текстуры рисуются на земле высоты травы и снимаются лопатой. «Авто» возвращает землю к её климату и не меняет высоты.",
+    "Ставит землю одного вида сразу при касании, без колец другой земли вокруг. Нижние слои лежат под ней: копните нарисованный снег — и откроются скалы, трава, земля и песок. Мелкая и глубокая вода роют впадину. Ваши текстуры рисуются на земле высоты травы. «Авто» возвращает землю к её климату и не меняет высоты.",
   [toolDescriptions.stamp]:
     "Ставит символы из библиотеки: деревья, здания, метки. Деревья можно «рассыпать», ведя мышь.",
   [toolDescriptions.river]:

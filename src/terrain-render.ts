@@ -14,7 +14,7 @@ import {
 import { hash, noise, random } from "./random";
 import { imageCache } from "./render";
 import { DECOR_SPRITES } from "./symbols";
-import type { MapData, TextureLayer } from "./types";
+import type { MapData, TextureLayer, TextureTiling } from "./types";
 
 /** Inclusive rectangle of terrain cells. */
 export interface CellRect {
@@ -102,6 +102,8 @@ let textureLayers: TextureLayer[] = defaultTextures(),
   textureVersion = 0;
 /** Decoded uploaded tiles, keyed by their data URL. */
 const uploads = new Map<string, Float32Array[]>();
+/** Decoded map-wide cover images for unveiled layers, keyed by their data URL. */
+const covers = new Map<string, Cover>();
 /** Generated pattern tiles, shared by every style and colour. */
 const patterns = new Map<string, Float32Array[]>();
 
@@ -110,8 +112,8 @@ const patterns = new Map<string, Float32Array[]>();
  * promise settles once the next draw will show the new textures.
  */
 export async function setTextureLayers(layers: TextureLayer[]) {
-  await Promise.all(
-    layers
+  await Promise.all([
+    ...layers
       .filter((l) => l.image && !uploads.has(l.image))
       .map(async (l) => {
         try {
@@ -120,7 +122,16 @@ export async function setTextureLayers(layers: TextureLayer[]) {
           // A broken image falls back to the generated pattern.
         }
       }),
-  );
+    ...layers
+      .filter((l) => l.cover && !covers.has(l.cover))
+      .map(async (l) => {
+        try {
+          covers.set(l.cover!, await decodeCover(l.cover!));
+        } catch {
+          // A broken cover falls back to blended tiles.
+        }
+      }),
+  ]);
   textureLayers = layers;
   textureVersion++;
   entries.clear();
@@ -141,11 +152,64 @@ async function decodeTile(src: string) {
   return mipChain(rgb, TILE, 3);
 }
 
+/** A map-wide image, RGB bytes. */
+interface Cover {
+  rgb: Uint8ClampedArray;
+  width: number;
+  height: number;
+}
+async function decodeCover(src: string): Promise<Cover> {
+  const img = new Image();
+  img.src = src;
+  await img.decode();
+  const c = document.createElement("canvas");
+  c.width = img.naturalWidth;
+  c.height = img.naturalHeight;
+  const ctx = c.getContext("2d")!;
+  ctx.drawImage(img, 0, 0);
+  const data = ctx.getImageData(0, 0, c.width, c.height).data,
+    rgb = new Uint8ClampedArray(c.width * c.height * 3);
+  for (let i = 0; i < c.width * c.height; i++)
+    for (let k = 0; k < 3; k++) rgb[i * 3 + k] = data[i * 4 + k];
+  return { rgb, width: c.width, height: c.height };
+}
+
 /** A material ready to sample: RGB mip levels for the current style. */
 interface Material {
   levels: Float32Array[];
   /** Tile texels per map pixel at full size. */
   density: number;
+  tiling: TextureTiling;
+  /** Average colour of the tile, which blending and unveiling keep. */
+  mean: [number, number, number];
+  /** How much the tile's detail shows on top of an unveiled cover, 0–1. */
+  detail: number;
+  cover?: Cover;
+}
+
+const tilingOf = (layer: TextureLayer): TextureTiling =>
+  layer.tiling === "unveil" && !(layer.cover && covers.has(layer.cover))
+    ? "blended"
+    : (layer.tiling ?? "blended");
+
+function withMean(
+  layer: TextureLayer,
+  levels: Float32Array[],
+  density: number,
+): Material {
+  const last = levels[levels.length - 1],
+    n = last.length / 3,
+    mean: [number, number, number] = [0, 0, 0];
+  for (let i = 0; i < n; i++)
+    for (let k = 0; k < 3; k++) mean[k] += last[i * 3 + k] / n;
+  return {
+    levels,
+    density,
+    tiling: tilingOf(layer),
+    mean,
+    detail: layer.visible ? layer.strength / 100 : 0,
+    cover: layer.cover ? covers.get(layer.cover) : undefined,
+  };
 }
 
 /** The colour a texture layer starts from: its own tint, else the map style's. */
@@ -166,7 +230,7 @@ export const textureColour = (layer: TextureLayer, style: string) =>
 function buildMaterial(layer: TextureLayer, style: string): Material {
   const density = TILE / ((WORLD_TILE * layer.scale) / 100),
     upload = layer.image ? uploads.get(layer.image) : undefined;
-  if (upload) return { levels: upload, density };
+  if (upload) return withMean(layer, upload, density);
   let detail = patterns.get(layer.pattern);
   if (!detail)
     patterns.set(layer.pattern, (detail = patternTile(layer.pattern)));
@@ -174,9 +238,9 @@ function buildMaterial(layer: TextureLayer, style: string): Material {
     deep = layer.id === DEEP_WATER && !layer.tint,
     darken = deep ? (style === "parchment" ? 3 : 10) : 0,
     contrast = layer.visible ? (layer.strength / 100) * 0.3 : 0;
-  return {
-    density,
-    levels: detail.map((level) => {
+  return withMean(
+    layer,
+    detail.map((level) => {
       const rgb = new Float32Array(level.length * 3);
       for (let i = 0; i < level.length; i++) {
         const f = 1 + level[i] * contrast;
@@ -184,7 +248,8 @@ function buildMaterial(layer: TextureLayer, style: string): Material {
       }
       return rgb;
     }),
-  };
+    density,
+  );
 }
 
 interface Entry {
@@ -203,6 +268,8 @@ interface Entry {
   deep: number;
   base: HTMLCanvasElement;
   baseKey: string;
+  /** The erased-decoration list the cached bitmap was drawn with. */
+  decorErased?: Erased;
 }
 const entries = new Map<string, Entry>();
 
@@ -302,6 +369,119 @@ function classifyCells(
     }
 }
 
+/** Tile texels at one mip level. */
+interface Tile {
+  rgb: Float32Array;
+  size: number;
+  k: number;
+}
+/** How many blended copies span one tile; more means smaller patches. */
+const HEX_SCALE = 1.7;
+function latticeHash(x: number, y: number) {
+  let h = Math.imul(x, 0x27d4eb2d) ^ Math.imul(y, 0x165667b1);
+  h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
+  return (h ^ (h >>> 12)) >>> 0;
+}
+const hexU = [0, 0, 0],
+  hexV = [0, 0, 0],
+  hexW = [0, 0, 0];
+/**
+ * Hex tiling (Heitz and Neyret, as simplified by Mikkelsen): the ground is
+ * split into a triangle grid, every grid point takes a randomly shifted and
+ * turned copy of the tile, and each pixel blends the three copies around it.
+ * Blending pulls colours towards the average, so the contrast is restored
+ * afterwards. `u` and `v` are in tiles; the result goes into `out`.
+ */
+function hexBlend(
+  t: Tile,
+  mean: number[],
+  u: number,
+  v: number,
+  out: number[],
+) {
+  const gu = u * HEX_SCALE,
+    gv = v * HEX_SCALE,
+    sx = gu,
+    sy = -0.57735027 * gu + 1.15470054 * gv,
+    bx = Math.floor(sx),
+    by = Math.floor(sy),
+    fx = sx - bx,
+    fy = sy - by,
+    z = 1 - fx - fy;
+  if (z > 0) {
+    hexW[0] = z;
+    hexW[1] = fy;
+    hexW[2] = fx;
+    hexU[0] = bx;
+    hexV[0] = by;
+    hexU[1] = bx;
+    hexV[1] = by + 1;
+    hexU[2] = bx + 1;
+    hexV[2] = by;
+  } else {
+    hexW[0] = -z;
+    hexW[1] = 1 - fy;
+    hexW[2] = 1 - fx;
+    hexU[0] = bx + 1;
+    hexV[0] = by + 1;
+    hexU[1] = bx + 1;
+    hexV[1] = by;
+    hexU[2] = bx;
+    hexV[2] = by + 1;
+  }
+  // Sharper weights keep each copy crisp in the middle of its patch.
+  let total = 0;
+  for (let n = 0; n < 3; n++) {
+    const w = hexW[n];
+    total += hexW[n] = w * w * w;
+  }
+  // Copies with almost no weight are skipped: most of every patch is
+  // dominated by one copy, which then needs a single lookup.
+  let kept = 0;
+  for (let n = 0; n < 3; n++)
+    if ((hexW[n] /= total) < 0.03) hexW[n] = 0;
+    else kept += hexW[n];
+  let squares = 0;
+  const mask = t.size - 1;
+  out[0] = out[1] = out[2] = 0;
+  for (let n = 0; n < 3; n++) {
+    if (!hexW[n]) continue;
+    const w = hexW[n] / kept,
+      h = latticeHash(hexU[n], hexV[n]),
+      ox = (h & 1023) / 1024,
+      oy = ((h >>> 10) & 1023) / 1024,
+      turn = (h >>> 20) & 3,
+      ru = turn === 0 ? u : turn === 1 ? -v : turn === 2 ? -u : v,
+      rv = turn === 0 ? v : turn === 1 ? u : turn === 2 ? -v : -u,
+      // Tiles are a power of two wide, so wrapping is a bit mask.
+      tx = Math.floor((ru + ox) * t.size) & mask,
+      ty = Math.floor((rv + oy) * t.size) & mask,
+      p = (ty * t.size + tx) * 3;
+    out[0] += t.rgb[p] * w;
+    out[1] += t.rgb[p + 1] * w;
+    out[2] += t.rgb[p + 2] * w;
+    squares += w * w;
+  }
+  if (squares > 0.999) return;
+  const restore = 1 / Math.sqrt(squares);
+  for (let k = 0; k < 3; k++) out[k] = mean[k] + (out[k] - mean[k]) * restore;
+}
+/** Bilinear sample of a cover image at (`u`, `v`) in 0–1 map coordinates. */
+function coverAt(c: Cover, u: number, v: number, out: number[]) {
+  const x = Math.min(c.width - 1.001, Math.max(0, u * c.width - 0.5)),
+    y = Math.min(c.height - 1.001, Math.max(0, v * c.height - 0.5)),
+    ix = Math.floor(x),
+    iy = Math.floor(y),
+    fx = x - ix,
+    fy = y - iy,
+    p = (iy * c.width + ix) * 3,
+    q = p + c.width * 3;
+  for (let k = 0; k < 3; k++)
+    out[k] =
+      (c.rgb[p + k] * (1 - fx) + c.rgb[p + 3 + k] * fx) * (1 - fy) +
+      (c.rgb[q + k] * (1 - fx) + c.rgb[q + 3 + k] * fx) * fy;
+}
+
 /**
  * Paints terrain pixels into `data` (`dataWidth` wide). Output pixel (u, v)
  * shows map point (ox + (u + 0.5) / scale, oy + (v + 0.5) / scale), so the same
@@ -345,13 +525,29 @@ function paintPixels(
     tiles = entry.layers.map(pick),
     sample = (m: number, mx: number, my: number, out: number[], w: number) => {
       const t = tiles[m],
-        tx = ((Math.floor(mx * t.k) % t.size) + t.size) % t.size,
-        ty = ((Math.floor(my * t.k) % t.size) + t.size) % t.size,
-        p = (ty * t.size + tx) * 3;
-      out[0] += t.rgb[p] * w;
-      out[1] += t.rgb[p + 1] * w;
-      out[2] += t.rgb[p + 2] * w;
+        mat = entry.layers[m];
+      if (mat.tiling === "tiled") {
+        const tx = ((Math.floor(mx * t.k) % t.size) + t.size) % t.size,
+          ty = ((Math.floor(my * t.k) % t.size) + t.size) % t.size,
+          p = (ty * t.size + tx) * 3;
+        out[0] += t.rgb[p] * w;
+        out[1] += t.rgb[p + 1] * w;
+        out[2] += t.rgb[p + 2] * w;
+        return;
+      }
+      hexBlend(t, mat.mean, (mx * t.k) / t.size, (my * t.k) / t.size, blended);
+      if (mat.cover) {
+        // Unveiled: the cover image spread over the whole map, with the
+        // tile's fine detail as light and shade on top.
+        coverAt(mat.cover, mx / map.width, my / map.height, covered);
+        const lum = (c: number[]) => c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11,
+          base = Math.max(1, lum(mat.mean)),
+          f = 1 + ((lum(blended) - base) / base) * mat.detail;
+        for (let k = 0; k < 3; k++) out[k] += covered[k] * f * w;
+      } else for (let k = 0; k < 3; k++) out[k] += blended[k] * w;
     },
+    blended = [0, 0, 0],
+    covered = [0, 0, 0],
     colour = [0, 0, 0],
     candidates = [0, 0, 0, 0],
     weights = [0, 0, 0, 0];
@@ -520,6 +716,7 @@ function drawTerrainImage(
   ctx: CanvasRenderingContext2D,
   map: MapData,
   entry: Entry,
+  detail?: TerrainDetail,
 ) {
   const t = ctx.getTransform(),
     scale = t.a;
@@ -527,32 +724,135 @@ function drawTerrainImage(
     ctx.drawImage(entry.texture, 0, 0, map.width, map.height);
     return;
   }
-  const x0 = Math.max(0, -t.e / scale),
-    y0 = Math.max(0, -t.f / scale),
-    x1 = Math.min(map.width, (ctx.canvas.width - t.e) / scale),
-    y1 = Math.min(map.height, (ctx.canvas.height - t.f) / scale),
-    w = Math.ceil((x1 - x0) * scale),
-    h = Math.ceil((y1 - y0) * scale);
-  if (w <= 0 || h <= 0) return;
-  if (w * h > 40_000_000) {
+  // A view the detail was prepared for reuses those pixels; anything else
+  // paints them now.
+  const ready =
+    detail?.done &&
+    detail.entry === entry &&
+    detail.heights === entry.heights &&
+    detail.materials === entry.materials &&
+    detail.version === textureVersion &&
+    detail.key === viewKey(t, ctx.canvas)
+      ? detail
+      : prepareDetail(map, entry, t, ctx.canvas.width, ctx.canvas.height, Infinity);
+  if (!ready) {
     ctx.drawImage(entry.texture, 0, 0, map.width, map.height);
     return;
   }
+  while (!ready.done) ready.step(Infinity);
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(ready.canvas, ready.dx, ready.dy, ready.dw, ready.dh);
+  ctx.restore();
+}
+
+// Canvases keep their transform in single precision, so the key is rounded.
+const viewKey = (
+  t: { a: number; e: number; f: number },
+  canvas: { width: number; height: number },
+) =>
+  [t.a.toFixed(4), t.e.toFixed(1), t.f.toFixed(1), canvas.width, canvas.height].join(",");
+
+/**
+ * The visible part of the terrain painted sharper than the cached 1x bitmap,
+ * built a few rows at a time so a phone stays responsive while it is made.
+ */
+export interface TerrainDetail {
+  entry: Entry;
+  heights: number[];
+  materials?: number[];
+  version: number;
+  key: string;
+  canvas: HTMLCanvasElement;
+  /** Where the pixels go on the target canvas, in its device pixels. */
+  dx: number;
+  dy: number;
+  dw: number;
+  dh: number;
+  done: boolean;
+  /** Paints more rows for about `budget` ms; returns whether it is finished. */
+  step(budget: number): boolean;
+}
+
+function prepareDetail(
+  map: MapData,
+  entry: Entry,
+  t: { a: number; e: number; f: number },
+  width: number,
+  height: number,
+  maxPixels: number,
+  pixelScale = t.a,
+): TerrainDetail | undefined {
+  const scale = t.a,
+    x0 = Math.max(0, -t.e / scale),
+    y0 = Math.max(0, -t.f / scale),
+    x1 = Math.min(map.width, (width - t.e) / scale),
+    y1 = Math.min(map.height, (height - t.f) / scale);
+  // The terrain may be painted coarser than the target and scaled up.
+  let ps = Math.min(scale, pixelScale);
+  const area = (x1 - x0) * (y1 - y0);
+  if (area * ps * ps > maxPixels) ps = Math.sqrt(maxPixels / area);
+  const w = Math.ceil((x1 - x0) * ps),
+    h = Math.ceil((y1 - y0) * ps);
+  if (w <= 0 || h <= 0 || w * h > 40_000_000) return undefined;
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
   const c = canvas.getContext("2d")!,
     image = c.createImageData(w, h);
-  paintPixels(map, entry, image.data, w, x0, y0, scale, 0, 0, w, h);
-  c.putImageData(image, 0, 0);
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.drawImage(
+  let row = 0;
+  const detail: TerrainDetail = {
+    entry,
+    heights: entry.heights,
+    materials: entry.materials,
+    version: textureVersion,
+    key: viewKey(t, { width, height }),
     canvas,
-    Math.round(x0 * scale + t.e),
-    Math.round(y0 * scale + t.f),
-  );
-  ctx.restore();
+    dx: Math.round(x0 * scale + t.e),
+    dy: Math.round(y0 * scale + t.f),
+    dw: Math.round((w * scale) / ps),
+    dh: Math.round((h * scale) / ps),
+    done: false,
+    step(budget) {
+      const start = performance.now();
+      let rows = 8;
+      while (row < h) {
+        const end = Math.min(h, row + rows),
+          before = performance.now();
+        paintPixels(map, entry, image.data, w, x0, y0, ps, 0, row, w, end);
+        row = end;
+        const spent = performance.now() - before;
+        if (performance.now() - start >= budget) break;
+        // Aim for strips that each take about 4 ms.
+        rows = Math.max(1, Math.round((rows * 4) / Math.max(0.5, spent)));
+      }
+      if (row >= h) {
+        c.putImageData(image, 0, 0);
+        detail.done = true;
+      }
+      return detail.done;
+    },
+  };
+  return detail;
+}
+
+/**
+ * Starts painting the visible terrain for a view (`scale`, offset `e`/`f` in
+ * device pixels) on a `width` × `height` canvas. At most `pixelScale` terrain
+ * pixels are painted per map pixel; the result is scaled up to fit.
+ */
+export function startTerrainDetail(
+  map: MapData,
+  view: { a: number; e: number; f: number },
+  width: number,
+  height: number,
+  pixelScale: number,
+) {
+  const entry = entryFor(map);
+  updateTexture(map, entry);
+  if (view.a <= 1.05) return undefined;
+  return prepareDetail(map, entry, view, width, height, 6_000_000, pixelScale);
 }
 
 function coast(
@@ -650,6 +950,60 @@ function decorTile(seed: string, tx: number, ty: number) {
  * Decoration spots on the map, in map pixels, nearest last. They are fixed to
  * the land rather than the sheet, so resizing a map does not move the trees.
  */
+type Erased = NonNullable<MapData["decorErased"]>;
+/** Erased circles bucketed by decoration tile, built once per list. */
+const erasedIndexes = new WeakMap<Erased, Map<string, Erased>>();
+function erasedIndex(list: Erased) {
+  let index = erasedIndexes.get(list);
+  if (!index) {
+    index = new Map();
+    for (const c of list)
+      for (
+        let ty = Math.floor((c.y - c.r) / DECOR_TILE);
+        ty <= Math.floor((c.y + c.r) / DECOR_TILE);
+        ty++
+      )
+        for (
+          let tx = Math.floor((c.x - c.r) / DECOR_TILE);
+          tx <= Math.floor((c.x + c.r) / DECOR_TILE);
+          tx++
+        ) {
+          const key = `${tx},${ty}`;
+          index.get(key)?.push(c) ?? index.set(key, [c]);
+        }
+    erasedIndexes.set(list, index);
+  }
+  return index;
+}
+const isErased = (index: Map<string, Erased>, x: number, y: number) =>
+  !!index
+    .get(`${Math.floor(x / DECOR_TILE)},${Math.floor(y / DECOR_TILE)}`)
+    ?.some((c) => Math.hypot(c.x - x, c.y - y) < c.r);
+
+/** Cells to repaint for newly erased circles, with room for sprites that reach past them. */
+function decorRegion(map: MapData, circles: Erased): CellRect {
+  const ox = map.origin?.x ?? 0,
+    oy = map.origin?.y ?? 0,
+    cx = map.cols / map.width,
+    cy = map.rows / map.height;
+  let x0 = Infinity,
+    y0 = Infinity,
+    x1 = -Infinity,
+    y1 = -Infinity;
+  for (const c of circles) {
+    x0 = Math.min(x0, c.x + ox - c.r - 70);
+    y0 = Math.min(y0, c.y + oy - c.r - 70);
+    x1 = Math.max(x1, c.x + ox + c.r + 70);
+    y1 = Math.max(y1, c.y + oy + c.r + 70);
+  }
+  return {
+    x0: Math.max(0, Math.floor(x0 * cx)),
+    y0: Math.max(0, Math.floor(y0 * cy)),
+    x1: Math.min(map.cols - 1, Math.ceil(x1 * cx)),
+    y1: Math.min(map.rows - 1, Math.ceil(y1 * cy)),
+  };
+}
+
 function decorFor(map: MapData, area?: Rect) {
   const ox = map.origin?.x ?? 0,
     oy = map.origin?.y ?? 0,
@@ -657,10 +1011,12 @@ function decorFor(map: MapData, area?: Rect) {
     y0 = (area ? Math.max(0, area.y - 70) : 0) - oy,
     x1 = (area ? Math.min(map.width, area.x + area.w + 70) : map.width) - ox,
     y1 = (area ? Math.min(map.height, area.y + area.h + 70) : map.height) - oy,
-    out: DecorSpot[] = [];
+    out: DecorSpot[] = [],
+    erased = map.decorErased?.length ? erasedIndex(map.decorErased) : null;
   for (let ty = Math.floor(y0 / DECOR_TILE); ty * DECOR_TILE < y1; ty++)
     for (let tx = Math.floor(x0 / DECOR_TILE); tx * DECOR_TILE < x1; tx++)
       for (const spot of decorTile(map.settings.seed, tx, ty)) {
+        if (erased && isErased(erased, spot.x, spot.y)) continue;
         const x = spot.x + ox,
           y = spot.y + oy;
         // Keep clear of the frame drawn around the sheet.
@@ -745,6 +1101,7 @@ function paintLandscape(
   contours: boolean,
   vector: boolean,
   region?: CellRect,
+  detail?: TerrainDetail,
 ) {
   let area: Rect | undefined;
   if (region) {
@@ -768,7 +1125,7 @@ function paintLandscape(
       y1: region.y1 + 3,
     };
   }
-  if (vector) drawTerrainImage(ctx, map, entry);
+  if (vector) drawTerrainImage(ctx, map, entry, detail);
   else ctx.drawImage(entry.texture, 0, 0, map.width, map.height);
   coast(ctx, map, map.settings.seaLevel, "#657c69", 1.1, region);
   coast(ctx, map, map.settings.seaLevel - 0.015, "#93aaa1", 0.65, region);
@@ -788,16 +1145,50 @@ export function drawLandscape(
   ctx: CanvasRenderingContext2D,
   map: MapData,
   contours = false,
-  options: { dirty?: CellRect; vector?: boolean } = {},
+  options: {
+    dirty?: CellRect;
+    vector?: boolean;
+    /** Terrain pixels already painted for this view by `startTerrainDetail`. */
+    terrainDetail?: TerrainDetail;
+  } = {},
 ) {
-  const entry = entryFor(map),
-    { changed, region } = updateTexture(map, entry, options.dirty);
+  const entry = entryFor(map);
+  let { changed, region } = updateTexture(map, entry, options.dirty);
   if (options.vector) {
     // Exports draw straight into the (possibly scaled) target for crisp lines.
-    paintLandscape(ctx, map, entry, contours, true);
+    paintLandscape(
+      ctx,
+      map,
+      entry,
+      contours,
+      true,
+      undefined,
+      options.terrainDetail,
+    );
     return;
   }
   const key = String(contours);
+  if (entry.decorErased !== map.decorErased) {
+    // The eraser only ever appends circles, so usually just their area needs
+    // repainting; anything else (an undo, say) repaints the whole sheet.
+    const before = entry.decorErased ?? [],
+      list = map.decorErased ?? [],
+      appended =
+        list.length > before.length &&
+        (!before.length || list[before.length - 1] === before[before.length - 1]),
+      erased = appended ? decorRegion(map, list.slice(before.length)) : undefined;
+    entry.decorErased = map.decorErased;
+    if (!erased) region = undefined;
+    else if (!changed) region = erased;
+    else if (region)
+      region = {
+        x0: Math.min(region.x0, erased.x0),
+        y0: Math.min(region.y0, erased.y0),
+        x1: Math.max(region.x1, erased.x1),
+        y1: Math.max(region.y1, erased.y1),
+      };
+    changed = true;
+  }
   if (changed || entry.baseKey !== key) {
     const base = entry.base.getContext("2d")!;
     // A partial texture update can be blitted into the cached bitmap in place,
@@ -824,6 +1215,9 @@ export function texturePreview(layer: TextureLayer, style: string, size = 48) {
     layer.pattern,
     layer.image?.length,
     layer.image?.slice(-32),
+    layer.cover?.length,
+    layer.cover?.slice(-32),
+    layer.tiling,
     layer.tint,
     layer.scale,
     layer.strength,
@@ -839,7 +1233,22 @@ export function texturePreview(layer: TextureLayer, style: string, size = 48) {
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!,
     image = ctx.createImageData(size, size),
-    rgb = material.levels[0];
+    rgb = material.levels[0],
+    cover = material.tiling === "unveil" ? material.cover : undefined;
+  if (cover) {
+    // An unveiled layer shows its map-wide image.
+    const pixel = [0, 0, 0];
+    for (let y = 0; y < size; y++)
+      for (let x = 0; x < size; x++) {
+        coverAt(cover, (x + 0.5) / size, (y + 0.5) / size, pixel);
+        const q = (y * size + x) * 4;
+        image.data.set([pixel[0], pixel[1], pixel[2], 255], q);
+      }
+    ctx.putImageData(image, 0, 0);
+    url = canvas.toDataURL();
+    previews.set(key, url);
+    return url;
+  }
   // The swatch shows one tile squeezed into the square, a little larger than on the map.
   for (let y = 0; y < size; y++)
     for (let x = 0; x < size; x++) {

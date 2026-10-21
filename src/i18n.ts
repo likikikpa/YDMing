@@ -1,7 +1,6 @@
 import { toolDescriptionsRu } from "./tools";
 export const ru: Record<string, string> = {
   "Your world, made by you": "Ваш мир — в ваших руках",
-  "Cartographer’s studio": "Мастерская картографа",
   World: "Мир",
   City: "Город",
   Dungeon: "Подземелье",
@@ -25,15 +24,11 @@ export const ru: Record<string, string> = {
   left: "слева",
   centre: "по центру",
   right: "справа",
-  "New space is open sea. Generate the map again to spread land across the whole new size.":
-    "Новое место — открытое море. Сгенерируйте карту заново, чтобы суша заняла весь новый размер.",
   "Terrain paint": "Рисование землёй",
   "Edge hardness": "Жёсткость края",
   Auto: "Авто",
   "Back to the biome's own ground": "Вернуть землю биома",
   "Texture layers": "Слои текстур",
-  "The ground every map is painted with. Where two meet, the higher one wins the edge.":
-    "Земля, которой рисуются все карты. Где две встречаются, верхняя забирает край.",
   "Hide texture": "Скрыть текстуру",
   "Show texture": "Показать текстуру",
   Pattern: "Узор",
@@ -49,11 +44,22 @@ export const ru: Record<string, string> = {
   "Add texture layer": "Добавить слой текстуры",
   Texture: "Текстура",
   New: "Новая",
+  Repetition: "Повторение",
+  "Texture replaced on painted cells:": "Текстура заменена на нарисованных клетках:",
+  "Many texture layers can slow the map down.": "Много слоёв текстур может замедлить карту.",
+  "No results": "Ничего не найдено",
+  "No stamps yet": "Штампов пока нет",
+  "Image search needs an internet connection.":
+    "Для поиска картинок нужен интернет.",
+  "Image search is not available here. It needs the Atlasforge server.":
+    "Поиск картинок здесь недоступен: нужен сервер Atlasforge.",
+  "Blended (no visible repeats)": "Смешанное (без видимых повторов)",
+  "Tiled (repeats exactly)": "Плиткой (точные повторы)",
+  "Unveil a map-wide image": "Открывать картинку на всю карту",
+  "Upload map image": "Загрузить картинку карты",
+  "Replace map image": "Заменить картинку карты",
+  "Remove map image": "Убрать картинку карты",
   "Edit texture": "Настроить текстуру",
-  "Texture replaced on painted ground:": "Текстура заменена на нарисованной земле:",
-  "Undo brings the old one back.": "Отмена вернёт прежнюю.",
-  "That is many texture layers. Each one uses graphics memory and enlarges the saved project.":
-    "Слоёв текстур уже много. Каждый занимает графическую память и увеличивает сохранённый проект.",
   "That image could not be read.": "Не удалось прочитать картинку.",
   "Deep water": "Глубокая вода",
   "Shallow water": "Мелководье",
@@ -110,9 +116,6 @@ export const ru: Record<string, string> = {
   Snap: "Привязка",
   "Hide panels": "Скрыть панели",
   Generator: "Генератор",
-  "A world waiting to be discovered.":
-    "Мир, который ждёт своих первооткрывателей.",
-  "Shape your next adventure.": "Создайте следующее приключение.",
   Seed: "Сид",
   Shape: "Форма",
   Relief: "Рельеф",
@@ -142,8 +145,6 @@ export const ru: Record<string, string> = {
   Reroll: "Перебросить",
   More: "Ещё",
   Less: "Свернуть",
-  "Regenerating replaces this map’s edits. Undo restores them.":
-    "Генерация заменяет правки карты. Отмена восстанавливает их.",
   "Brush size": "Размер кисти",
   Strength: "Сила",
   Opacity: "Непрозрачность",
@@ -181,8 +182,6 @@ export const ru: Record<string, string> = {
   Search: "Поиск",
   "Search images…": "Поиск изображений…",
   Source: "Источник",
-  "No results yet. Search for an illustration or map symbol.":
-    "Найдите иллюстрацию или символ для карты.",
   "Make it fit": "Подготовка штампа",
   "Remove background": "Удалить фон",
   Tolerance: "Допуск",
@@ -246,16 +245,10 @@ export const ru: Record<string, string> = {
   Resolution: "Разрешение",
   Format: "Формат",
   Download: "Скачать",
-  "Includes a credits file.": "Содержит файл с лицензиями.",
   "Project file": "Файл проекта",
   Close: "Закрыть",
   "Keyboard shortcuts": "Горячие клавиши",
   "Commercial project": "Коммерческий проект",
-  "Attribution travels with your maps.":
-    "Лицензии сохраняются вместе с картой.",
-  "Procedural artwork and openly licensed sprite packs. No AI images.":
-    "Процедурная графика и спрайты с открытыми лицензиями. Без ИИ-изображений.",
-  "New adventure": "Новое приключение",
   "Map name": "Название карты",
   "Create map": "Создать карту",
   "Maps in this project": "Карты проекта",
@@ -263,13 +256,10 @@ export const ru: Record<string, string> = {
   Open: "Открыть",
   "Double-click a settlement to explore it.":
     "Дважды нажмите на поселение, чтобы открыть его.",
-  "Space + drag to pan": "Пробел + перетаскивание",
-  "Scroll to zoom": "Колесо — масштаб",
   "Enter to reroll": "Enter — новая карта",
   "World map": "Карта мира",
   "City map": "Карта города",
   "Dungeon map": "Карта подземелья",
-  "Crafted, not conjured": "Ремесло картографа",
   "Delete room": "Удалить комнату",
   Description: "Описание",
   "Latitude span": "Широта",
@@ -279,10 +269,7 @@ export const ru: Record<string, string> = {
   "Snapshots include the whole project.": "Снимки сохраняют весь проект.",
   Selected: "Выделено",
   Details: "Подробности",
-  "Library is empty. Import an image to make your first stamp.":
-    "Добавьте изображение, чтобы создать первый штамп.",
   "Non-commercial asset": "Некоммерческий ассет",
-  "Built locally. Yours to keep.": "Ваши карты остаются у вас.",
   "Retry saving": "Повторить сохранение",
   "Download a project backup.": "Скачайте резервную копию проекта.",
 };

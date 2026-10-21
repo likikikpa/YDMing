@@ -93,6 +93,15 @@ export function validateProject(value: unknown): Project {
           !m.materialKeys.every((k) => typeof k === "string"))
       )
         throw new Error("The project contains invalid ground materials.");
+    if (
+      m.decorErased !== undefined &&
+      (!Array.isArray(m.decorErased) ||
+        !m.decorErased.every(
+          (c) =>
+            c && [c.x, c.y, c.r].every((v) => Number.isFinite(v)) && c.r > 0,
+        ))
+    )
+      throw new Error("The project contains invalid erased areas.");
     for (const path of m.paths)
       if (
         !Array.isArray(path.points) ||
@@ -127,7 +136,11 @@ export function validateProject(value: unknown): Project {
           Number.isFinite(t.strength) &&
           (t.image === undefined ||
             /^data:image\/(png|jpeg|webp);base64,/.test(t.image)) &&
-          (t.tint === undefined || /^#[0-9a-f]{6}$/i.test(t.tint)),
+          (t.tint === undefined || /^#[0-9a-f]{6}$/i.test(t.tint)) &&
+          (t.tiling === undefined ||
+            ["tiled", "blended", "unveil"].includes(t.tiling)) &&
+          (t.cover === undefined ||
+            /^data:image\/(png|jpeg|webp);base64,/.test(t.cover)),
       ) ||
       !BUILTIN_MATERIALS.every((id) => p.textures!.some((t) => t.id === id)))
   )

@@ -123,8 +123,11 @@ import type {
   StampKind,
   Tool,
   TextureLayer,
+  TextureTiling,
 } from "./types";
 import { translate } from "./i18n";
+import { cursorStatus, useCursorStatus } from "./status";
+import { searchImages } from "./search";
 import { loadProject, saveProject, validateProject } from "./storage";
 import { creditsText, download, exportMap, slug } from "./export";
 import { fitImage } from "./assets";
@@ -384,6 +387,28 @@ function MapSizeFields({
     </>
   );
 }
+function ZoomReadout() {
+  return <>{Math.round(useCursorStatus().zoom)}</>;
+}
+function CursorReadout({ world }: { world: boolean }) {
+  const status = useCursorStatus();
+  return (
+    <>
+      <span>
+        X <b>{status.x}</b>
+      </span>
+      <span>
+        Y <b>{status.y}</b>
+      </span>
+      {world && (
+        <span>
+          ↟ <b>{status.height} m</b>
+        </span>
+      )}
+      <span>{BIOMES[status.biome] || "Auto"}</span>
+    </>
+  );
+}
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="field">
@@ -536,13 +561,6 @@ export default function App() {
     [hidePanels, setHidePanels] = useState(false),
     // On a phone the side panel is a sheet that slides up over the map.
     [sheet, setSheet] = useState(false),
-    [status, setStatus] = useState({
-      zoom: 100,
-      x: 0,
-      y: 0,
-      height: 0,
-      biome: 0,
-    }),
     [saveState, setSaveState] = useState("Saved locally"),
     [saveError, setSaveError] = useState(""),
     [busy, setBusy] = useState(false),
@@ -603,6 +621,7 @@ export default function App() {
     fileInput = useRef<HTMLInputElement>(null),
     imageInput = useRef<HTMLInputElement>(null),
     textureInput = useRef<HTMLInputElement>(null),
+    coverInput = useRef<HTMLInputElement>(null),
     toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const t = (s: string) => translate(lang, s);
   const historyRef = useRef(history),
@@ -637,8 +656,32 @@ export default function App() {
       const cells = project ? paintedCellCount(project.maps, id) : 0;
       if (cells)
         notify(
-          `${t("Texture replaced on painted ground:")} ${cells} · ${t("Undo brings the old one back.")}`,
+          `${t("Texture replaced on painted cells:")} ${cells}`,
         );
+    } catch {
+      notify(t("That image could not be read."));
+    }
+  }
+  /**
+   * Uses an image as a layer's map-wide cover, which painting that layer
+   * unveils. It is shrunk to at most 2048 px and stored as JPEG to keep saves small.
+   */
+  async function uploadCover(id: string, file: File) {
+    try {
+      const bitmap = await createImageBitmap(file),
+        fit = Math.min(1, 2048 / Math.max(bitmap.width, bitmap.height)),
+        canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(bitmap.width * fit));
+      canvas.height = Math.max(1, Math.round(bitmap.height * fit));
+      canvas
+        .getContext("2d")!
+        .drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const cover = canvas.toDataURL("image/jpeg", 0.85);
+      changeTextures((list) => {
+        const n = list.find((n) => n.id === id)!;
+        n.cover = cover;
+        n.tiling = "unveil";
+      }, "Texture map image");
     } catch {
       notify(t("That image could not be read."));
     }
@@ -654,7 +697,7 @@ export default function App() {
     setBrush((b) => ({ ...b, material: id }));
     if (textures.length >= TEXTURE_SOFT_LIMIT)
       notify(
-        `${t("That is many texture layers. Each one uses graphics memory and enlarges the saved project.")} (${textures.length + 1}/${TEXTURE_SOFT_LIMIT})`,
+        `${t("Many texture layers can slow the map down.")} ${textures.length + 1}/${TEXTURE_SOFT_LIMIT}`,
       );
   }
   /** Deletes a texture layer; ground painted with it on every map becomes `to`. */
@@ -1011,8 +1054,8 @@ export default function App() {
       setSelected([]);
       notify(
         lang === "ru"
-          ? "Карта создана. Приключение начинается."
-          : "Map crafted. A new adventure awaits.",
+          ? "Карта создана."
+          : "Map generated.",
       );
     } catch (e) {
       notify(String(e));
@@ -1186,18 +1229,20 @@ export default function App() {
     setWebBusy(true);
     setWebError("");
     try {
-      const response = await fetch(
+      const reply = await searchImages(
         `/api/search?${new URLSearchParams({ q: webQuery, source: webSource, commercial: String(project?.commercial || false) })}`,
       );
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      setWebResults(data.results);
-      if (!data.results.length)
-        setWebError("No openly licensed results found. Try another query.");
-    } catch (e) {
-      setWebError(
-        `${String(e)} Search requires a connection and the local server.`,
-      );
+      if ("results" in reply) {
+        setWebResults(reply.results);
+        if (!reply.results.length) setWebError(t("No results"));
+      } else
+        setWebError(
+          reply.problem === "message"
+            ? reply.message!
+            : reply.problem === "offline"
+              ? t("Image search needs an internet connection.")
+              : t("Image search is not available here. It needs the Atlasforge server."),
+        );
     } finally {
       setWebBusy(false);
     }
@@ -1381,9 +1426,10 @@ export default function App() {
     }, "Update layer");
   const primaryTools: Tool[][] = [
     ["select", "hand"],
-    ["brush", "eraser", "rectangle", "text", "eyedropper"],
+    ["brush", "rectangle", "text", "eyedropper"],
     ["raise", "dig", "smooth", "ridge", "terrain"],
     ["stamp", "river"],
+    ["eraser"],
   ];
   const [activeLayer, setActiveLayer] = useState("Objects");
   const [dragLayer, setDragLayer] = useState<string | null>(null);
@@ -1395,7 +1441,6 @@ export default function App() {
       <div className="loading-screen wood">
         <Mountain size={54} />
         <h1>ATLASFORGE</h1>
-        <span>Setting the cartographer’s table…</span>
         <LoaderCircle className="spin" size={20} />
       </div>
     );
@@ -1416,7 +1461,6 @@ export default function App() {
           </span>
           <span>
             ATLAS<span className="brand-gold">FORGE</span>
-            <small>{t("Cartographer’s studio")}</small>
           </span>
           <ChevronDown size={13} />
         </button>
@@ -1701,11 +1745,6 @@ export default function App() {
                   }}
                 />
               </h1>
-              <p>
-                {map.kind === "world"
-                  ? t("A world waiting to be discovered.")
-                  : t("Shape your next adventure.")}
-              </p>
             </div>
             <div className="workspace-toggles">
               <IconButton
@@ -1761,7 +1800,7 @@ export default function App() {
             contours={contours}
             player={player}
             textureVersion={textureVersion}
-            onStatus={setStatus}
+            onStatus={cursorStatus.set}
           />
           <div className="map-corner-note">
             <span className="seed-dot" />
@@ -1786,7 +1825,7 @@ export default function App() {
               title={t("Fit map")}
               onClick={() => editor.current?.fit()}
             >
-              {Math.round(status.zoom)}
+              <ZoomReadout />
               <span>%</span>
             </button>
             <IconButton
@@ -1809,24 +1848,11 @@ export default function App() {
           >
             {sheet ? <X size={18} /> : <SlidersHorizontal size={18} />}
           </button>
-          <div className="map-signature">
-            <Compass size={15} />
-            <span>
-              ATLASFORGE <small>· {t("Crafted, not conjured")}</small>
-            </span>
-          </div>
           {busy && (
             <div className="busy-overlay">
               <div className="busy-card wood">
                 <LoaderCircle className="spin" size={27} />
-                <h3>
-                  {lang === "ru" ? "Создаём карту…" : "Charting new territory…"}
-                </h3>
-                <span>
-                  {lang === "ru"
-                    ? "Горы, реки и новые истории."
-                    : "Mountains, rivers, and stories to be told."}
-                </span>
+                <h3>{lang === "ru" ? "Создаём карту…" : "Generating…"}</h3>
               </div>
             </div>
           )}
@@ -1866,7 +1892,6 @@ export default function App() {
             </button>
             {toolCardOpen && (
               <div className="tool-card-body">
-                <p className="tool-hint">{t(toolDescriptions[tool])}</p>
                 {selection.length > 0 && (
                   <section className="selection-panel">
                     <div className="section-kicker">
@@ -2209,8 +2234,6 @@ export default function App() {
               <>
                 <div className="panel-heading">
                   <span className="section-kicker">{t("Generator")}</span>
-                  <h2>{t("New adventure")}</h2>
-                  <p>{t("Shape your next adventure.")}</p>
                 </div>
                 <div className="map-type-picker">
                   {(
@@ -2580,11 +2603,6 @@ export default function App() {
                   {t("Generate map")}
                   <kbd>↵</kbd>
                 </button>
-                <p className="panel-footnote">
-                  {t(
-                    "Regenerating replaces this map’s edits. Undo restores them.",
-                  )}
-                </p>
                 {map.kind !== "dungeon" && (
                   <button className="button subtle full" onClick={openResize}>
                     <Maximize2 size={14} />
@@ -2601,10 +2619,6 @@ export default function App() {
                     <span className="count">{map.rooms.length}</span>
                   </button>
                 )}
-                <div className="small-engraving">
-                  <Mountain size={18} />
-                  <span>{t("Built locally. Yours to keep.")}</span>
-                </div>
               </>
             )}
             <input
@@ -2618,15 +2632,21 @@ export default function App() {
                 if (file) void uploadTexture(activeTexture, file);
               }}
             />
+            <input
+              ref={coverInput}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void uploadCover(activeTexture, file);
+              }}
+            />
             {panel === "layers" && (
               <>
                 <div className="panel-heading">
                   <span className="section-kicker">{t("Layers")}</span>
-                  <h2>
-                    {lang === "ru"
-                      ? "Всё на своём месте"
-                      : "A place for everything"}
-                  </h2>
                 </div>
                 <div className="layers-list">
                   {[...map.layers].reverse().map((l) => (
@@ -2806,11 +2826,6 @@ export default function App() {
                 </label>
                 <div className="panel-heading texture-heading">
                   <span className="section-kicker">{t("Texture layers")}</span>
-                  <p className="panel-footnote">
-                    {t(
-                      "The ground every map is painted with. Where two meet, the higher one wins the edge.",
-                    )}
-                  </p>
                 </div>
                 <div className="layers-list">
                   {[...textures].reverse().map((l) => (
@@ -2981,6 +2996,57 @@ export default function App() {
                           edit((n) => (n.strength = v), "Texture strength")
                         }
                       />
+                      <Field label={t("Repetition")}>
+                        <select
+                          value={l.tiling ?? "blended"}
+                          onChange={(e) => {
+                            const tiling = e.target.value as TextureTiling;
+                            if (tiling === "unveil" && !l.cover)
+                              coverInput.current?.click();
+                            else
+                              edit(
+                                (n) => (n.tiling = tiling),
+                                "Texture repetition",
+                              );
+                          }}
+                        >
+                          <option value="blended">
+                            {t("Blended (no visible repeats)")}
+                          </option>
+                          <option value="tiled">
+                            {t("Tiled (repeats exactly)")}
+                          </option>
+                          <option value="unveil">
+                            {t("Unveil a map-wide image")}
+                          </option>
+                        </select>
+                      </Field>
+                      {(l.tiling === "unveil" || l.cover) && (
+                        <div className="texture-actions">
+                          <button
+                            className="button subtle"
+                            onClick={() => coverInput.current?.click()}
+                          >
+                            <ImagePlus size={13} />
+                            {t(l.cover ? "Replace map image" : "Upload map image")}
+                          </button>
+                          {l.cover && (
+                            <button
+                              className="button subtle"
+                              onClick={() =>
+                                edit((n) => {
+                                  delete n.cover;
+                                  if (n.tiling === "unveil") n.tiling = "blended";
+                                }, "Remove texture map image")
+                              }
+                            >
+                              <X size={13} />
+                              {t("Remove map image")}
+                            </button>
+                          )}
+                        </div>
+                      )}
+
                       {custom && (
                         <div className="texture-delete">
                           <Field label={t("Replace painted ground with")}>
@@ -3020,11 +3086,6 @@ export default function App() {
               <>
                 <div className="panel-heading">
                   <span className="section-kicker">{t("Library")}</span>
-                  <h2>
-                    {lang === "ru"
-                      ? "Добавьте немного жизни"
-                      : "A little life, a little lore"}
-                  </h2>
                 </div>
                 <div className="segmented">
                   {["Built-in", "Search web", "My stamps"].map((v) => (
@@ -3097,8 +3158,7 @@ export default function App() {
                         ))}
                     </div>
                     <p className="panel-footnote">
-                      {t("Pick a sprite, then click or drag on the map to place it.")} Kenney
-                      · CC0 1.0
+                      Kenney · CC0 1.0
                     </p>
                   </>
                 )}
@@ -3140,11 +3200,6 @@ export default function App() {
                         {t("Search")}
                       </button>
                     </form>
-                    <p className="panel-footnote">
-                      {lang === "ru"
-                        ? "Только открытые лицензии с разрешением на изменение."
-                        : "Open licences permitting reuse and modification."}
-                    </p>
                     {webError && <p className="error-message">{webError}</p>}
                     <div className="web-results">
                       {webResults.map((asset) => (
@@ -3165,9 +3220,7 @@ export default function App() {
                       <div className="empty-state">
                         <Search size={28} />
                         <p>
-                          {t(
-                            "No results yet. Search for an illustration or map symbol.",
-                          )}
+                          {t("No results")}
                         </p>
                       </div>
                     )}
@@ -3194,9 +3247,7 @@ export default function App() {
                       <div className="empty-state">
                         <ImagePlus size={28} />
                         <p>
-                          {t(
-                            "Library is empty. Import an image to make your first stamp.",
-                          )}
+                          {t("No stamps yet")}
                         </p>
                       </div>
                     )}
@@ -3216,11 +3267,6 @@ export default function App() {
               <>
                 <div className="panel-heading">
                   <span className="section-kicker">{t("History")}</span>
-                  <h2>
-                    {lang === "ru"
-                      ? "Каждый шаг вашей истории"
-                      : "Every step of the story"}
-                  </h2>
                 </div>
                 <div className="snapshot-form">
                   <input
@@ -3280,11 +3326,6 @@ export default function App() {
               <>
                 <div className="panel-heading">
                   <span className="section-kicker">{t("More tools")}</span>
-                  <h2>
-                    {lang === "ru"
-                      ? "Инструменты ремесленника"
-                      : "Tools of the trade"}
-                  </h2>
                 </div>
                 <div className="all-tools">
                   {Object.entries(toolInfo).map(
@@ -3297,7 +3338,6 @@ export default function App() {
                         <Icon size={17} />
                         {t(name)}
                         <kbd>{shortcut}</kbd>
-                        <small>{t(toolDescriptions[key as Tool])}</small>
                       </button>
                     ),
                   )}
@@ -3414,38 +3454,14 @@ export default function App() {
               </>
             )}
           </div>
-          <div className="sidebar-footer">
-            <span className="online-dot" />
-            {navigator.onLine
-              ? t("Built locally. Yours to keep.")
-              : t("Offline mode")}
-            <button title={t("Credits")} onClick={() => setModal("credits")}>
-              <BookOpen size={14} />
-            </button>
-          </div>
         </aside>
       </main>
       <footer className="statusbar wood">
         <div>
           <span className="status-tool">{t(toolInfo[tool][0])}</span>
-          <span className="status-separator" />
-          <span>{t("Space + drag to pan")}</span>
-          <span className="muted-dot">·</span>
-          <span>{t("Scroll to zoom")}</span>
         </div>
         <div className="cursor-status">
-          <span>
-            X <b>{status.x}</b>
-          </span>
-          <span>
-            Y <b>{status.y}</b>
-          </span>
-          {map.kind === "world" && (
-            <span>
-              ↟ <b>{status.height} m</b>
-            </span>
-          )}
-          <span>{BIOMES[status.biome] || "Auto"}</span>
+          <CursorReadout world={map.kind === "world"} />
           <span className="status-separator" />
           {map.kind === "dungeon" ? (
             <span>
@@ -3663,11 +3679,6 @@ export default function App() {
                     )}
                   </div>
                 </Field>
-                <p className="panel-footnote">
-                  {t(
-                    "New space is open sea. Generate the map again to spread land across the whole new size.",
-                  )}
-                </p>
                 <button className="button brass full" onClick={applyResize}>
                   <Maximize2 size={16} /> {t("Resize map")}
                 </button>
@@ -3720,7 +3731,7 @@ export default function App() {
                       {t("Include GM secrets")}
                     </label>
                     <p className="panel-footnote">
-                      {t("Includes a credits file.")} ZIP ·{" "}
+                      ZIP ·{" "}
                       {exportSecrets ? t("GM view") : t("Player view")}
                     </p>
                   </>
@@ -3750,7 +3761,7 @@ export default function App() {
                       notify(
                         lang === "ru"
                           ? "Карта экспортирована."
-                          : "Your map is ready to share.",
+                          : "Map exported.",
                       );
                     } catch (e) {
                       notify(String(e));
@@ -3766,7 +3777,6 @@ export default function App() {
             )}
             {modal === "credits" && (
               <>
-                <p>{t("Attribution travels with your maps.")}</p>
                 <label className="checkbox">
                   <input
                     type="checkbox"
@@ -3781,14 +3791,6 @@ export default function App() {
                   {t("Commercial project")}
                 </label>
                 <div className="credits-list">
-                  <article>
-                    <h3>Atlasforge</h3>
-                    <p>
-                      {t(
-                        "Procedural artwork and openly licensed sprite packs. No AI images.",
-                      )}
-                    </p>
-                  </article>
                   <article>
                     <h3>System Reference Document 5.2</h3>
                     <span className="licence-tag">CC BY 4.0</span>

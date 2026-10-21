@@ -58,33 +58,25 @@ describe("sculpting", () => {
   });
   describe("terrain paint builds ground", () => {
     const sea = defaultSettings.seaLevel,
-      paint = (
+      // One touch: a single dab with no time held.
+      touch = (
         map: ReturnType<typeof flatWorld>,
         material: string,
-        frames = 40,
-      ) => {
-        for (let n = 0; n < frames; n++)
-          sculptDab(
-            map,
-            "terrain",
-            { x: 600, y: 425 },
-            sculptAmount(55, 1 / 60),
-            0,
-            {
-              ...brush,
-              size: 200,
-              material,
-              hardness: 85,
-            },
-          );
-      },
-      centre = (map: ReturnType<typeof flatWorld>) =>
-        Math.round(425 / 5) * map.cols + Math.round(600 / 5);
-    it("paints land out of open sea, one band per material", () => {
+        size = 60,
+      ) =>
+        sculptDab(map, "terrain", { x: 600, y: 425 }, 0, 0, {
+          ...brush,
+          size,
+          material,
+        }),
+      row = Math.round(425 / 5),
+      col = Math.round(600 / 5),
+      centre = (map: ReturnType<typeof flatWorld>) => row * map.cols + col;
+    it("one touch turns open sea into the chosen ground at once", () => {
       const heights: Record<string, number> = {};
       for (const m of ["sand", "dirt", "grass", "rock", "snow"]) {
         const map = flatWorld(sea - 0.1);
-        paint(map, m);
+        touch(map, m);
         heights[m] = map.heights[centre(map)];
         expect(heights[m]).toBeGreaterThan(sea);
       }
@@ -92,31 +84,33 @@ describe("sculpting", () => {
       expect(heights.dirt).toBeLessThan(heights.grass);
       expect(heights.grass).toBeLessThan(heights.rock);
       expect(heights.rock).toBeLessThan(heights.snow);
-    });
-    it("shows the chosen ground in the middle and lower layers on the slope", () => {
       const map = flatWorld(sea - 0.1);
-      paint(map, "snow", 80);
-      const row = Math.round(425 / 5),
-        col = Math.round(600 / 5),
-        cell = (dx: number) => map.heights[row * map.cols + col + dx],
-        seen = new Set<number>();
+      touch(map, "snow");
       expect(biomeAt(map, col, row)).toBe(1);
-      for (let dx = 0; dx <= 20; dx++) {
-        seen.add(biomeAt(map, col + dx, row));
-        if (dx) expect(cell(dx)).toBeLessThanOrEqual(cell(dx - 1));
+      expect(biomeAt(map, col + 5, row)).toBe(1);
+    });
+    it("shows only the chosen ground, with no rings of other grounds around it", () => {
+      const map = flatWorld(sea - 0.1),
+        before = map.heights.slice();
+      touch(map, "snow", 30);
+      const r = 30 / 2 / 5;
+      for (let dx = 0; dx <= 10; dx++) {
+        const i = centre(map) + dx;
+        if (dx < r - 0.5) expect(biomeAt(map, col + dx, row)).toBe(1);
+        // Outside the brush nothing changes: the sea stays sea.
+        else if (dx > r + 0.5) expect(map.heights[i]).toBe(before[i]);
       }
-      // Walking out from the peak passes snow, rock, lower ground and sand,
-      // then reaches the sea.
-      for (const biome of [1, 2, 11, 12]) expect(seen.has(biome)).toBe(true);
-      expect([...seen].some((b) => ![1, 2, 11, 12].includes(b))).toBe(true);
-      // Holding the brush longer does not make the slope steeper.
-      const slope = cell(14);
-      paint(map, "snow", 200);
-      expect(cell(14)).toBeCloseTo(slope, 2);
+    });
+    it("touching again changes nothing", () => {
+      const map = flatWorld(sea - 0.1);
+      touch(map, "snow");
+      const once = map.heights.slice();
+      touch(map, "snow");
+      expect(map.heights).toEqual(once);
     });
     it("digging a painted peak cuts back down through the layers", () => {
       const map = flatWorld(sea - 0.1);
-      paint(map, "snow", 80);
+      touch(map, "snow");
       const seen = new Set<number>(),
         i = centre(map);
       for (let n = 0; n < 600 && map.heights[i] > sea; n++) {
@@ -128,17 +122,17 @@ describe("sculpting", () => {
           0,
           brush,
         );
-        seen.add(biomeAt(map, Math.round(600 / 5), Math.round(425 / 5)));
+        seen.add(biomeAt(map, col, row));
       }
       expect(map.heights[i]).toBeLessThanOrEqual(sea);
       for (const biome of [1, 2, 11]) expect(seen.has(biome)).toBe(true);
     });
     it("water digs a basin and Auto leaves heights alone", () => {
       const map = flatWorld(sea + 0.2);
-      paint(map, "deep-water");
+      touch(map, "deep-water");
       expect(map.heights[centre(map)]).toBeLessThan(sea);
       const land = flatWorld(sea + 0.2);
-      paint(land, "");
+      touch(land, "");
       expect(land.heights[centre(land)]).toBe(sea + 0.2);
     });
   });

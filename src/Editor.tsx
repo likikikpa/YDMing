@@ -5,7 +5,8 @@ import {
   useImperativeHandle,
   forwardRef,
 } from "react";
-import { Application, Sprite, Texture } from "pixi.js";
+import { Application, Container, Sprite, Texture } from "pixi.js";
+import { eraseAt } from "./erase";
 import { drawMap, loadImage } from "./render";
 import { hitObject, navigationTarget } from "./hit-test";
 import { biomeAt, keyRoom } from "./generator";
@@ -24,6 +25,7 @@ import {
 import { isScatterSprite, preloadSymbols } from "./symbols";
 import { uid } from "./types";
 import { editableTerrain, terrainView } from "./terrain";
+import { startTerrainDetail } from "./terrain-render";
 import type { CellRect } from "./terrain-render";
 import type {
   MapData,
@@ -85,7 +87,39 @@ interface Props {
   }) => void;
 }
 type View = { x: number; y: number; scale: number };
-type Frame = { map: MapData; dirty?: CellRect; live?: string };
+/** Map pixels that changed; a frame without one redraws the whole map. */
+type Area = { x: number; y: number; w: number; h: number };
+type Frame = {
+  map: MapData;
+  dirty?: CellRect;
+  live?: string;
+  area?: Area;
+};
+/** The box around `points`, grown by `pad` on every side. */
+function areaAround(points: Point[], pad: number): Area {
+  const xs = points.map((q) => q.x),
+    ys = points.map((q) => q.y),
+    x = Math.floor(Math.min(...xs) - pad),
+    y = Math.floor(Math.min(...ys) - pad);
+  return {
+    x,
+    y,
+    w: Math.ceil(Math.max(...xs) + pad) - x,
+    h: Math.ceil(Math.max(...ys) + pad) - y,
+  };
+}
+const unionAreas = (a?: Area, b?: Area): Area | undefined =>
+  !a || !b
+    ? undefined
+    : areaAround(
+        [
+          { x: a.x, y: a.y },
+          { x: a.x + a.w, y: a.y + a.h },
+          { x: b.x, y: b.y },
+          { x: b.x + b.w, y: b.y + b.h },
+        ],
+        0,
+      );
 
 const PAINT_TOOLS: Tool[] = [
   "brush",
@@ -129,12 +163,50 @@ function beginDraft(m: MapData, tool: Tool): MapData {
   return draft;
 }
 
+/** Edge of one GPU tile of the map, in map pixels. */
+const GPU_TILE = 256;
+interface GpuTile {
+  x: number;
+  y: number;
+  canvas: HTMLCanvasElement;
+  sprite: Sprite;
+}
+/** Map pixels a terrain edit of `dirty` cells can change, with room for coasts and symbols. */
+function dirtyArea(m: MapData, dirty: CellRect) {
+  const cx = m.width / m.cols,
+    cy = m.height / m.rows,
+    x = Math.max(0, Math.floor((dirty.x0 - 3) * cx) - 72),
+    y = Math.max(0, Math.floor((dirty.y0 - 3) * cy) - 72);
+  return {
+    x,
+    y,
+    w: Math.min(m.width, Math.ceil((dirty.x1 + 4) * cx) + 72) - x,
+    h: Math.min(m.height, Math.ceil((dirty.y1 + 4) * cy) + 72) - y,
+  };
+}
+function makeTiles(width: number, height: number): GpuTile[] {
+  const out: GpuTile[] = [];
+  for (let y = 0; y < height; y += GPU_TILE)
+    for (let x = 0; x < width; x += GPU_TILE) {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.min(GPU_TILE, width - x);
+      canvas.height = Math.min(GPU_TILE, height - y);
+      const sprite = new Sprite(Texture.from(canvas, true));
+      sprite.position.set(x, y);
+      out.push({ x, y, canvas, sprite });
+    }
+  return out;
+}
+
 export const Editor = forwardRef<EditorHandle, Props>(
   function Editor(props, ref) {
     const host = useRef<HTMLDivElement>(null),
       overlay = useRef<HTMLCanvasElement>(null),
       application = useRef<Application | null>(null),
-      sprite = useRef<Sprite | null>(null),
+      // The map is shown as a grid of GPU tiles, so a brush stroke uploads
+      // only the tiles it touched instead of the whole map every frame.
+      sprite = useRef<Container | null>(null),
+      tiles = useRef<GpuTile[]>([]),
       mapCanvas = useRef(document.createElement("canvas")),
       latest = useRef(props),
       view = useRef<View>({ x: 0, y: 0, scale: 1 }),
@@ -152,6 +224,10 @@ export const Editor = forwardRef<EditorHandle, Props>(
         flat?: number;
         trail?: Point[];
         sculpted?: boolean;
+        /** The eraser removed a stamp, label or path during this drag. */
+        erased?: boolean;
+        /** Cells a terrain tool has changed during this drag. */
+        sculptDirty?: CellRect;
       } | null>(null),
       [ready, setReady] = useState(false),
       [renderError, setRenderError] = useState("");
@@ -176,6 +252,8 @@ export const Editor = forwardRef<EditorHandle, Props>(
     } | null>(null);
     const detail = useRef<HTMLCanvasElement>(null);
     const detailTimer = useRef(0);
+    // Bumped on every view change so a half-painted detail job stops.
+    const detailJob = useRef(0);
     const queued = useRef<Frame | null>(null);
     const frame = useRef(0);
     const statusFrame = useRef(0);
@@ -185,6 +263,11 @@ export const Editor = forwardRef<EditorHandle, Props>(
       time: number;
       pressure: number;
       frame: number;
+      /**
+       * A touch waits this long (or until the finger moves) before the first
+       * dab, so the first finger of a pinch never changes the terrain.
+       */
+      holdUntil?: number;
     } | null>(null);
     latest.current = props;
     const size = useRef({ w: 1000, h: 700 });
@@ -237,10 +320,15 @@ export const Editor = forwardRef<EditorHandle, Props>(
       // The 1x bitmap is only a stand-in while the view moves; once it settles
       // the visible part is redrawn at screen resolution.
       if (detail.current) detail.current.style.display = "none";
+      detailJob.current++;
       window.clearTimeout(detailTimer.current);
       detailTimer.current = window.setTimeout(renderDetail, 220);
     };
-    /** Redraws the visible part of the map as vectors at the current zoom. */
+    /**
+     * Redraws the visible part of the map sharply at the current zoom. The
+     * terrain pixels are painted a few rows per task so pinching and panning
+     * stay smooth; any view change abandons the job and starts over.
+     */
     function renderDetail() {
       const canvas = detail.current;
       if (!canvas || drag.current || !sprite.current) return;
@@ -249,24 +337,48 @@ export const Editor = forwardRef<EditorHandle, Props>(
       if (v.scale * dpr < 1.1) return;
       const m = latest.current.map,
         w = Math.round(size.current.w * dpr),
-        h = Math.round(size.current.h * dpr);
-      if (canvas.width !== w || canvas.height !== h) {
-        canvas.width = w;
-        canvas.height = h;
-      }
-      const ctx = canvas.getContext("2d")!;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, w, h);
-      ctx.setTransform(v.scale * dpr, 0, 0, v.scale * dpr, v.x * dpr, v.y * dpr);
-      ctx.imageSmoothingQuality = "high";
-      drawMap(ctx, m, {
-        contours: latest.current.contours,
-        player: latest.current.player,
-        vector: true,
-      });
-      canvas.style.display = "block";
+        h = Math.round(size.current.h * dpr),
+        job = ++detailJob.current,
+        landscape =
+          m.kind !== "dungeon" ? m : m.terrain ? terrainView(m) : undefined,
+        // Terrain is painted at no more than 1.5 pixels per screen point;
+        // lines, labels and symbols are still drawn at full resolution.
+        terrain =
+          landscape &&
+          startTerrainDetail(
+            landscape,
+            { a: v.scale * dpr, e: v.x * dpr, f: v.y * dpr },
+            w,
+            h,
+            v.scale * Math.min(dpr, 1.5),
+          );
+      const finish = () => {
+        if (job !== detailJob.current || drag.current) return;
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+        }
+        const ctx = canvas.getContext("2d")!;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+        ctx.setTransform(v.scale * dpr, 0, 0, v.scale * dpr, v.x * dpr, v.y * dpr);
+        ctx.imageSmoothingQuality = "high";
+        drawMap(ctx, latest.current.map, {
+          contours: latest.current.contours,
+          player: latest.current.player,
+          vector: true,
+          terrainDetail: terrain,
+        });
+        canvas.style.display = "block";
+      };
+      const work = () => {
+        if (job !== detailJob.current || drag.current) return;
+        if (!terrain || terrain.step(8)) finish();
+        else window.setTimeout(work, 0);
+      };
+      work();
     }
-    /** Draws the map now and uploads it to the GPU. */
+    /** Draws the map now and uploads the changed part to the GPU. */
     const render = (f: Frame) => {
       const canvas = mapCanvas.current;
       let resized = false;
@@ -275,27 +387,42 @@ export const Editor = forwardRef<EditorHandle, Props>(
         canvas.height = f.map.height;
         resized = true;
       }
+      // A terrain edit changes only the cells under the brush, plus the
+      // coastlines and symbols that reach a little past them.
+      const area =
+        resized || !tiles.current.length
+          ? undefined
+          : f.dirty
+            ? dirtyArea(f.map, f.dirty)
+            : f.area;
       drawMap(canvas.getContext("2d")!, f.map, {
         contours: latest.current.contours,
         player: latest.current.player,
         dirty: f.dirty,
         liveStroke: f.live,
+        clip: area,
       });
-      if (sprite.current) {
-        if (sprite.current.texture === Texture.EMPTY)
-          sprite.current.texture = Texture.from(canvas);
-        else if (resized) {
-          // A sprite keeps the size of its first texture, so a resized map
-          // gets a fresh sprite and texture in the same place.
-          const old = sprite.current,
-            next = new Sprite(Texture.from(canvas, true)),
-            stage = application.current?.stage;
-          stage?.addChildAt(next, stage.getChildIndex(old));
-          stage?.removeChild(old);
-          old.destroy({ texture: true, textureSource: true });
-          sprite.current = next;
+      const stage = sprite.current;
+      if (stage) {
+        if (resized || !tiles.current.length) {
+          for (const t of tiles.current)
+            t.sprite.destroy({ texture: true, textureSource: true });
+          tiles.current = makeTiles(canvas.width, canvas.height);
+          for (const t of tiles.current) stage.addChild(t.sprite);
         }
-        else sprite.current.texture.source.update();
+        for (const t of tiles.current)
+          if (
+            !area ||
+            (t.x < area.x + area.w &&
+              t.x + t.canvas.width > area.x &&
+              t.y < area.y + area.h &&
+              t.y + t.canvas.height > area.y)
+          ) {
+            const c = t.canvas.getContext("2d")!;
+            c.clearRect(0, 0, t.canvas.width, t.canvas.height);
+            c.drawImage(canvas, -t.x, -t.y);
+            t.sprite.texture.source.update();
+          }
         position();
       }
     };
@@ -304,12 +431,16 @@ export const Editor = forwardRef<EditorHandle, Props>(
       m: MapData = latest.current.map,
       dirty?: CellRect,
       live?: string,
+      area?: Area,
     ) => {
-      const pending = queued.current;
+      const pending = queued.current,
+        same = m === pending?.map;
       queued.current = {
         map: m,
-        dirty: m === pending?.map ? unionRects(pending?.dirty, dirty) : dirty,
-        live: live ?? (m === pending?.map ? pending?.live : undefined),
+        dirty: same ? unionRects(pending?.dirty, dirty) : dirty,
+        live: live ?? (same ? pending?.live : undefined),
+        // Only frames that all name their area can skip the full redraw.
+        area: pending ? (same ? unionAreas(pending.area, area) : undefined) : area,
       };
       if (frame.current) return;
       frame.current = requestAnimationFrame(() => {
@@ -543,7 +674,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
           }
           application.current = app;
           host.current!.prepend(app.canvas);
-          const sp = new Sprite(Texture.EMPTY);
+          const sp = new Container();
           sprite.current = sp;
           app.stage.addChild(sp);
           const observer = new ResizeObserver((entries) => {
@@ -616,6 +747,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
         }
         application.current = null;
         sprite.current = null;
+        tiles.current = [];
       };
     }, []);
     useEffect(() => {
@@ -676,6 +808,18 @@ export const Editor = forwardRef<EditorHandle, Props>(
       const s = sculpt.current,
         m = draft.current;
       if (!s || !m) return;
+      if (s.holdUntil !== undefined) {
+        const moved =
+          Math.hypot(s.pos.x - s.last.x, s.pos.y - s.last.y) *
+          view.current.scale;
+        if (now < s.holdUntil && moved < 6) {
+          s.frame = requestAnimationFrame(sculptFrame);
+          return;
+        }
+        // Not a pinch: the first dab lands as a tap would, from where it began.
+        s.holdUntil = undefined;
+        s.time = now - 120;
+      }
       // A long frame must not make the terrain jump, so time per step is capped.
       const b = latest.current.brush,
         tool = latest.current.tool,
@@ -706,7 +850,10 @@ export const Editor = forwardRef<EditorHandle, Props>(
       s.last = s.pos;
       s.time = now;
       if (dirty) {
-        if (drag.current) drag.current.sculpted = true;
+        if (drag.current) {
+          drag.current.sculpted = true;
+          drag.current.sculptDirty = unionRects(drag.current.sculptDirty, dirty);
+        }
         cancelAnimationFrame(frame.current);
         frame.current = 0;
         queued.current = null;
@@ -714,8 +861,17 @@ export const Editor = forwardRef<EditorHandle, Props>(
       }
       s.frame = requestAnimationFrame(sculptFrame);
     }
-    function endSculpt() {
-      if (sculpt.current) cancelAnimationFrame(sculpt.current.frame);
+    /** Stops the brush loop; a tap still waiting for its first dab gets it now. */
+    function endSculpt(cancelled = false) {
+      const s = sculpt.current;
+      if (s) {
+        cancelAnimationFrame(s.frame);
+        if (!cancelled && s.holdUntil !== undefined) {
+          s.holdUntil = -Infinity;
+          sculptFrame(performance.now());
+          cancelAnimationFrame(s.frame);
+        }
+      }
       sculpt.current = null;
     }
     function placeStamp(p: Point) {
@@ -796,10 +952,16 @@ export const Editor = forwardRef<EditorHandle, Props>(
         if (touches.current.size >= 2) {
           // A second finger turns the touch into a gesture: drop what the
           // first finger had started instead of committing a stray mark.
-          endSculpt();
+          // Terrain it already changed is repainted for that area only; an
+          // untouched map needs no redraw at all.
+          const started = drag.current,
+            sculpting = SCULPT_TOOLS.includes(latest.current.tool);
+          endSculpt(true);
           drag.current = null;
           draft.current = null;
-          refresh();
+          if (!sculpting) refresh();
+          else if (started?.sculptDirty)
+            refresh(latest.current.map, started.sculptDirty);
           pinchStart();
           drawOverlay();
           return;
@@ -922,13 +1084,28 @@ export const Editor = forwardRef<EditorHandle, Props>(
           frame: 0,
         };
         // Paints the first dab at once (a tap already leaves a visible mark);
-        // the loop then keeps going every frame.
+        // the loop then keeps going every frame. A finger waits a moment in
+        // case a second one turns the touch into a pinch.
         sculpt.current.time = performance.now() - 120;
-        sculptFrame(performance.now());
+        if (e.pointerType === "touch") {
+          sculpt.current.holdUntil = performance.now() + 90;
+          sculpt.current.frame = requestAnimationFrame(sculptFrame);
+        } else sculptFrame(performance.now());
         drawOverlay(screen);
         return;
       } else if (PAINT_TOOLS.includes(p.tool)) {
-        if (!editable(m, p.brush.layer)) return;
+        if (p.tool === "eraser") {
+          // The eraser also lifts stamps, labels and whole paths, even when
+          // the active paint layer itself cannot be erased.
+          drag.current.erased = eraseAt(m, world, p.brush.size / 2, (l) =>
+            editable(m, l),
+          );
+          if (!editable(m, p.brush.layer)) {
+            refresh(m);
+            drawOverlay(screen);
+            return;
+          }
+        } else if (!editable(m, p.brush.layer)) return;
         const stroke: Stroke = {
           id: uid(),
           points:
@@ -1038,6 +1215,27 @@ export const Editor = forwardRef<EditorHandle, Props>(
         drawOverlay(screen);
         return;
       }
+      let removed = false,
+        paintArea: Area | undefined;
+      if (p.tool === "eraser") {
+        const things = m.objects.length + m.paths.length;
+        // Steps along the drag so a fast swipe cannot skip over a stamp.
+        const step = Math.max(2, p.brush.size / 4),
+          n = Math.ceil(
+            Math.hypot(world.x - d.last.x, world.y - d.last.y) / step,
+          );
+        for (let k = 1; k <= n; k++) {
+          const at = {
+            x: d.last.x + ((world.x - d.last.x) * k) / n,
+            y: d.last.y + ((world.y - d.last.y) * k) / n,
+          };
+          if (eraseAt(m, at, p.brush.size / 2, (l) => editable(m, l)))
+            d.erased = true;
+        }
+        // Stamps and whole paths can reach far beyond the brush.
+        removed = m.objects.length + m.paths.length !== things;
+        d.last = world;
+      }
       if (p.tool === "select" && d.objects.length) {
         const dx = world.x - d.start.x,
           dy = world.y - d.start.y,
@@ -1121,15 +1319,28 @@ export const Editor = forwardRef<EditorHandle, Props>(
           }
         });
       } else if (d.stroke) {
-        if (["line", "rectangle", "ellipse"].includes(p.tool))
+        const before = d.stroke.points,
+          from = before.length;
+        if (["line", "rectangle", "ellipse"].includes(p.tool)) {
           d.stroke.points = [d.start, world];
-        else {
+          // A shape is redrawn whole, so the area covers its old and new extent.
+          paintArea = areaAround(
+            [d.start, before[before.length - 1], world],
+            d.stroke.size + 4,
+          );
+        } else {
           // Every pointer sample since the last frame, so fast strokes stay smooth.
           const samples = e.nativeEvent.getCoalescedEvents?.() ?? [];
           if (samples.length > 1)
             for (const s of samples)
               d.stroke.points.push(worldPoint(getPoint(s)));
           else d.stroke.points.push(world);
+          // Only the new stretch of the stroke, plus the eraser's reach into
+          // generated mountains and forests, changes on screen.
+          paintArea = areaAround(
+            d.stroke.points.slice(from - 1),
+            d.stroke.size + (p.tool === "eraser" ? 74 : 4),
+          );
         }
       } else if (
         p.tool === "stamp" &&
@@ -1151,7 +1362,12 @@ export const Editor = forwardRef<EditorHandle, Props>(
         drawOverlay(screen);
         return;
       }
-      refresh(m, undefined, d.stroke && !p.brush.mask ? d.stroke.id : undefined);
+      refresh(
+        m,
+        undefined,
+        d.stroke && !p.brush.mask ? d.stroke.id : undefined,
+        p.brush.mask || removed || p.tool === "fill" ? undefined : paintArea,
+      );
       drawOverlay(screen);
     }
     function pointerUp(e: React.PointerEvent) {
@@ -1256,7 +1472,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
         } else if (p.tool === "select") {
           changed = Math.hypot(world.x - d.start.x, world.y - d.start.y) > 0.1;
         } else if (PAINT_TOOLS.includes(p.tool)) {
-          changed = !!d.stroke;
+          changed = !!d.stroke || !!d.erased;
         } else if (SCULPT_TOOLS.includes(p.tool)) {
           changed = d.sculpted === true;
         } else if (["stamp", "text", "river"].includes(p.tool)) {

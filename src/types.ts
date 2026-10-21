@@ -179,7 +179,15 @@ export interface TextureLayer {
   /** How strongly the pattern shows, 0–100. */
   strength: number;
   visible: boolean;
+  /**
+   * How the tile covers the ground: repeated as is, blended from randomly
+   * shifted copies so no repeat shows (the default), or unveiled from `cover`.
+   */
+  tiling?: TextureTiling;
+  /** A map-wide image (JPEG data URL) that painting this layer unveils. */
+  cover?: string;
 }
+export type TextureTiling = "tiled" | "blended" | "unveil";
 export interface MapData {
   id: string;
   name: string;
@@ -204,6 +212,11 @@ export interface MapData {
   parentPosition?: Point;
   /** How far resizing has moved the original sheet, so decorations stay on the land. */
   origin?: Point;
+  /**
+   * Circles where the eraser cleared the generated mountains and forests, in
+   * the same coordinates as those decorations (map position minus `origin`).
+   */
+  decorErased?: { x: number; y: number; r: number }[];
   /** City layout (centre, size, gates) kept so buildings can be rerolled on the same streets. */
   plan?: {
     cx: number;
