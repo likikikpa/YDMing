@@ -66,11 +66,24 @@ describe("eraser", () => {
         m,
         { x: 100, y: 100 },
         10,
-        (l) => l !== "Objects" && l !== "Water",
+        (l) => l === "Paint",
       ),
     ).toBe(false);
     eraseAt(m, { x: 100, y: 100 }, 10, all);
     expect(m.objects.map((o) => o.id)).toEqual(["city"]);
     expect(m.paths).toEqual([]);
+  });
+  it("clears generated mountains and forests on world maps, relative to the sheet", () => {
+    const m = createEmptyMap("world");
+    m.origin = { x: 50, y: 0 };
+    expect(eraseAt(m, { x: 150, y: 100 }, 20, all)).toBe(true);
+    expect(m.decorErased).toEqual([{ x: 100, y: 100, r: 20 }]);
+    // A step that barely moves adds nothing; a locked Terrain layer keeps them.
+    expect(eraseAt(m, { x: 152, y: 100 }, 20, all)).toBe(false);
+    expect(eraseAt(m, { x: 400, y: 100 }, 20, (l) => l !== "Terrain")).toBe(
+      false,
+    );
+    const city = createEmptyMap("city");
+    expect(eraseAt(city, { x: 150, y: 100 }, 20, all)).toBe(false);
   });
 });

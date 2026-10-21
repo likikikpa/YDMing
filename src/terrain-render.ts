@@ -268,6 +268,8 @@ interface Entry {
   deep: number;
   base: HTMLCanvasElement;
   baseKey: string;
+  /** The erased-decoration list the cached bitmap was drawn with. */
+  decorErased?: Erased;
 }
 const entries = new Map<string, Entry>();
 
@@ -831,6 +833,60 @@ function decorTile(seed: string, tx: number, ty: number) {
  * Decoration spots on the map, in map pixels, nearest last. They are fixed to
  * the land rather than the sheet, so resizing a map does not move the trees.
  */
+type Erased = NonNullable<MapData["decorErased"]>;
+/** Erased circles bucketed by decoration tile, built once per list. */
+const erasedIndexes = new WeakMap<Erased, Map<string, Erased>>();
+function erasedIndex(list: Erased) {
+  let index = erasedIndexes.get(list);
+  if (!index) {
+    index = new Map();
+    for (const c of list)
+      for (
+        let ty = Math.floor((c.y - c.r) / DECOR_TILE);
+        ty <= Math.floor((c.y + c.r) / DECOR_TILE);
+        ty++
+      )
+        for (
+          let tx = Math.floor((c.x - c.r) / DECOR_TILE);
+          tx <= Math.floor((c.x + c.r) / DECOR_TILE);
+          tx++
+        ) {
+          const key = `${tx},${ty}`;
+          index.get(key)?.push(c) ?? index.set(key, [c]);
+        }
+    erasedIndexes.set(list, index);
+  }
+  return index;
+}
+const isErased = (index: Map<string, Erased>, x: number, y: number) =>
+  !!index
+    .get(`${Math.floor(x / DECOR_TILE)},${Math.floor(y / DECOR_TILE)}`)
+    ?.some((c) => Math.hypot(c.x - x, c.y - y) < c.r);
+
+/** Cells to repaint for newly erased circles, with room for sprites that reach past them. */
+function decorRegion(map: MapData, circles: Erased): CellRect {
+  const ox = map.origin?.x ?? 0,
+    oy = map.origin?.y ?? 0,
+    cx = map.cols / map.width,
+    cy = map.rows / map.height;
+  let x0 = Infinity,
+    y0 = Infinity,
+    x1 = -Infinity,
+    y1 = -Infinity;
+  for (const c of circles) {
+    x0 = Math.min(x0, c.x + ox - c.r - 70);
+    y0 = Math.min(y0, c.y + oy - c.r - 70);
+    x1 = Math.max(x1, c.x + ox + c.r + 70);
+    y1 = Math.max(y1, c.y + oy + c.r + 70);
+  }
+  return {
+    x0: Math.max(0, Math.floor(x0 * cx)),
+    y0: Math.max(0, Math.floor(y0 * cy)),
+    x1: Math.min(map.cols - 1, Math.ceil(x1 * cx)),
+    y1: Math.min(map.rows - 1, Math.ceil(y1 * cy)),
+  };
+}
+
 function decorFor(map: MapData, area?: Rect) {
   const ox = map.origin?.x ?? 0,
     oy = map.origin?.y ?? 0,
@@ -838,10 +894,12 @@ function decorFor(map: MapData, area?: Rect) {
     y0 = (area ? Math.max(0, area.y - 70) : 0) - oy,
     x1 = (area ? Math.min(map.width, area.x + area.w + 70) : map.width) - ox,
     y1 = (area ? Math.min(map.height, area.y + area.h + 70) : map.height) - oy,
-    out: DecorSpot[] = [];
+    out: DecorSpot[] = [],
+    erased = map.decorErased?.length ? erasedIndex(map.decorErased) : null;
   for (let ty = Math.floor(y0 / DECOR_TILE); ty * DECOR_TILE < y1; ty++)
     for (let tx = Math.floor(x0 / DECOR_TILE); tx * DECOR_TILE < x1; tx++)
       for (const spot of decorTile(map.settings.seed, tx, ty)) {
+        if (erased && isErased(erased, spot.x, spot.y)) continue;
         const x = spot.x + ox,
           y = spot.y + oy;
         // Keep clear of the frame drawn around the sheet.
@@ -971,14 +1029,35 @@ export function drawLandscape(
   contours = false,
   options: { dirty?: CellRect; vector?: boolean } = {},
 ) {
-  const entry = entryFor(map),
-    { changed, region } = updateTexture(map, entry, options.dirty);
+  const entry = entryFor(map);
+  let { changed, region } = updateTexture(map, entry, options.dirty);
   if (options.vector) {
     // Exports draw straight into the (possibly scaled) target for crisp lines.
     paintLandscape(ctx, map, entry, contours, true);
     return;
   }
   const key = String(contours);
+  if (entry.decorErased !== map.decorErased) {
+    // The eraser only ever appends circles, so usually just their area needs
+    // repainting; anything else (an undo, say) repaints the whole sheet.
+    const before = entry.decorErased ?? [],
+      list = map.decorErased ?? [],
+      appended =
+        list.length > before.length &&
+        (!before.length || list[before.length - 1] === before[before.length - 1]),
+      erased = appended ? decorRegion(map, list.slice(before.length)) : undefined;
+    entry.decorErased = map.decorErased;
+    if (!erased) region = undefined;
+    else if (!changed) region = erased;
+    else if (region)
+      region = {
+        x0: Math.min(region.x0, erased.x0),
+        y0: Math.min(region.y0, erased.y0),
+        x1: Math.max(region.x1, erased.x1),
+        y1: Math.max(region.y1, erased.y1),
+      };
+    changed = true;
+  }
   if (changed || entry.baseKey !== key) {
     const base = entry.base.getContext("2d")!;
     // A partial texture update can be blitted into the cached bitmap in place,

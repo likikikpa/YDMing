@@ -639,7 +639,7 @@ export default function App() {
       const cells = project ? paintedCellCount(project.maps, id) : 0;
       if (cells)
         notify(
-          `${t("Texture replaced on painted ground:")} ${cells} · ${t("Undo brings the old one back.")}`,
+          `${t("Texture replaced on painted cells:")} ${cells}`,
         );
     } catch {
       notify(t("That image could not be read."));
@@ -680,7 +680,7 @@ export default function App() {
     setBrush((b) => ({ ...b, material: id }));
     if (textures.length >= TEXTURE_SOFT_LIMIT)
       notify(
-        `${t("That is many texture layers. Each one uses graphics memory and enlarges the saved project.")} (${textures.length + 1}/${TEXTURE_SOFT_LIMIT})`,
+        `${t("Many texture layers can slow the map down.")} ${textures.length + 1}/${TEXTURE_SOFT_LIMIT}`,
       );
   }
   /** Deletes a texture layer; ground painted with it on every map becomes `to`. */
@@ -1037,8 +1037,8 @@ export default function App() {
       setSelected([]);
       notify(
         lang === "ru"
-          ? "Карта создана. Приключение начинается."
-          : "Map crafted. A new adventure awaits.",
+          ? "Карта создана."
+          : "Map generated.",
       );
     } catch (e) {
       notify(String(e));
@@ -1422,7 +1422,6 @@ export default function App() {
       <div className="loading-screen wood">
         <Mountain size={54} />
         <h1>ATLASFORGE</h1>
-        <span>Setting the cartographer’s table…</span>
         <LoaderCircle className="spin" size={20} />
       </div>
     );
@@ -1443,7 +1442,6 @@ export default function App() {
           </span>
           <span>
             ATLAS<span className="brand-gold">FORGE</span>
-            <small>{t("Cartographer’s studio")}</small>
           </span>
           <ChevronDown size={13} />
         </button>
@@ -1728,11 +1726,6 @@ export default function App() {
                   }}
                 />
               </h1>
-              <p>
-                {map.kind === "world"
-                  ? t("A world waiting to be discovered.")
-                  : t("Shape your next adventure.")}
-              </p>
             </div>
             <div className="workspace-toggles">
               <IconButton
@@ -1836,12 +1829,6 @@ export default function App() {
           >
             {sheet ? <X size={18} /> : <SlidersHorizontal size={18} />}
           </button>
-          <div className="map-signature">
-            <Compass size={15} />
-            <span>
-              ATLASFORGE <small>· {t("Crafted, not conjured")}</small>
-            </span>
-          </div>
           {busy && (
             <div className="busy-overlay">
               <div className="busy-card wood">
@@ -1893,7 +1880,6 @@ export default function App() {
             </button>
             {toolCardOpen && (
               <div className="tool-card-body">
-                <p className="tool-hint">{t(toolDescriptions[tool])}</p>
                 {selection.length > 0 && (
                   <section className="selection-panel">
                     <div className="section-kicker">
@@ -2236,8 +2222,6 @@ export default function App() {
               <>
                 <div className="panel-heading">
                   <span className="section-kicker">{t("Generator")}</span>
-                  <h2>{t("New adventure")}</h2>
-                  <p>{t("Shape your next adventure.")}</p>
                 </div>
                 <div className="map-type-picker">
                   {(
@@ -2607,11 +2591,6 @@ export default function App() {
                   {t("Generate map")}
                   <kbd>↵</kbd>
                 </button>
-                <p className="panel-footnote">
-                  {t(
-                    "Regenerating replaces this map’s edits. Undo restores them.",
-                  )}
-                </p>
                 {map.kind !== "dungeon" && (
                   <button className="button subtle full" onClick={openResize}>
                     <Maximize2 size={14} />
@@ -2628,10 +2607,6 @@ export default function App() {
                     <span className="count">{map.rooms.length}</span>
                   </button>
                 )}
-                <div className="small-engraving">
-                  <Mountain size={18} />
-                  <span>{t("Built locally. Yours to keep.")}</span>
-                </div>
               </>
             )}
             <input
@@ -2844,11 +2819,6 @@ export default function App() {
                 </label>
                 <div className="panel-heading texture-heading">
                   <span className="section-kicker">{t("Texture layers")}</span>
-                  <p className="panel-footnote">
-                    {t(
-                      "The ground every map is painted with. Where two meet, the higher one wins the edge.",
-                    )}
-                  </p>
                 </div>
                 <div className="layers-list">
                   {[...textures].reverse().map((l) => (
@@ -3069,13 +3039,7 @@ export default function App() {
                           )}
                         </div>
                       )}
-                      {l.tiling === "unveil" && l.cover && (
-                        <p className="panel-footnote">
-                          {t(
-                            "The image covers the whole map; ground painted with this layer shows its part of it. Pattern strength sets how much fine detail is added on top.",
-                          )}
-                        </p>
-                      )}
+
                       {custom && (
                         <div className="texture-delete">
                           <Field label={t("Replace painted ground with")}>
@@ -3192,8 +3156,7 @@ export default function App() {
                         ))}
                     </div>
                     <p className="panel-footnote">
-                      {t("Pick a sprite, then click or drag on the map to place it.")} Kenney
-                      · CC0 1.0
+                      Kenney · CC0 1.0
                     </p>
                   </>
                 )}
@@ -3235,11 +3198,6 @@ export default function App() {
                         {t("Search")}
                       </button>
                     </form>
-                    <p className="panel-footnote">
-                      {lang === "ru"
-                        ? "Только открытые лицензии с разрешением на изменение."
-                        : "Open licences permitting reuse and modification."}
-                    </p>
                     {webError && <p className="error-message">{webError}</p>}
                     <div className="web-results">
                       {webResults.map((asset) => (
@@ -3260,9 +3218,7 @@ export default function App() {
                       <div className="empty-state">
                         <Search size={28} />
                         <p>
-                          {t(
-                            "No results yet. Search for an illustration or map symbol.",
-                          )}
+                          {t("No results")}
                         </p>
                       </div>
                     )}
@@ -3289,9 +3245,7 @@ export default function App() {
                       <div className="empty-state">
                         <ImagePlus size={28} />
                         <p>
-                          {t(
-                            "Library is empty. Import an image to make your first stamp.",
-                          )}
+                          {t("No stamps yet")}
                         </p>
                       </div>
                     )}
@@ -3392,7 +3346,6 @@ export default function App() {
                         <Icon size={17} />
                         {t(name)}
                         <kbd>{shortcut}</kbd>
-                        <small>{t(toolDescriptions[key as Tool])}</small>
                       </button>
                     ),
                   )}
@@ -3509,24 +3462,11 @@ export default function App() {
               </>
             )}
           </div>
-          <div className="sidebar-footer">
-            <span className="online-dot" />
-            {navigator.onLine
-              ? t("Built locally. Yours to keep.")
-              : t("Offline mode")}
-            <button title={t("Credits")} onClick={() => setModal("credits")}>
-              <BookOpen size={14} />
-            </button>
-          </div>
         </aside>
       </main>
       <footer className="statusbar wood">
         <div>
           <span className="status-tool">{t(toolInfo[tool][0])}</span>
-          <span className="status-separator" />
-          <span>{t("Space + drag to pan")}</span>
-          <span className="muted-dot">·</span>
-          <span>{t("Scroll to zoom")}</span>
         </div>
         <div className="cursor-status">
           <span>
@@ -3758,11 +3698,6 @@ export default function App() {
                     )}
                   </div>
                 </Field>
-                <p className="panel-footnote">
-                  {t(
-                    "New space is open sea. Generate the map again to spread land across the whole new size.",
-                  )}
-                </p>
                 <button className="button brass full" onClick={applyResize}>
                   <Maximize2 size={16} /> {t("Resize map")}
                 </button>
@@ -3815,7 +3750,7 @@ export default function App() {
                       {t("Include GM secrets")}
                     </label>
                     <p className="panel-footnote">
-                      {t("Includes a credits file.")} ZIP ·{" "}
+                      ZIP ·{" "}
                       {exportSecrets ? t("GM view") : t("Player view")}
                     </p>
                   </>
@@ -3861,7 +3796,6 @@ export default function App() {
             )}
             {modal === "credits" && (
               <>
-                <p>{t("Attribution travels with your maps.")}</p>
                 <label className="checkbox">
                   <input
                     type="checkbox"
@@ -3876,14 +3810,6 @@ export default function App() {
                   {t("Commercial project")}
                 </label>
                 <div className="credits-list">
-                  <article>
-                    <h3>Atlasforge</h3>
-                    <p>
-                      {t(
-                        "Procedural artwork and openly licensed sprite packs. No AI images.",
-                      )}
-                    </p>
-                  </article>
                   <article>
                     <h3>System Reference Document 5.2</h3>
                     <span className="licence-tag">CC BY 4.0</span>

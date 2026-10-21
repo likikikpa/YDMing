@@ -212,6 +212,11 @@ export interface MapData {
   parentPosition?: Point;
   /** How far resizing has moved the original sheet, so decorations stay on the land. */
   origin?: Point;
+  /**
+   * Circles where the eraser cleared the generated mountains and forests, in
+   * the same coordinates as those decorations (map position minus `origin`).
+   */
+  decorErased?: { x: number; y: number; r: number }[];
   /** City layout (centre, size, gates) kept so buildings can be rerolled on the same streets. */
   plan?: {
     cx: number;

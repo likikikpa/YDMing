@@ -93,6 +93,15 @@ export function validateProject(value: unknown): Project {
           !m.materialKeys.every((k) => typeof k === "string"))
       )
         throw new Error("The project contains invalid ground materials.");
+    if (
+      m.decorErased !== undefined &&
+      (!Array.isArray(m.decorErased) ||
+        !m.decorErased.every(
+          (c) =>
+            c && [c.x, c.y, c.r].every((v) => Number.isFinite(v)) && c.r > 0,
+        ))
+    )
+      throw new Error("The project contains invalid erased areas.");
     for (const path of m.paths)
       if (
         !Array.isArray(path.points) ||
