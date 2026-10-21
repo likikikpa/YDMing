@@ -16,6 +16,23 @@ The Kenney Cartography Pack (83 symbol sprites) and Kenney Medieval RTS (126 spr
 
 Original package licences are included in `public/assets/cartography/License.txt` and `public/assets/medieval/License.txt`. Pack downloads and source URLs are recorded in `scripts/import-kenney.mjs`. Sprite names and pack metadata appear in `src/data/kenney.json`.
 
+## Mark Gosbell, dungeon dressing
+
+The 50 pictures in the Library's "Dungeon dressing" collection (beds, tables, chests, barrels, bookcases and more) come from "70+ Free Flat Greyscale Dungeon Assets" by Mark Gosbell, released under CC0 1.0 Universal. Credit is optional; the author's note is in `public/assets/gosbell/License.txt`.
+
+- https://markgosbell.itch.io/70-free-flat-greyscale-dungeon-assets
+- https://creativecommons.org/publicdomain/zero/1.0/
+
+The effects, number and 5x5 tile files of the pack are not included. Download and file list: `scripts/import-gosbell.mjs`; sprite data: `src/data/gosbell.json`.
+
+## Poly Haven, photo textures
+
+The 15 ground tiles offered under "Photo textures" in the Layers panel are shrunk to 128 px from textures on Poly Haven, released under CC0 1.0 Universal. Each one's page and author are listed in `public/assets/textures/License.txt` and `src/data/textures.json`.
+
+- https://polyhaven.com/license
+
+Download and conversion: `scripts/import-polyhaven.py`.
+
 ## Sprite search index
 
 `data/sprite-index.json` lists the names and paths of the icons in the game-icons.net collection (https://game-icons.net, https://github.com/game-icons/icons) so the image search can find them. The icons are licensed under CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/) by their authors (Lorc, Delapouite and others, credited per icon); they are not bundled but loaded on demand from cdn.jsdelivr.net. When one is imported, YDMing records its author, licence and source page in the project credits. OpenGameArt search results are limited to CC0 2D art.

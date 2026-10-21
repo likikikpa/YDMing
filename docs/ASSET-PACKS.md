@@ -7,6 +7,12 @@ Two rules shape the list:
 - Only packs whose licence allows redistribution can be bundled with the app (CC0, CC-BY). Everything else is for a DM to buy and import into **My stamps** on their own computer. Nothing here points to unlicensed copies of paid packs.
 - The README promises no AI-generated art, so listings tagged as AI-assisted are left out.
 
+## Status
+
+Bundled in the app: #5 Mark Gosbell's dungeon assets (the Library's "Dungeon dressing" collection) and #9 Poly Haven textures (15 of them, under Photo textures in the Layers panel). Run `node scripts/import-gosbell.mjs` and `python3 scripts/import-polyhaven.py` to fetch them again.
+
+Not bundled: #1 Simple Stamps could not be downloaded here (the site answers 403) and its licence is unconfirmed. #2, #3, #4, #7 and #8 do not allow redistribution; import them yourself with **Import pack** in My stamps. #6 and #10 are unconfirmed.
+
 ## Packs that fit
 
 | # | Pack | Style | Price | Licence | Bundle with the app? | Checked |

@@ -1,0 +1,18 @@
+Ground textures from Poly Haven (https://polyhaven.com), released under CC0 1.0 Universal:
+https://polyhaven.com/license
+
+Lush grass: https://polyhaven.com/a/grass_ground (by Charlotte Baglioni)
+Forest floor: https://polyhaven.com/a/forest_leaves_02 (by Rob Tuytel)
+Autumn leaves: https://polyhaven.com/a/leaves_forest_ground (by Dario Barresi & Dimitrios Savva)
+Warm dirt: https://polyhaven.com/a/dirt_floor (by eye-candy.xyz)
+Dark mud: https://polyhaven.com/a/brown_mud_03 (by Rob Tuytel)
+Dry sand: https://polyhaven.com/a/sand_01 (by Rob Tuytel)
+Rocky trail: https://polyhaven.com/a/rocky_trail (by Amal Kumar)
+Grey gravel: https://polyhaven.com/a/rock_ground (by Rob Tuytel)
+Mossy rock: https://polyhaven.com/a/mossy_rock (by Rob Tuytel)
+Smooth snow: https://polyhaven.com/a/snow_02 (by Rob Tuytel)
+Rough snow: https://polyhaven.com/a/snow_03 (by Rob Tuytel)
+Cobblestone: https://polyhaven.com/a/cobblestone_floor_03 (by Rob Tuytel)
+Mossy cobblestone: https://polyhaven.com/a/mossy_cobblestone (by Sơn Nguyễn)
+Wood planks: https://polyhaven.com/a/wood_planks (by Amal Kumar)
+Dark planks: https://polyhaven.com/a/dark_wooden_planks (by Amal Kumar)
