@@ -127,6 +127,7 @@ import type {
 } from "./types";
 import { translate } from "./i18n";
 import { cursorStatus, useCursorStatus } from "./status";
+import { searchImages } from "./search";
 import { loadProject, saveProject, validateProject } from "./storage";
 import { creditsText, download, exportMap, slug } from "./export";
 import { fitImage } from "./assets";
@@ -1228,18 +1229,20 @@ export default function App() {
     setWebBusy(true);
     setWebError("");
     try {
-      const response = await fetch(
+      const reply = await searchImages(
         `/api/search?${new URLSearchParams({ q: webQuery, source: webSource, commercial: String(project?.commercial || false) })}`,
       );
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      setWebResults(data.results);
-      if (!data.results.length)
-        setWebError("No openly licensed results found. Try another query.");
-    } catch (e) {
-      setWebError(
-        `${String(e)} Search requires a connection and the local server.`,
-      );
+      if ("results" in reply) {
+        setWebResults(reply.results);
+        if (!reply.results.length) setWebError(t("No results"));
+      } else
+        setWebError(
+          reply.problem === "message"
+            ? reply.message!
+            : reply.problem === "offline"
+              ? t("Image search needs an internet connection.")
+              : t("Image search is not available here. It needs the Atlasforge server."),
+        );
     } finally {
       setWebBusy(false);
     }

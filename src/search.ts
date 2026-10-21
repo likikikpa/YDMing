@@ -1,0 +1,40 @@
+import type { AssetResult } from "./types";
+
+/** Why an image search did not return results, in words the person can act on. */
+export type SearchProblem = "no-server" | "offline" | "message";
+
+export type SearchReply =
+  | { results: AssetResult[] }
+  | { problem: SearchProblem; message?: string };
+
+/**
+ * Reads the reply of the local server's `/api/search`. That server always
+ * answers in JSON, so anything else (a plain "not found" page from a static
+ * host, a proxy's error page) means the page runs without the Atlasforge
+ * server, and saying so beats a JSON parse error.
+ */
+export function readSearchReply(ok: boolean, body: string): SearchReply {
+  let data: unknown;
+  try {
+    data = JSON.parse(body);
+  } catch {
+    return { problem: "no-server" };
+  }
+  const reply = data as { results?: unknown; error?: unknown };
+  if (ok && Array.isArray(reply?.results))
+    return { results: reply.results as AssetResult[] };
+  if (typeof reply?.error === "string" && reply.error)
+    return { problem: "message", message: reply.error };
+  return { problem: "no-server" };
+}
+
+/** Runs a search; a request that never reaches any server means no connection. */
+export async function searchImages(url: string): Promise<SearchReply> {
+  let response: Response;
+  try {
+    response = await fetch(url);
+  } catch {
+    return { problem: "offline" };
+  }
+  return readSearchReply(response.ok, await response.text());
+}

@@ -49,6 +49,10 @@ export const ru: Record<string, string> = {
   "Many texture layers can slow the map down.": "Много слоёв текстур может замедлить карту.",
   "No results": "Ничего не найдено",
   "No stamps yet": "Штампов пока нет",
+  "Image search needs an internet connection.":
+    "Для поиска картинок нужен интернет.",
+  "Image search is not available here. It needs the Atlasforge server.":
+    "Поиск картинок здесь недоступен: нужен сервер Atlasforge.",
   "Blended (no visible repeats)": "Смешанное (без видимых повторов)",
   "Tiled (repeats exactly)": "Плиткой (точные повторы)",
   "Unveil a map-wide image": "Открывать картинку на всю карту",
