@@ -163,6 +163,9 @@ export const Editor = forwardRef<EditorHandle, Props>(
       latest.current.onRiverPoints?.(points.length);
       drawOverlay();
     }
+    const hover = useRef<Point | undefined>(undefined);
+    const preview = useRef(false);
+    const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastStatus = useRef({ zoom: 100, x: 0, y: 0, height: 0, biome: 0 });
     // Fingers currently on the map and the pinch that two of them start.
     const touches = useRef(new Map<number, Point>());
@@ -327,9 +330,15 @@ export const Editor = forwardRef<EditorHandle, Props>(
         bottom = Math.max(...objects.map((o) => o.y + o.height / 2));
       return { x, y, w: right - x, h: bottom - y, objects };
     };
-    function drawOverlay(cursor?: Point) {
+    /**
+     * Redraws the overlay. The brush ring stays where the pointer last was, so
+     * it survives a lifted finger, a zoom and a size change; `null` clears it.
+     */
+    function drawOverlay(at?: Point | null) {
       const canvas = overlay.current;
       if (!canvas) return;
+      if (at !== undefined) hover.current = at ?? undefined;
+      let cursor = hover.current;
       const c = canvas.getContext("2d")!;
       c.clearRect(0, 0, canvas.width, canvas.height);
       const bounds = selectedBounds();
@@ -440,6 +449,10 @@ export const Editor = forwardRef<EditorHandle, Props>(
         } else c.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
         c.setLineDash([]);
       }
+      // With no pointer on the map (a phone, or the size slider in use) the
+      // ring is previewed in the middle of the view for a moment.
+      if (!cursor && preview.current)
+        cursor = { x: size.current.w / 2, y: size.current.h / 2 };
       if (
         cursor &&
         !["select", "hand", "text", "river", "island", "room"].includes(t)
@@ -628,6 +641,19 @@ export const Editor = forwardRef<EditorHandle, Props>(
         setRiverPoints([]);
       else drawOverlay();
     }, [props.selected, props.tool, props.brush]);
+    useEffect(() => {
+      // Changing the brush size shows its ring even if nothing points at the map.
+      preview.current = true;
+      drawOverlay();
+      if (previewTimer.current) clearTimeout(previewTimer.current);
+      previewTimer.current = setTimeout(() => {
+        preview.current = false;
+        drawOverlay();
+      }, 1200);
+      return () => {
+        if (previewTimer.current) clearTimeout(previewTimer.current);
+      };
+    }, [props.brush.size, props.tool]);
     useEffect(() => {
       if (riverPoints.current.length) setRiverPoints([]);
     }, [props.map.id]);
@@ -1287,7 +1313,10 @@ export const Editor = forwardRef<EditorHandle, Props>(
           onPointerMove={pointerMove}
           onPointerUp={pointerUp}
           onPointerCancel={pointerUp}
-          onPointerLeave={() => !drag.current && drawOverlay()}
+          onPointerLeave={(e) => {
+            // A lifted finger also "leaves"; its ring stays as a size guide.
+            if (!drag.current && e.pointerType !== "touch") drawOverlay(null);
+          }}
           onDoubleClick={doubleClick}
         />
         {renderError && <div className="render-error">{renderError}</div>}

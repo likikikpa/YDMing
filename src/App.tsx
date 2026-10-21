@@ -2017,11 +2017,7 @@ export default function App() {
                           min={0}
                         />
                         <div className="material-swatches" role="radiogroup">
-                          {[
-                            ...textures.filter(
-                              (l) => !l.id.endsWith("water"),
-                            ),
-                          ]
+                          {[...textures]
                             .reverse()
                             .map((l) => (
                               <button

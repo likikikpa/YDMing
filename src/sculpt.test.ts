@@ -11,8 +11,10 @@ import {
   sculptDab,
   simplify,
 } from "./sculpt";
+import { paintedMaterial, setMaterial } from "./materials";
 import { defaultSettings } from "./types";
 
+const map0Sea = () => defaultSettings.seaLevel;
 const brush = { size: 60, strength: 55, biome: 6 };
 function flatWorld(level = 0.5) {
   const map = createEmptyMap("world", { ...defaultSettings, seed: "SCULPT" });
@@ -42,6 +44,19 @@ describe("sculpting", () => {
         expect(y).toBeLessThanOrEqual(dirty.y1);
       }
     });
+  });
+  it("digging peels painted ground off first instead of sinking it into the sea", () => {
+    const map = flatWorld(map0Sea() + 0.015),
+      centre = Math.round(425 / 5) * map.cols + Math.round(600 / 5);
+    setMaterial(map, map, centre, "rock");
+    const height = map.heights[centre];
+    sculptDab(map, "dig", { x: 600, y: 425 }, 0.5, 0, brush);
+    // The painted layer is gone and the land beneath is untouched.
+    expect(paintedMaterial(map, map, centre)).toBeUndefined();
+    expect(map.heights[centre]).toBe(height);
+    // Only once it is bare does further digging lower the ground.
+    sculptDab(map, "dig", { x: 600, y: 425 }, 0.5, 0, brush);
+    expect(map.heights[centre]).toBeLessThan(height);
   });
   it("digs back below the sea line and never leaves the 0–1 range", () => {
     const map = flatWorld(0.6);
