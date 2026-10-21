@@ -244,6 +244,10 @@ export const ru: Record<string, string> = {
   "Browser data can be cleared. Save this world to a file.":
     "Данные браузера могут пропасть. Сохраните этот мир в файл.",
   Later: "Позже",
+  "Import pack": "Импорт набора",
+  "stamps imported": "штампов импортировано",
+  Importing: "Импорт",
+  "No PNG, JPEG or WebP pictures found.": "PNG, JPEG и WebP не найдено.",
   "Fog of war": "Туман войны",
   Reveal: "Открыть",
   Hide: "Скрыть",

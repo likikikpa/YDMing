@@ -6,6 +6,7 @@ import {
   ExternalLink,
   ImagePlus,
   LoaderCircle,
+  PackagePlus,
   Search,
 } from "lucide-react";
 import type { ReadyApp } from "../app/useAppModel";
@@ -17,6 +18,7 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
     brush,
     pickMyStamp,
     imageInput,
+    packInput,
     importWeb,
     libraryTab,
     myStamps,
@@ -180,6 +182,13 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
           >
             <ImagePlus size={16} />
             {t("Import image")}
+          </button>
+          <button
+            className="button subtle full"
+            onClick={() => packInput.current?.click()}
+          >
+            <PackagePlus size={16} />
+            {t("Import pack")}
           </button>
           <div className="stamp-grid my-stamps">
             {myStamps.map((s) => (

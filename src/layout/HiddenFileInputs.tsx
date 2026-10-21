@@ -7,7 +7,9 @@ export function HiddenFileInputs({ app }: { app: ReadyApp }) {
     fileInput,
     imageInput,
     importLocal,
+    importPack,
     openProjectFile,
+    packInput,
     textureInput,
     uploadCover,
     uploadTexture,
@@ -56,6 +58,18 @@ export function HiddenFileInputs({ app }: { app: ReadyApp }) {
           const f = e.target.files?.[0];
           if (f) void importLocal(f);
           e.target.value = "";
+        }}
+      />
+      <input
+        ref={packInput}
+        className="hidden-input"
+        type="file"
+        multiple
+        accept=".zip,image/png,image/jpeg,image/webp"
+        onChange={(e) => {
+          const files = [...(e.target.files ?? [])];
+          e.target.value = "";
+          if (files.length) void importPack(files);
         }}
       />
     </>

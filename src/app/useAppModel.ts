@@ -8,6 +8,7 @@ import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { useLibrary } from "./useLibrary";
 import { useMapLinks } from "./useMapLinks";
 import { useObjectActions } from "./useObjectActions";
+import { usePackImport } from "./usePackImport";
 import { useProjectFiles } from "./useProjectFiles";
 import { useProjectStore } from "./useProjectStore";
 import { useTextureLayers } from "./useTextureLayers";
@@ -99,6 +100,17 @@ export function useAppModel() {
     setBrush: tools.setBrush,
     chooseTool: tools.chooseTool,
   });
+  const packs = usePackImport({
+    projectRef: store.projectRef,
+    commit: store.commit,
+    notify,
+    t: view.t,
+    color: tools.brush.color,
+    myStamps: library.myStamps,
+    setMyStamps: library.setMyStamps,
+    setLibraryTab: library.setLibraryTab,
+    setPanel: view.setPanel,
+  });
   // Switching to another map resets what belonged to the previous one.
   const { setSettings } = generator,
     { setGroup, setRoomDetail, setSelected } = view;
@@ -150,6 +162,7 @@ export function useAppModel() {
     ...files,
     ...backup,
     ...library,
+    ...packs,
     ...worlds,
     ...links,
     ...clipboard,

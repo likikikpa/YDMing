@@ -272,6 +272,7 @@ export function useLibrary({
     webBusy,
     webError,
     myStamps,
+    setMyStamps,
     fitSource,
     setFitSource,
     fitSettings,
