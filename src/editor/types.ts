@@ -1,3 +1,4 @@
+import type { StampSprite } from "../stamp-brush";
 import type { CellRect } from "../terrain-render";
 import type { MapData, MapObject, StampKind, Tool } from "../types";
 
@@ -11,8 +12,8 @@ export interface BrushSettings {
   /** Texture layer id for the terrain paint tool; empty means back to the biome. */
   material: string;
   stamp: StampKind;
-  /** A bundled sprite to place with the stamp tool; wins over `stamp`. */
-  sprite?: { src: string; name: string };
+  /** A bundled sprite or one of My stamps to place with the stamp tool; wins over `stamp`. */
+  sprite?: StampSprite;
   snap: boolean;
   pressure: boolean;
   layer: string;

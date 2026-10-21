@@ -1,4 +1,4 @@
-import { isScatterSprite } from "../symbols";
+import { spriteSize } from "../stamp-brush";
 import { uid } from "../types";
 import type { Point } from "../types";
 import { editable } from "./draft";
@@ -13,7 +13,6 @@ export function createStamps(deps: EditorCore) {
       b = latest.current.brush;
     if (!editable(m, b.layer)) return;
     if (b.sprite) {
-      const scatter = isScatterSprite(b.sprite.src);
       m.objects.push({
         id: uid(),
         kind: "image",
@@ -21,11 +20,11 @@ export function createStamps(deps: EditorCore) {
         x: p.x,
         y: p.y,
         name: b.sprite.name,
-        width: scatter ? b.size * 0.7 : b.size,
-        height: scatter ? b.size * 0.7 : b.size,
+        ...spriteSize(b.sprite, b.size),
         rotation: 0,
         layer: b.layer,
         color: b.color,
+        ...(b.sprite.credit && { creditId: b.sprite.credit.id }),
       });
       return;
     }

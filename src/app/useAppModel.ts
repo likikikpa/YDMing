@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { EditorHandle } from "../editor/types";
 import type { MapData, Project } from "../types";
+import { useClipboard } from "./useClipboard";
 import { useGenerator } from "./useGenerator";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { useLibrary } from "./useLibrary";
@@ -92,7 +93,7 @@ export function useAppModel() {
     brush: tools.brush,
     setModal: view.setModal,
     setPanel: view.setPanel,
-    setSelected: view.setSelected,
+    setBrush: tools.setBrush,
     chooseTool: tools.chooseTool,
   });
   // Switching to another map resets what belonged to the previous one.
@@ -112,6 +113,14 @@ export function useAppModel() {
     setSelected([]);
     setRoomDetail(null);
   }, [store.map?.id]);
+  const clipboard = useClipboard({
+    project: store.project,
+    map: store.map,
+    selected: view.selected,
+    setSelected: view.setSelected,
+    commit: store.commit,
+    chooseTool: tools.chooseTool,
+  });
   useKeyboardShortcuts({
     ...view,
     ...tools,
@@ -119,6 +128,7 @@ export function useAppModel() {
     ...objects,
     ...store,
     ...files,
+    ...clipboard,
     editor,
   });
   return {
@@ -136,6 +146,7 @@ export function useAppModel() {
     ...library,
     ...worlds,
     ...links,
+    ...clipboard,
   };
 }
 

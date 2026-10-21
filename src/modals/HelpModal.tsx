@@ -23,6 +23,10 @@ export function HelpModal({ app }: { app: ReadyApp }) {
           ["Ctrl Shift Z", "Redo"],
           ["Ctrl G", "Group"],
           ["Ctrl D", "Duplicate"],
+          ["Ctrl C", "Copy"],
+          ["Ctrl X", "Cut"],
+          ["Ctrl V", "Paste at the pointer"],
+          ["Ctrl Shift V", "Paste in place"],
           ["Ctrl S", "Save world file"],
           ["Tab", "Hide panels"],
         ].map(([key, name]) => (

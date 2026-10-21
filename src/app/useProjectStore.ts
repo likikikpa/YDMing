@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { loadStartWorld, newWorld, saveWorld } from "../worlds";
-import type { MapData, Project } from "../types";
+import { withStampCredits } from "../stamp-brush";
+import type { Credit, MapData, Project } from "../types";
 import { HISTORY_LIMIT } from "./constants";
 
 /** The open world (a `Project`), its undo history, and saving it in the browser. */
@@ -40,11 +41,16 @@ export function useProjectStore({
     setHistoryIndex(kept.length - 1);
     setSaveState("Saving…");
   }
-  function updateMap(next: MapData, label: string) {
+  /** `credits` are imported stamps' credits the map may now use. */
+  function updateMap(next: MapData, label: string, credits: Credit[] = []) {
     const p = projectRef.current;
     if (!p) return;
     commit(
-      { ...p, maps: p.maps.map((m) => (m.id === next.id ? next : m)) },
+      withStampCredits(
+        { ...p, maps: p.maps.map((m) => (m.id === next.id ? next : m)) },
+        next,
+        credits,
+      ),
       label,
     );
   }

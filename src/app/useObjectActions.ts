@@ -69,6 +69,11 @@ export function useObjectActions({
           !selected.includes(o.id) ||
           m.layers.find((l) => l.id === o.layer)?.locked,
       );
+      m.paths = m.paths.filter(
+        (q) =>
+          !selected.includes(q.id) ||
+          m.layers.find((l) => l.id === q.layer)?.locked,
+      );
     }, "Delete objects");
     setSelected([]);
   }

@@ -29,6 +29,9 @@ interface Shortcuts {
   redo: () => void;
   saveProjectFile: () => void;
   groupObjects: () => void;
+  copy: () => boolean;
+  cut: () => void;
+  paste: (inPlace?: boolean) => void;
   duplicate: () => void;
   deleteObjects: () => void;
   regenerate: (part?: string, reroll?: boolean) => Promise<void>;
@@ -61,6 +64,9 @@ export function useKeyboardShortcuts(app: Shortcuts) {
     groupObjects,
     duplicate,
     deleteObjects,
+    copy,
+    cut,
+    paste,
     regenerate,
     chooseTool,
   } = app;
@@ -116,6 +122,20 @@ export function useKeyboardShortcuts(app: Shortcuts) {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
         saveProjectFile();
+        return;
+      }
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        ["c", "x", "v"].includes(e.key.toLowerCase())
+      ) {
+        // Text selected on the page is copied by the browser as usual.
+        if (e.key.toLowerCase() !== "v" && window.getSelection()?.toString())
+          return;
+        e.preventDefault();
+        const key = e.key.toLowerCase();
+        if (key === "c") copy();
+        else if (key === "x") cut();
+        else paste(e.shiftKey);
         return;
       }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g") {

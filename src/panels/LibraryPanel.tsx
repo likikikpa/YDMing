@@ -15,7 +15,7 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
     assetPack,
     assetSearch,
     brush,
-    dropMyStamp,
+    pickMyStamp,
     imageInput,
     importWeb,
     libraryTab,
@@ -183,7 +183,15 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
           </button>
           <div className="stamp-grid my-stamps">
             {myStamps.map((s) => (
-              <button key={s.id} onClick={() => dropMyStamp(s)}>
+              <button
+                key={s.id}
+                className={
+                  tool === "stamp" && brush.sprite?.src === s.image
+                    ? "active"
+                    : ""
+                }
+                onClick={() => void pickMyStamp(s)}
+              >
                 <img src={s.image} alt="" />
                 <span>{s.name}</span>
               </button>

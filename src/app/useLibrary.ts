@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { set } from "idb-keyval";
 import { fitImage } from "../assets";
+import { spriteFromStamp } from "../stamp-brush";
 import { getWithLegacy } from "../legacy-keys";
 import type { BrushSettings } from "../editor/types";
 import { assetUrl, searchImages } from "../search";
 import { uid } from "../types";
-import type { AssetResult, Credit, MapObject, Project } from "../types";
+import type { AssetResult, Credit, MapObject, Project, Tool } from "../types";
 import { emptyFit } from "./constants";
 import type { ModalName, Panel } from "./constants";
 
@@ -19,7 +20,7 @@ export function useLibrary({
   brush,
   setModal,
   setPanel,
-  setSelected,
+  setBrush,
   chooseTool,
 }: {
   project: Project | null;
@@ -30,8 +31,8 @@ export function useLibrary({
   brush: BrushSettings;
   setModal: (modal: ModalName | null) => void;
   setPanel: (panel: Panel) => void;
-  setSelected: (ids: string[]) => void;
-  chooseTool: (tool: "select") => void;
+  setBrush: React.Dispatch<React.SetStateAction<BrushSettings>>;
+  chooseTool: (tool: Tool) => void;
 }) {
   const imageInput = useRef<HTMLInputElement>(null);
   const [snapshots, setSnapshots] = useState<
@@ -216,27 +217,21 @@ export function useLibrary({
     setLibraryTab("My stamps");
     setPanel("library");
   }
-  async function dropMyStamp(stamp: MapObject) {
-    const p = projectRef.current;
-    if (!p) return;
-    const active = p.maps.find((m) => m.id === p.activeMapId)!;
-    const next = structuredClone(active),
-      o = { ...stamp, id: uid(), x: 600, y: 425 };
-    next.objects.push(o);
-    let credits = p.credits;
+  /** Makes a stamp from My stamps the stamp tool's picture, like a bundled sprite. */
+  async function pickMyStamp(stamp: MapObject) {
+    let credit: Credit | undefined;
     try {
-      const known: Credit[] =
+      const known =
         (await getWithLegacy<Credit[]>("ydming-library-credits")) || [];
-      const credit = known.find((c) => c.id === stamp.creditId);
-      if (credit && !credits.some((c) => c.id === credit.id))
-        credits = [...credits, credit];
+      credit = known.find((c) => c.id === stamp.creditId);
     } catch {}
-    commit(
-      { ...p, maps: p.maps.map((m) => (m.id === next.id ? next : m)), credits },
-      "Place imported stamp",
-    );
-    setSelected([o.id]);
-    chooseTool("select");
+    chooseTool("stamp");
+    setBrush((b) => ({
+      ...b,
+      sprite: spriteFromStamp(stamp, credit),
+      layer: "Objects",
+      mask: false,
+    }));
   }
 
   async function takeSnapshot() {
@@ -289,7 +284,7 @@ export function useLibrary({
     importWeb,
     importLocal,
     addStamp,
-    dropMyStamp,
+    pickMyStamp,
     takeSnapshot,
   };
 }

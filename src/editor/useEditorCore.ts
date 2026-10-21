@@ -1,7 +1,7 @@
 import type { EditorProps } from "./types";
 import { useRef, useState } from "react";
 import type { CellRect } from "../terrain-render";
-import type { MapData, MapObject, Point, Stroke } from "../types";
+import type { MapData, MapObject, MapPath, Point, Stroke } from "../types";
 import type { GpuTile } from "./gpu-tiles";
 import type { Frame, View } from "./types";
 import { Application, Container } from "pixi.js";
@@ -26,6 +26,8 @@ export function useEditorCore(props: EditorProps) {
       screen: Point;
       pan: boolean;
       objects: MapObject[];
+      /** Selected rivers, roads and walls as they were when the drag began. */
+      paths?: MapPath[];
       handle: string;
       stroke?: Stroke;
       box?: Point;

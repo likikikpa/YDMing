@@ -35,6 +35,25 @@ export function createOverlay(deps: EditorCore) {
       bottom = Math.max(...objects.map((o) => o.y + o.height / 2));
     return { x, y, w: right - x, h: bottom - y, objects };
   };
+  /** Selected rivers, roads and walls: a dashed line along each. */
+  function drawSelectedPaths(c: CanvasRenderingContext2D) {
+    const p = latest.current,
+      m = draft.current || p.map;
+    c.strokeStyle = "#f3d391";
+    c.lineWidth = 2;
+    c.setLineDash([6, 4]);
+    for (const q of m.paths) {
+      if (!p.selected.includes(q.id)) continue;
+      c.beginPath();
+      q.points.forEach((pt, i) => {
+        const t = screenPoint(pt);
+        if (i) c.lineTo(t.x, t.y);
+        else c.moveTo(t.x, t.y);
+      });
+      c.stroke();
+    }
+    c.setLineDash([]);
+  }
   /**
    * Redraws the overlay. The brush ring stays where the pointer last was, so
    * it survives a lifted finger, a zoom and a size change; `null` clears it.
@@ -79,6 +98,7 @@ export function createOverlay(deps: EditorCore) {
       c.fill();
       c.stroke();
     }
+    drawSelectedPaths(c);
     if (drag.current?.box) {
       const a = screenPoint(drag.current.start),
         b = screenPoint(drag.current.box);
