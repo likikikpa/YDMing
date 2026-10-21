@@ -1,5 +1,6 @@
 import { getWithLegacy } from "./legacy-keys";
 import { BUILTIN_MATERIALS, PATTERNS } from "./materials";
+import { isNoteUrl } from "./note-link";
 import { CELL, MAX_CELLS } from "./mapsize";
 import type { Project } from "./types";
 const key = "ydming-project-v1";
@@ -114,6 +115,12 @@ export function validateProject(value: unknown): Project {
             !path.widths.every((w) => Number.isFinite(w))))
       )
         throw new Error("The project contains an invalid path.");
+    if (
+      [m, ...m.objects].some(
+        (x) => x.noteUrl !== undefined && !isNoteUrl(x.noteUrl),
+      )
+    )
+      throw new Error("Note links must be obsidian:// or web links.");
     for (const o of m.objects) {
       if (
         o.image &&

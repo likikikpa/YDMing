@@ -13,12 +13,14 @@ import {
 import type { ReadyApp } from "../app/useAppModel";
 import { mapTree } from "../map-tree";
 import { IconButton } from "../ui/IconButton";
+import { NoteLinkField } from "./NoteLinkField";
 
 export function ProjectMenu({ app }: { app: ReadyApp }) {
   const {
     fileInput,
     map,
     menu,
+    mutateMap,
     project,
     removeMap,
     saveProjectFile,
@@ -93,6 +95,16 @@ export function ProjectMenu({ app }: { app: ReadyApp }) {
             )}
           </div>
         ))}
+        <div className="menu-note">
+          <NoteLinkField
+            label={t("Map note")}
+            value={map.noteUrl}
+            onChange={(noteUrl) =>
+              mutateMap((m) => (m.noteUrl = noteUrl), "Edit note link")
+            }
+            t={t}
+          />
+        </div>
         <hr />
         <button
           onClick={() => {

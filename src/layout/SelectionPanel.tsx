@@ -16,6 +16,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { ReadyApp } from "../app/useAppModel";
 import { MapLinkField } from "./MapLinkField";
+import { NoteLinkField } from "./NoteLinkField";
 
 export function SelectionPanel({ app }: { app: ReadyApp }) {
   const {
@@ -107,6 +108,12 @@ export function SelectionPanel({ app }: { app: ReadyApp }) {
           </Field>
         </>
       )}
+      <NoteLinkField
+        label={t("Note")}
+        value={selection[0].noteUrl}
+        onChange={(noteUrl) => updateSelected({ noteUrl }, "Edit note link")}
+        t={t}
+      />
       {selection[0].kind !== "label" && (
         <MapLinkField app={app} o={selection[0]} />
       )}

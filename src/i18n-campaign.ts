@@ -18,4 +18,8 @@ export const campaignRu: Record<string, string> = {
   "Delete map": "Удалить карту",
   "Link map": "Связать карту",
   "Remove map link": "Убрать ссылку на карту",
+  Note: "Заметка",
+  "Map note": "Заметка карты",
+  "Open note": "Открыть заметку",
+  "Edit note link": "Изменить ссылку на заметку",
 };

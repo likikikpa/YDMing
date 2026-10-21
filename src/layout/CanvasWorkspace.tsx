@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import type { ReadyApp } from "../app/useAppModel";
+import { NoteLinkButton } from "./NoteLinkField";
 
 export function CanvasWorkspace({ app }: { app: ReadyApp }) {
   const {
@@ -63,6 +64,7 @@ export function CanvasWorkspace({ app }: { app: ReadyApp }) {
             <span className="heading-index">
               / {String(project.maps.indexOf(map) + 1).padStart(2, "0")}
             </span>
+            {map.noteUrl && <NoteLinkButton url={map.noteUrl} t={t} />}
           </span>
           <h1>
             <input

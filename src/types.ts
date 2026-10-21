@@ -68,6 +68,8 @@ export interface MapObject extends Point {
   notes?: string;
   image?: string;
   creditId?: string;
+  /** A note about this stamp outside the app: an obsidian:// or web link. */
+  noteUrl?: string;
 }
 export interface MapPath {
   id: string;
@@ -210,6 +212,8 @@ export interface MapData {
   materialKeys?: string[];
   parentId?: string;
   parentPosition?: Point;
+  /** A note about this map outside the app: an obsidian:// or web link. */
+  noteUrl?: string;
   /** How far resizing has moved the original sheet, so decorations stay on the land. */
   origin?: Point;
   /**

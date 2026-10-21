@@ -88,6 +88,9 @@ button.world-open:hover {
 .menu-map .icon-button:hover {
   opacity: 1;
 }
+.map-breadcrumb svg {
+  flex: none;
+}
 .map-breadcrumb .crumb {
   display: flex;
   align-items: center;
@@ -117,4 +120,32 @@ button.world-open:hover {
   .map-breadcrumb .crumb.far {
     display: none;
   }
+}
+
+.field > span.note-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0;
+  font-size: inherit;
+}
+.note-link input {
+  flex: 1;
+  min-width: 0;
+}
+.note-link input.invalid {
+  border-color: #b5563d;
+}
+.icon-button.note-open {
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+.eyebrow .note-open {
+  width: 22px;
+  height: 22px;
+  pointer-events: auto;
+}
+.menu-note {
+  padding: 4px 10px 6px;
 }
