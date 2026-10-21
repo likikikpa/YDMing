@@ -92,7 +92,7 @@ export function useAppModel() {
     brush: tools.brush,
     setModal: view.setModal,
     setPanel: view.setPanel,
-    setSelected: view.setSelected,
+    setBrush: tools.setBrush,
     chooseTool: tools.chooseTool,
   });
   // Switching to another map resets what belonged to the previous one.

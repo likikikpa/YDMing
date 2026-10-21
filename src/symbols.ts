@@ -52,6 +52,9 @@ export function symbolUrls() {
 export async function preloadSymbols() {
   await Promise.allSettled(symbolUrls().map((url) => loadImage(url)));
 }
-/** Sprites that read as vegetation and should be scattered when dragging. */
+/**
+ * Sprites that read as vegetation and should be scattered when dragging.
+ * Only bundled paths count: an imported image's data can contain "/tree".
+ */
 export const isScatterSprite = (src: string) =>
-  /\/(tree|palm|bush|cactus)/i.test(src);
+  !src.startsWith("data:") && /\/(tree|palm|bush|cactus)/i.test(src);

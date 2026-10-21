@@ -129,7 +129,9 @@ export function CanvasWorkspace({ app }: { app: ReadyApp }) {
         brush={brush}
         selected={selected}
         setSelected={setSelected}
-        onChange={updateMap}
+        onChange={(m, label) =>
+          updateMap(m, label, brush.sprite?.credit ? [brush.sprite.credit] : [])
+        }
         onOpen={openObject}
         onColor={color}
         onRiverPoints={setRiverCount}

@@ -1,7 +1,7 @@
 import { eraseAt } from "../erase";
 import { biomeAt } from "../generator";
 import { clamp } from "../random";
-import { isScatterSprite } from "../symbols";
+import { trailSpacing } from "../stamp-brush";
 import { terrainView } from "../terrain";
 import { areaAround } from "./areas";
 import { editable } from "./draft";
@@ -94,7 +94,8 @@ export function createPointerMove(
       return;
     }
     let removed = false,
-      paintArea: Area | undefined;
+      paintArea: Area | undefined,
+      spacing: number | undefined;
     if (p.tool === "eraser") {
       const things = m.objects.length + m.paths.length;
       // Steps along the drag so a fast swipe cannot skip over a stamp.
@@ -142,10 +143,12 @@ export function createPointerMove(
       }
     } else if (
       p.tool === "stamp" &&
-      (p.brush.sprite
-        ? isScatterSprite(p.brush.sprite.src)
-        : ["tree", "pine"].includes(p.brush.stamp)) &&
-      Math.hypot(world.x - d.last.x, world.y - d.last.y) > p.brush.size * 0.45
+      (spacing = p.brush.sprite
+        ? trailSpacing(p.brush.sprite, p.brush.size)
+        : ["tree", "pine"].includes(p.brush.stamp)
+          ? p.brush.size * 0.45
+          : undefined) !== undefined &&
+      Math.hypot(world.x - d.last.x, world.y - d.last.y) > spacing
     ) {
       placeStamp(world);
       d.last = world;
