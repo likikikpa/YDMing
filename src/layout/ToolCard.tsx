@@ -19,10 +19,7 @@ export function ToolCard({ app }: { app: ReadyApp }) {
           const open = !toolCardOpen;
           setToolCardOpen(open);
           try {
-            localStorage.setItem(
-              "ydming-tool-card",
-              open ? "open" : "closed",
-            );
+            localStorage.setItem("ydming-tool-card", open ? "open" : "closed");
           } catch {
             // Storage can be unavailable (private mode); the card still works.
           }
