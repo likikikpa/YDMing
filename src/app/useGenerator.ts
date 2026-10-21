@@ -12,7 +12,7 @@ import type {
   Project,
   Tool,
 } from "../types";
-import type { EditorHandle } from "../Editor";
+import type { EditorHandle } from "../editor/types";
 import { generateAsync } from "./generate-async";
 import type { ModalName, Panel } from "./constants";
 

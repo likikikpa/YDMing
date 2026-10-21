@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import type { Dispatch, RefObject, SetStateAction } from "react";
-import type { BrushSettings, EditorHandle } from "../Editor";
+import type { BrushSettings, EditorHandle } from "../editor/types";
 import { MAP_COLORS } from "../types";
 import type { Tool } from "../types";
 import { toolInfo } from "./constants";

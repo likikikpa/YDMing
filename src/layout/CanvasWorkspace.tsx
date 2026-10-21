@@ -1,4 +1,4 @@
-import { Editor } from "../Editor";
+import { Editor } from "../editor/Editor";
 import { cursorStatus } from "../status";
 import { IconButton } from "../ui/IconButton";
 import { ZoomReadout } from "../ui/Readouts";

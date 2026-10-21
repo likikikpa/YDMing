@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { get, set } from "idb-keyval";
 import { fitImage } from "../assets";
-import type { BrushSettings } from "../Editor";
+import type { BrushSettings } from "../editor/types";
 import { searchImages } from "../search";
 import { uid } from "../types";
 import type { AssetResult, Credit, MapObject, Project } from "../types";

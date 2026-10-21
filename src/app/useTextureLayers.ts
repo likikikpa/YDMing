@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { BrushSettings } from "../Editor";
+import type { BrushSettings } from "../editor/types";
 import {
   defaultTextures,
   isBuiltinMaterial,

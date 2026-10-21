@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import type { BrushSettings } from "../Editor";
+import type { BrushSettings } from "../editor/types";
 import type { Tool } from "../types";
 import type { Panel } from "./constants";
 

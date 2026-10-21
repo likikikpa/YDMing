@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { EditorHandle } from "../Editor";
+import type { EditorHandle } from "../editor/types";
 import type { MapData, Project } from "../types";
 import { useGenerator } from "./useGenerator";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
