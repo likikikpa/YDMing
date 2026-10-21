@@ -27,6 +27,12 @@ export const BUILTIN_MATERIALS = [
   "rock",
   "snow",
 ];
+/**
+ * Layer count past which the editor warns. It is not a hard cap: every layer
+ * costs GPU memory and adds to the saved project, so a large map can still hit
+ * browser limits.
+ */
+export const TEXTURE_SOFT_LIMIT = 24;
 /** Edge length of a generated tile in texels. */
 export const TILE = 128;
 /** Map pixels one tile covers at 100 % scale. */
@@ -52,6 +58,37 @@ export function defaultTextures(): TextureLayer[] {
     strength: id.endsWith("water") ? 20 : 60,
     visible: true,
   }));
+}
+
+export const isBuiltinMaterial = (id: string) => BUILTIN_MATERIALS.includes(id);
+
+/** A fresh custom layer named after how many custom layers already exist. */
+export function newTextureLayer(
+  id: string,
+  layers: TextureLayer[],
+  label: string,
+): TextureLayer {
+  return {
+    id,
+    name: `${label} ${layers.filter((l) => !isBuiltinMaterial(l.id)).length + 1}`,
+    pattern: "mud",
+    tint: "#6f5a43",
+    scale: 100,
+    strength: 60,
+    visible: true,
+  };
+}
+
+/** How many cells of the given maps are hand-painted with layer `id`. */
+export function paintedCellCount(maps: MapData[], id: string) {
+  let total = 0;
+  for (const m of maps) {
+    const n = (m.materialKeys?.indexOf(id) ?? -1) + 1;
+    if (!n) continue;
+    for (const terrain of [m, m.terrain])
+      for (const v of terrain?.materials ?? []) if (v === n) total++;
+  }
+  return total;
 }
 
 /** Ground material a biome paints when nothing was painted by hand. */

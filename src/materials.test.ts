@@ -3,6 +3,9 @@ import { createEmptyMap } from "./generator";
 import {
   biomeMaterial,
   defaultTextures,
+  isBuiltinMaterial,
+  newTextureLayer,
+  paintedCellCount,
   paintedMaterial,
   PATTERNS,
   patternTile,
@@ -46,6 +49,22 @@ describe("ground materials", () => {
     setMaterial(map, map, 3, "cobble");
     replaceMaterial(map, "cobble", null);
     expect(paintedMaterial(map, map, 3)).toBeUndefined();
+  });
+  it("counts painted cells and tells built-ins from custom layers", () => {
+    const map = world();
+    setMaterial(map, map, 1, "mud");
+    setMaterial(map, map, 2, "mud");
+    setMaterial(map, map, 3, "sand");
+    expect(paintedCellCount([map], "mud")).toBe(2);
+    expect(paintedCellCount([map], "cobble")).toBe(0);
+    expect(isBuiltinMaterial("grass")).toBe(true);
+    expect(isBuiltinMaterial("mud")).toBe(false);
+  });
+  it("names new layers after the custom ones already present", () => {
+    const list = defaultTextures();
+    expect(newTextureLayer("a", list, "Texture").name).toBe("Texture 1");
+    list.push(newTextureLayer("a", list, "Texture"));
+    expect(newTextureLayer("b", list, "Texture").name).toBe("Texture 2");
   });
   it("terrain paint lays the chosen material under the brush only", () => {
     const map = world();

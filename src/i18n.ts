@@ -48,6 +48,12 @@ export const ru: Record<string, string> = {
   "Delete texture layer": "Удалить слой текстуры",
   "Add texture layer": "Добавить слой текстуры",
   Texture: "Текстура",
+  New: "Новая",
+  "Edit texture": "Настроить текстуру",
+  "Texture replaced on painted ground:": "Текстура заменена на нарисованной земле:",
+  "Undo brings the old one back.": "Отмена вернёт прежнюю.",
+  "That is many texture layers. Each one uses graphics memory and enlarges the saved project.":
+    "Слоёв текстур уже много. Каждый занимает графическую память и увеличивает сохранённый проект.",
   "That image could not be read.": "Не удалось прочитать картинку.",
   "Deep water": "Глубокая вода",
   "Shallow water": "Мелководье",

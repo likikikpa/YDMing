@@ -97,6 +97,10 @@ import {
   defaultTextures,
   PATTERNS,
   replaceMaterial,
+  TEXTURE_SOFT_LIMIT,
+  isBuiltinMaterial,
+  newTextureLayer,
+  paintedCellCount,
 } from "./materials";
 import {
   setTextureLayers,
@@ -630,13 +634,32 @@ export default function App() {
       changeTextures((list) => {
         list.find((n) => n.id === id)!.image = image;
       }, "Texture image");
+      const cells = project ? paintedCellCount(project.maps, id) : 0;
+      if (cells)
+        notify(
+          `${t("Texture replaced on painted ground:")} ${cells} · ${t("Undo brings the old one back.")}`,
+        );
     } catch {
       notify(t("That image could not be read."));
     }
   }
+  /** Adds a custom texture layer, warning once the soft limit is passed, and selects it. */
+  function addTexture() {
+    const id = uid();
+    changeTextures(
+      (list) => list.push(newTextureLayer(id, list, t("Texture"))),
+      "Add texture layer",
+    );
+    setActiveTexture(id);
+    setBrush((b) => ({ ...b, material: id }));
+    if (textures.length >= TEXTURE_SOFT_LIMIT)
+      notify(
+        `${t("That is many texture layers. Each one uses graphics memory and enlarges the saved project.")} (${textures.length + 1}/${TEXTURE_SOFT_LIMIT})`,
+      );
+  }
   /** Deletes a texture layer; ground painted with it on every map becomes `to`. */
   function deleteTexture(id: string, to: string | null) {
-    if (!project) return;
+    if (!project || isBuiltinMaterial(id)) return;
     const next = structuredClone(project);
     next.textures = (next.textures ?? defaultTextures()).filter(
       (l) => l.id !== id,
@@ -2032,7 +2055,43 @@ export default function App() {
                             <span className="auto-swatch">A</span>
                             <span>{t("Auto")}</span>
                           </button>
+                          <button
+                            title={t("Add texture layer")}
+                            onClick={addTexture}
+                          >
+                            <span className="auto-swatch">
+                              <Plus size={15} />
+                            </span>
+                            <span>{t("New")}</span>
+                          </button>
                         </div>
+                        {(() => {
+                          const l = textures.find((l) => l.id === brush.material);
+                          if (!l) return null;
+                          return (
+                            <div className="texture-actions">
+                              <button
+                                className="button subtle"
+                                onClick={() => {
+                                  setActiveTexture(l.id);
+                                  textureInput.current?.click();
+                                }}
+                              >
+                                <ImagePlus size={13} />
+                                {t(l.image ? "Replace image" : "Use an image")}
+                              </button>
+                              <button
+                                className="button subtle"
+                                onClick={() => {
+                                  setActiveTexture(l.id);
+                                  setPanel("layers");
+                                }}
+                              >
+                                {t("Edit texture")}
+                              </button>
+                            </div>
+                          );
+                        })()}
                       </>
                     )}
                     {tool === "biome" && (
@@ -2552,6 +2611,17 @@ export default function App() {
                 </div>
               </>
             )}
+            <input
+              ref={textureInput}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void uploadTexture(activeTexture, file);
+              }}
+            />
             {panel === "layers" && (
               <>
                 <div className="panel-heading">
@@ -2944,40 +3014,10 @@ export default function App() {
                     </div>
                   );
                 })()}
-                <button
-                  className="button subtle full"
-                  onClick={() => {
-                    const id = uid();
-                    changeTextures(
-                      (list) =>
-                        list.push({
-                          id,
-                          name: `${t("Texture")} ${list.length - BUILTIN_MATERIALS.length + 1}`,
-                          pattern: "mud",
-                          tint: "#6f5a43",
-                          scale: 100,
-                          strength: 60,
-                          visible: true,
-                        }),
-                      "Add texture layer",
-                    );
-                    setActiveTexture(id);
-                  }}
-                >
+                <button className="button subtle full" onClick={addTexture}>
                   <Plus size={15} />
                   {t("Add texture layer")}
                 </button>
-                <input
-                  ref={textureInput}
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    e.target.value = "";
-                    if (file) void uploadTexture(activeTexture, file);
-                  }}
-                />
               </>
             )}
             {panel === "library" && (
