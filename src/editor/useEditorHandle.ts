@@ -44,6 +44,7 @@ export function useEditorHandle(
       const ctx = canvas.getContext("2d")!;
       ctx.scale(scale, scale);
       drawMap(ctx, latest.current.map, {
+        images: latest.current.images,
         player,
         contours: latest.current.contours,
         vector: true,

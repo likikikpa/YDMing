@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { download, slug } from "../export";
+import { migrateImages, pruneImages } from "../images";
 import { validateProject } from "../storage";
 import type { Project } from "../types";
 
@@ -24,7 +25,9 @@ export function useProjectFiles({
   function saveProjectFile() {
     if (!project) return;
     download(
-      new Blob([JSON.stringify(project)], { type: "application/json" }),
+      new Blob([JSON.stringify(pruneImages(project))], {
+        type: "application/json",
+      }),
       `${slug(project.name)}.ydming`,
     );
     setMenu(false);
@@ -33,7 +36,8 @@ export function useProjectFiles({
     try {
       if (file.size > 60_000_000)
         throw new Error("Project files must be smaller than 60 MB.");
-      const p = validateProject(JSON.parse(await file.text()));
+      // A file from before images were kept once per world embeds them in every stamp.
+      const p = migrateImages(validateProject(JSON.parse(await file.text())));
       await importWorld(p);
       setMenu(false);
       notify(lang === "ru" ? "Мир открыт." : "World opened.");

@@ -4,7 +4,10 @@ import {
   spriteFromStamp,
   spriteSize,
   trailSpacing,
-  withStampCredits,
+  imagesWithSprite,
+  spriteAssets,
+  spriteImage,
+  withStampAssets,
 } from "./stamp-brush";
 import { isScatterSprite } from "./symbols";
 import { defaultSettings } from "./types";
@@ -38,6 +41,7 @@ describe("stamp brush", () => {
       src: banner.image,
       name: "Red banner",
       aspect: 2,
+      imageId: expect.stringMatching(/^i/),
       credit,
     });
   });
@@ -84,12 +88,82 @@ describe("stamp brush", () => {
       commercial: false,
       updatedAt: "",
     };
-    expect(withStampCredits(project, map, [credit])).toBe(project);
+    const assets = { credits: [credit] };
+    expect(withStampAssets(project, map, assets)).toBe(project);
     const placed = { ...map, objects: [banner] };
-    expect(withStampCredits(project, placed, [credit]).credits).toEqual([
-      credit,
-    ]);
+    expect(withStampAssets(project, placed, assets).credits).toEqual([credit]);
     const credited = { ...project, credits: [credit] };
-    expect(withStampCredits(credited, placed, [credit])).toBe(credited);
+    expect(withStampAssets(credited, placed, assets)).toBe(credited);
+  });
+
+  describe("pictures", () => {
+    const sprite = spriteFromStamp(banner, credit);
+    const world = (objects: MapObject[], images?: Record<string, string>) => {
+      const map = { ...createEmptyMap("world", defaultSettings), objects };
+      const project: Project = {
+        version: 1,
+        id: "w",
+        name: "W",
+        maps: [map],
+        activeMapId: map.id,
+        credits: [],
+        commercial: false,
+        updatedAt: "",
+        ...(images && { images }),
+      };
+      return { project, map };
+    };
+
+    it("gives an imported stamp a picture id, and a bundled sprite none", () => {
+      expect(sprite.imageId).toMatch(/^i/);
+      expect(sprite.imageId).toBe(spriteFromStamp(banner).imageId);
+      const bundled = { src: "/assets/cartography/castle.png", name: "c" };
+      expect(spriteFromStamp({ ...banner, image: bundled.src }).imageId).toBe(
+        undefined,
+      );
+    });
+
+    it("places a copy that names the picture instead of holding it", () => {
+      expect(spriteImage(sprite)).toEqual({ imageId: sprite.imageId });
+      expect(
+        spriteImage({ src: "/assets/cartography/castle.png", name: "c" }),
+      ).toEqual({ image: "/assets/cartography/castle.png" });
+    });
+
+    it("adds the picture to the world with the first placed copy, once", () => {
+      const copy = {
+        ...banner,
+        id: "copy",
+        image: undefined,
+        imageId: sprite.imageId,
+      };
+      const empty = world([]);
+      expect(
+        withStampAssets(empty.project, empty.map, spriteAssets(sprite)),
+      ).toBe(empty.project);
+      const placed = world([copy]);
+      const next = withStampAssets(
+        placed.project,
+        placed.map,
+        spriteAssets(sprite),
+      );
+      expect(next.images).toEqual({ [sprite.imageId!]: banner.image });
+      expect(next.credits).toEqual([credit]);
+      expect(withStampAssets(next, next.maps[0], spriteAssets(sprite))).toBe(
+        next,
+      );
+    });
+
+    it("shows the picture while the stamp is being drawn", () => {
+      expect(imagesWithSprite(undefined, sprite)).toEqual({
+        [sprite.imageId!]: banner.image,
+      });
+      const table = { [sprite.imageId!]: banner.image! };
+      expect(imagesWithSprite(table, sprite)).toBe(table);
+      expect(imagesWithSprite(undefined, undefined)).toBeUndefined();
+      expect(imagesWithSprite(table, { src: "/assets/a.png", name: "a" })).toBe(
+        table,
+      );
+    });
   });
 });

@@ -14,7 +14,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "start": "node server.mjs",
     "test": "vitest run && npm run test:server",
-    "test:server": "node --test tests/server.test.mjs tests/sprites.test.mjs",
+    "test:server": "node --test tests/server.test.mjs tests/sprites.test.mjs tests/auto-search.test.mjs",
     "check:paths": "node scripts/check-paths.mjs",
     "check:runtime": "node scripts/check-runtime.mjs",
     "import:srd": "node scripts/import-srd.mjs",

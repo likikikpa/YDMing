@@ -196,13 +196,13 @@ test("all sources failing with no sprites reports the error", async (t) => {
   );
   const reply = await fetch(base + "/api/search?source=auto&q=zzqx");
   assert.equal(reply.status, 502);
-  assert.match((await reply.json()).error, /OpenGameArt|Openverse/);
+  assert.match((await reply.json()).error, /Try again in a minute/);
 });
 
 test("a source that hangs is dropped after the wait", async () => {
-  const { searchAuto } = await import("../server-sprites.mjs");
+  const { searchAuto } = await import("../server-auto.mjs");
   const started = Date.now();
-  const results = await searchAuto({
+  const { results } = await searchAuto({
     index,
     fetchImpl: (url) =>
       String(url).includes("opengameart")

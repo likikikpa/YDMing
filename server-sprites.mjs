@@ -2,11 +2,6 @@
 // (data/sprite-index.json, built by scripts/build-sprite-index.mjs) and the
 // rules that decide whether a query wants sprites or pictures.
 import { readFileSync } from "node:fs";
-import {
-  searchCommons,
-  searchOpenGameArt,
-  searchOpenverse,
-} from "./server-sources.mjs";
 
 const ART_WORDS = new Set(
   "realistic realism photo photograph photography picture painting painted artwork art illustration render rendering portrait scenery concept detailed hd 4k wallpaper image real".split(
@@ -25,6 +20,9 @@ const MODERN = new Set(
     " ",
   ),
 );
+
+/** Words that describe more than they name: they only fill what the other words leave. */
+const GENERIC = new Set("old new big small large little tiny huge".split(" "));
 
 /** Words a DM types, and the names the sprite sets use for the same thing. */
 const SYNONYMS = {
@@ -49,7 +47,15 @@ const SYNONYMS = {
   temple: ["church", "shrine"],
   fort: ["castle", "tower", "fortress"],
   castle: ["fort", "fortress", "tower"],
-  sea: ["wave", "water"],
+  sea: ["ocean", "wave", "water"],
+  ocean: ["sea", "wave", "water"],
+  port: ["harbor", "harbour", "dock", "pier", "wharf", "anchor"],
+  harbor: ["port", "harbour", "dock", "pier", "wharf", "anchor"],
+  harbour: ["port", "harbor", "dock", "pier", "wharf", "anchor"],
+  bridge: ["arch"],
+  tower: ["turret", "keep"],
+  swamp: ["marsh", "bog"],
+  desert: ["dune", "cactus"],
   lake: ["water", "pond"],
   monster: ["dragon", "beast"],
 };
@@ -139,8 +145,10 @@ export function loadSpriteIndex(
 }
 
 /**
- * Sprites whose name has every query word (or a synonym of it), best first:
- * exact words beat synonyms, short names beat long ones, and ink sprites suit
+ * Sprites whose name has a query word (or a synonym of it), best first: those
+ * with every word, then those with some, since few names hold two words
+ * ("sea port" has no sprite of its own, but sea and port sprites help).
+ * Exact words beat synonyms, short names beat long ones, and ink sprites suit
  * parchment and atlas maps while coloured ones suit painted maps.
  */
 export function searchIndex(
@@ -149,27 +157,46 @@ export function searchIndex(
   { style = "parchment", limit = 30 } = {},
 ) {
   if (!terms.length) return [];
-  const scored = [];
+  const byHits = terms.map(() => []),
+    single = terms.map(() => []);
   for (const e of index.entries) {
     let score = 0;
-    for (const t of terms) {
+    const hits = [];
+    terms.forEach((t, i) => {
       if (e.tags.has(t)) score += 3;
       else if (SYNONYMS[t]?.some((s) => e.tags.has(s))) score += 1.5;
-      else {
-        score = -1;
-        break;
-      }
-    }
-    if (score < 0) continue;
-    score -= 0.2 * Math.max(0, e.tags.size - terms.length);
+      else return;
+      hits.push(i);
+    });
+    if (!hits.length) continue;
+    score -= 0.2 * Math.max(0, e.tags.size - hits.length);
     for (const tag of e.tags) if (MODERN.has(tag)) score -= 2;
     if ((style === "painted") === (e.look === "colour")) score += 0.5;
-    scored.push({ score, result: e.result });
+    const hit = { score, result: e.result };
+    if (hits.length > 1) byHits[hits.length - 1].push(hit);
+    else single[hits[0]].push(hit);
   }
-  return scored
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map((s) => s.result);
+  const best = (a, b) => b.score - a.score;
+  // Sprites with the most of the words first: all of them, then fewer.
+  const out = [];
+  for (let n = terms.length - 1; n >= 1; n--)
+    out.push(...byHits[n].sort(best).map((h) => h.result));
+  // Sprites with a single word: the best of each word in turn, so a word with
+  // fifty sprites does not push out another's. Weak words ("old") only fill
+  // what the other words leave.
+  const seen = new Set(out);
+  const lists = (weak) =>
+    terms
+      .map((t, i) => (GENERIC.has(t) === weak ? single[i].sort(best) : []))
+      .filter((l) => l.length);
+  for (const group of [lists(false), lists(true)])
+    for (let n = 0; out.length < limit && group.some((l) => n < l.length); n++)
+      for (const list of group)
+        if (n < list.length && !seen.has(list[n].result)) {
+          seen.add(list[n].result);
+          out.push(list[n].result);
+        }
+  return out.slice(0, limit);
 }
 
 /** game-icons are white on a black square; a map stamp wants dark ink on nothing. */
@@ -177,58 +204,3 @@ export const inkIcon = (svg, ink = "#3b2a1a") =>
   svg
     .replace(/<path d="M0 0h512v512H0z"\s*\/>/, "")
     .replace(/fill="#fff(?:fff)?"/gi, `fill="${ink}"`);
-
-/**
- * The default search. A sprite query shows the index first, then OpenGameArt
- * and Openverse drawings; a picture query shows Wikimedia and Openverse
- * pictures first, then a few sprites. A source that fails is skipped as long
- * as another one has results.
- */
-export async function searchAuto({
-  index,
-  fetchImpl,
-  userAgent,
-  q,
-  style,
-  wait = 6000,
-}) {
-  const { mode, terms, text } = classifyQuery(q);
-  const local = searchIndex(index, terms, {
-    style,
-    limit: mode === "sprite" ? 30 : 8,
-  });
-  const ask = { fetchImpl, userAgent, mode };
-  // A slow source must not hold up the others: past `wait` it counts as failed.
-  const within = (search, name) => {
-    let timer;
-    const late = new Promise((_, reject) => {
-      timer = setTimeout(
-        () => reject(new Error(`${name} did not answer in time.`)),
-        wait,
-      );
-    });
-    return Promise.race([search, late]).finally(() => clearTimeout(timer));
-  };
-  const settled = await Promise.allSettled(
-    mode === "sprite"
-      ? [
-          within(searchOpenGameArt({ ...ask, q: text }), "OpenGameArt"),
-          within(searchOpenverse({ ...ask, q: text }), "Openverse"),
-        ]
-      : [
-          within(searchCommons({ ...ask, q: text }), "Wikimedia"),
-          within(searchOpenverse({ ...ask, q: text }), "Openverse"),
-        ],
-  );
-  const remote = settled.flatMap((s) =>
-    s.status === "fulfilled" ? s.value : [],
-  );
-  const results =
-    mode === "sprite" ? [...local, ...remote] : [...remote, ...local];
-  if (!results.length) {
-    const failed = settled.find((s) => s.status === "rejected");
-    if (failed) throw failed.reason;
-  }
-  const seen = new Set();
-  return results.filter((r) => !seen.has(r.image) && seen.add(r.image));
-}

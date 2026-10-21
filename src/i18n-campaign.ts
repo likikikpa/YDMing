@@ -35,4 +35,6 @@ export const campaignRu: Record<string, string> = {
     "Не удалось вставить. Скопируйте меньше объектов и повторите.",
   "Nothing copied yet. Select something and press Ctrl C.":
     "Пока ничего не скопировано. Выберите объекты и нажмите Ctrl C.",
+  "No results. Some sources did not answer; try again in a minute.":
+    "Ничего не найдено. Часть источников не ответила; повторите через минуту.",
 };

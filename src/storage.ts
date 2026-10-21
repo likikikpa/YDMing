@@ -1,4 +1,5 @@
 import { getWithLegacy } from "./legacy-keys";
+import { migrateImages, pruneImages } from "./images";
 import { BUILTIN_MATERIALS, PATTERNS } from "./materials";
 import { isNoteUrl } from "./note-link";
 import { CELL, MAX_CELLS } from "./mapsize";
@@ -23,11 +24,15 @@ function mapGrids(project: Project, convert: (v: ArrayLike<number>) => ArrayLike
     }),
   } as Project;
 }
-/** Grids as Float32Array for IndexedDB, and back to plain arrays when loaded. */
+/**
+ * Grids as Float32Array for IndexedDB, without pictures no stamp uses; and
+ * back to plain arrays when loaded, with pictures that old saves embed in
+ * every stamp moved into the world's image table.
+ */
 export const packProject = (project: Project) =>
-  mapGrids(project, (v) => Float32Array.from(v));
+  mapGrids(pruneImages(project), (v) => Float32Array.from(v));
 export const unpackProject = (project: Project) =>
-  mapGrids(project, (v) => Array.from(v));
+  migrateImages(mapGrids(project, (v) => Array.from(v)));
 /** The single project saved before worlds existed; `worlds.ts` moves it into the world list. */
 export async function loadProject(): Promise<Project | undefined> {
   const project = await getWithLegacy<Project>(key);
@@ -123,6 +128,11 @@ export function validateProject(value: unknown): Project {
       throw new Error("Note links must be obsidian:// or web links.");
     for (const o of m.objects) {
       if (
+        o.imageId !== undefined &&
+        (typeof o.imageId !== "string" || !p.images?.[o.imageId])
+      )
+        throw new Error("The project is missing an image that a stamp uses.");
+      if (
         o.image &&
         !/^data:image\/(png|jpeg|webp);base64,/.test(o.image) &&
         // Sprites that ship with the app are referenced by path, not copied in.
@@ -133,6 +143,19 @@ export function validateProject(value: unknown): Project {
         );
     }
   }
+  if (
+    p.images !== undefined &&
+    (!p.images ||
+      typeof p.images !== "object" ||
+      Array.isArray(p.images) ||
+      !Object.entries(p.images).every(
+        ([id, src]) =>
+          /^[\w-]{1,64}$/.test(id) &&
+          typeof src === "string" &&
+          /^data:image\/(png|jpeg|webp);base64,/.test(src),
+      ))
+  )
+    throw new Error("The project contains an invalid image.");
   if (
     p.textures !== undefined &&
     (!Array.isArray(p.textures) ||

@@ -1,5 +1,6 @@
 import { objectBounds } from "./extent";
 import { idSet } from "./id-set";
+import { withImages } from "./images";
 import { uid } from "./types";
 import type {
   Credit,
@@ -19,6 +20,8 @@ export interface Clip {
   paths: MapPath[];
   /** Credits of the copied imported stamps. */
   credits: Credit[];
+  /** Pictures of the copied imported stamps, so they can be pasted into another world. */
+  images: Record<string, string>;
   /** Middle of what was copied, so a paste can centre on the pointer. */
   centre: Point;
 }
@@ -36,6 +39,10 @@ export function copySelection(
     paths = map.paths.filter((p) => chosen.has(p.id) && open(p.layer));
   if (!objects.length && !paths.length) return null;
   const used = new Set(objects.map((o) => o.creditId));
+  const images: Record<string, string> = {};
+  for (const o of objects)
+    if (o.imageId && project.images?.[o.imageId])
+      images[o.imageId] = project.images[o.imageId];
   const box = objectBounds(objects);
   for (const p of paths)
     for (const q of p.points) {
@@ -48,6 +55,7 @@ export function copySelection(
     objects,
     paths,
     credits: project.credits.filter((c) => used.has(c.id)),
+    images,
     centre: { x: (box.left + box.right) / 2, y: (box.top + box.bottom) / 2 },
   });
 }
@@ -119,16 +127,20 @@ export function pasteClip(
     paths: [...map.paths, ...paths],
   };
   return {
-    project: {
-      ...project,
-      maps: project.maps.map((m) => (m.id === map.id ? next : m)),
-      credits: [
-        ...project.credits,
-        ...clip.credits.filter(
-          (c) => !project.credits.some((k) => k.id === c.id),
-        ),
-      ],
-    },
+    project: withImages(
+      {
+        ...project,
+        maps: project.maps.map((m) => (m.id === map.id ? next : m)),
+        credits: [
+          ...project.credits,
+          ...clip.credits.filter(
+            (c) => !project.credits.some((k) => k.id === c.id),
+          ),
+        ],
+      },
+      next,
+      clip.images,
+    ),
     ids,
   };
 }
