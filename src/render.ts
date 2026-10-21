@@ -237,6 +237,8 @@ function drawStroke(ctx: CanvasRenderingContext2D, s: Stroke) {
 interface PaintCache {
   ids: string[];
   canvas: HTMLCanvasElement;
+  /** Reused surface for the committed strokes plus the one being drawn. */
+  scratch?: HTMLCanvasElement;
 }
 const paintCaches = new Map<string, PaintCache>();
 /**
@@ -248,6 +250,7 @@ function layerPaint(
   layerId: string,
   strokes: Stroke[],
   liveId?: string,
+  clip?: { x: number; y: number; w: number; h: number },
 ) {
   const live = liveId ? strokes.find((s) => s.id === liveId) : undefined,
     stable = live ? strokes.filter((s) => s !== live) : strokes,
@@ -277,10 +280,20 @@ function layerPaint(
     cache.ids.push(stable[i].id);
   }
   if (!live) return cache.canvas;
-  const scratch = bitmap(map.width, map.height),
+  // The stroke being drawn goes on a reused copy, so an eraser stroke still
+  // cuts only this layer; with a clip just that part is copied and drawn.
+  const scratch = (cache.scratch ??= bitmap(map.width, map.height)),
     sc = scratch.getContext("2d")!;
+  sc.save();
+  if (clip) {
+    sc.beginPath();
+    sc.rect(clip.x, clip.y, clip.w, clip.h);
+    sc.clip();
+  }
+  sc.clearRect(0, 0, map.width, map.height);
   sc.drawImage(cache.canvas, 0, 0);
   drawStroke(sc, live);
+  sc.restore();
   return scratch;
 }
 function drawObject(
@@ -467,7 +480,7 @@ export function drawMap(
         ctx.restore();
       } else
         ctx.drawImage(
-          layerPaint(map, l.id, strokes, options.liveStroke),
+          layerPaint(map, l.id, strokes, options.liveStroke, clip),
           0,
           0,
           map.width,

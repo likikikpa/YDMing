@@ -87,7 +87,39 @@ interface Props {
   }) => void;
 }
 type View = { x: number; y: number; scale: number };
-type Frame = { map: MapData; dirty?: CellRect; live?: string };
+/** Map pixels that changed; a frame without one redraws the whole map. */
+type Area = { x: number; y: number; w: number; h: number };
+type Frame = {
+  map: MapData;
+  dirty?: CellRect;
+  live?: string;
+  area?: Area;
+};
+/** The box around `points`, grown by `pad` on every side. */
+function areaAround(points: Point[], pad: number): Area {
+  const xs = points.map((q) => q.x),
+    ys = points.map((q) => q.y),
+    x = Math.floor(Math.min(...xs) - pad),
+    y = Math.floor(Math.min(...ys) - pad);
+  return {
+    x,
+    y,
+    w: Math.ceil(Math.max(...xs) + pad) - x,
+    h: Math.ceil(Math.max(...ys) + pad) - y,
+  };
+}
+const unionAreas = (a?: Area, b?: Area): Area | undefined =>
+  !a || !b
+    ? undefined
+    : areaAround(
+        [
+          { x: a.x, y: a.y },
+          { x: a.x + a.w, y: a.y + a.h },
+          { x: b.x, y: b.y },
+          { x: b.x + b.w, y: b.y + b.h },
+        ],
+        0,
+      );
 
 const PAINT_TOOLS: Tool[] = [
   "brush",
@@ -358,9 +390,11 @@ export const Editor = forwardRef<EditorHandle, Props>(
       // A terrain edit changes only the cells under the brush, plus the
       // coastlines and symbols that reach a little past them.
       const area =
-        f.dirty && !resized && tiles.current.length
-          ? dirtyArea(f.map, f.dirty)
-          : undefined;
+        resized || !tiles.current.length
+          ? undefined
+          : f.dirty
+            ? dirtyArea(f.map, f.dirty)
+            : f.area;
       drawMap(canvas.getContext("2d")!, f.map, {
         contours: latest.current.contours,
         player: latest.current.player,
@@ -397,12 +431,16 @@ export const Editor = forwardRef<EditorHandle, Props>(
       m: MapData = latest.current.map,
       dirty?: CellRect,
       live?: string,
+      area?: Area,
     ) => {
-      const pending = queued.current;
+      const pending = queued.current,
+        same = m === pending?.map;
       queued.current = {
         map: m,
-        dirty: m === pending?.map ? unionRects(pending?.dirty, dirty) : dirty,
-        live: live ?? (m === pending?.map ? pending?.live : undefined),
+        dirty: same ? unionRects(pending?.dirty, dirty) : dirty,
+        live: live ?? (same ? pending?.live : undefined),
+        // Only frames that all name their area can skip the full redraw.
+        area: pending ? (same ? unionAreas(pending.area, area) : undefined) : area,
       };
       if (frame.current) return;
       frame.current = requestAnimationFrame(() => {
@@ -1177,7 +1215,10 @@ export const Editor = forwardRef<EditorHandle, Props>(
         drawOverlay(screen);
         return;
       }
+      let removed = false,
+        paintArea: Area | undefined;
       if (p.tool === "eraser") {
+        const things = m.objects.length + m.paths.length;
         // Steps along the drag so a fast swipe cannot skip over a stamp.
         const step = Math.max(2, p.brush.size / 4),
           n = Math.ceil(
@@ -1191,6 +1232,8 @@ export const Editor = forwardRef<EditorHandle, Props>(
           if (eraseAt(m, at, p.brush.size / 2, (l) => editable(m, l)))
             d.erased = true;
         }
+        // Stamps and whole paths can reach far beyond the brush.
+        removed = m.objects.length + m.paths.length !== things;
         d.last = world;
       }
       if (p.tool === "select" && d.objects.length) {
@@ -1276,15 +1319,28 @@ export const Editor = forwardRef<EditorHandle, Props>(
           }
         });
       } else if (d.stroke) {
-        if (["line", "rectangle", "ellipse"].includes(p.tool))
+        const before = d.stroke.points,
+          from = before.length;
+        if (["line", "rectangle", "ellipse"].includes(p.tool)) {
           d.stroke.points = [d.start, world];
-        else {
+          // A shape is redrawn whole, so the area covers its old and new extent.
+          paintArea = areaAround(
+            [d.start, before[before.length - 1], world],
+            d.stroke.size + 4,
+          );
+        } else {
           // Every pointer sample since the last frame, so fast strokes stay smooth.
           const samples = e.nativeEvent.getCoalescedEvents?.() ?? [];
           if (samples.length > 1)
             for (const s of samples)
               d.stroke.points.push(worldPoint(getPoint(s)));
           else d.stroke.points.push(world);
+          // Only the new stretch of the stroke, plus the eraser's reach into
+          // generated mountains and forests, changes on screen.
+          paintArea = areaAround(
+            d.stroke.points.slice(from - 1),
+            d.stroke.size + (p.tool === "eraser" ? 74 : 4),
+          );
         }
       } else if (
         p.tool === "stamp" &&
@@ -1306,7 +1362,12 @@ export const Editor = forwardRef<EditorHandle, Props>(
         drawOverlay(screen);
         return;
       }
-      refresh(m, undefined, d.stroke && !p.brush.mask ? d.stroke.id : undefined);
+      refresh(
+        m,
+        undefined,
+        d.stroke && !p.brush.mask ? d.stroke.id : undefined,
+        p.brush.mask || removed || p.tool === "fill" ? undefined : paintArea,
+      );
       drawOverlay(screen);
     }
     function pointerUp(e: React.PointerEvent) {
