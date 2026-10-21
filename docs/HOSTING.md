@@ -82,13 +82,22 @@ The Docker image sets these for you.
 
 ## About image search and privacy
 
-Search is done by **your server**, not by the visitor's browser: it queries
-Wikimedia Commons or Openverse, keeps only results with a licence that permits
-reuse and modification, and relays the thumbnails. Upstream services see your
+Search is done by **your server**, not by the visitor's browser. The default
+**Auto** source looks for sprites first: a short query such as `clouds` is
+answered from a local index of map-ready icons (`data/sprite-index.json`:
+game-icons.net and the bundled Kenney sprites), then OpenGameArt (CC0 2D art)
+and Openverse illustrations. A query that asks for a picture (`cloud realistic
+picture`, or a long description) goes to Wikimedia Commons photos and Openverse
+first. Wikimedia Commons and Openverse can also be picked by hand. The server
+keeps only results with a licence that permits reuse and modification, and
+relays the thumbnails; game-icons are recoloured to map ink on the way. Upstream services see your
 server's address, never the visitor's. The proxy is rate limited per visitor,
 caches results for 24 hours, only relays images that appeared in a search
 result, caps image size at 10 MB and serves images with a sandboxing header.
 Set `YDMING_SEARCH=off` if you would rather not make any outgoing requests.
+
+The sprite index ships with the app. `npm run index:sprites` rebuilds it from
+the current game-icons.net set (it needs internet access).
 
 ## Without Docker
 

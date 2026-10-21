@@ -28,6 +28,12 @@ export function readSearchReply(ok: boolean, body: string): SearchReply {
   return { problem: "no-server" };
 }
 
+/** Where the browser loads a result's image: sprites that ship with the app directly, others through the server. */
+export const assetUrl = (url: string) =>
+  url.startsWith("/assets/")
+    ? url
+    : `/api/image?${new URLSearchParams({ url })}`;
+
 /** Runs a search; a request that never reaches any server means no connection. */
 export async function searchImages(url: string): Promise<SearchReply> {
   let response: Response;

@@ -15,7 +15,8 @@ COPY package.json package-lock.json ./
 # The editor is bundled at build time; only the small Express server runs here.
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
-COPY server.mjs server-app.mjs server-api.mjs server-sources.mjs ./
+COPY server.mjs server-app.mjs server-api.mjs server-sources.mjs server-sprites.mjs ./
+COPY data ./data
 USER node
 EXPOSE 5173
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

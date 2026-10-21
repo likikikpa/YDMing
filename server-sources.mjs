@@ -1,11 +1,16 @@
 // Upstream image sources for the search proxy in server-api.mjs. Each returns
 // results already mapped to { id, name, author, license, url, image, thumbnail }.
+// `mode` comes from the automatic search: "sprite" asks for drawings, "art" for
+// pictures; without it a source behaves as when picked by hand.
 
-export async function searchOpenverse({ fetchImpl, userAgent, q }) {
+export async function searchOpenverse({ fetchImpl, userAgent, q, mode }) {
   const query = new URLSearchParams({
-    q: `${q} map icon`,
+    q: mode ? q : `${q} map icon`,
     page_size: "20",
     license_type: "commercial,modification",
+    ...(mode === "sprite"
+      ? { category: "illustration", extension: "svg,png" }
+      : {}),
   });
   const response = await fetchImpl(
     `https://api.openverse.org/v1/images/?${query}`,
@@ -30,12 +35,17 @@ export async function searchOpenverse({ fetchImpl, userAgent, q }) {
   }));
 }
 
-export async function searchCommons({ fetchImpl, userAgent, q }) {
+export async function searchCommons({ fetchImpl, userAgent, q, mode }) {
   const params = new URLSearchParams({
     action: "query",
     format: "json",
     generator: "search",
-    gsrsearch: `${q} filetype:bitmap|drawing`,
+    gsrsearch:
+      mode === "sprite"
+        ? `${q} filemime:image/svg+xml`
+        : mode === "art"
+          ? `${q} filetype:bitmap`
+          : `${q} filetype:bitmap|drawing`,
     gsrnamespace: "6",
     gsrlimit: "20",
     prop: "imageinfo",
@@ -77,4 +87,51 @@ export async function searchCommons({ fetchImpl, userAgent, q }) {
         /CC|public domain/i.test(r.license) &&
         !/\bNC\b|\bND\b/i.test(r.license),
     );
+}
+
+const OGA = "https://opengameart.org";
+const ENTITIES = { amp: "&", quot: '"', "#039": "'", lt: "<", gt: ">" };
+const decode = (text) =>
+  text.replace(/&(amp|quot|#039|lt|gt);/g, (_, e) => ENTITIES[e]);
+
+/** Reads OpenGameArt's search page. The search asks for CC0 2D art only. */
+export function readOpenGameArt(html) {
+  const results = [];
+  for (const block of html.split('<div class="views-row').slice(1)) {
+    const link =
+      /class="art-preview-title"><a href="\/content\/([\w-]+)">([^<]+)<\/a>/.exec(
+        block,
+      );
+    const thumb =
+      /<img src='(https:\/\/opengameart\.org\/sites\/default\/files\/styles\/thumbnail\/public\/[^']+)'/.exec(
+        block,
+      );
+    if (!link || !thumb) continue;
+    results.push({
+      id: `oga:${link[1]}`,
+      name: decode(link[2]).trim(),
+      author: "OpenGameArt",
+      license: "CC0",
+      url: `${OGA}/content/${link[1]}`,
+      image: thumb[1].replace("/styles/thumbnail/public/", "/"),
+      thumbnail: thumb[1],
+    });
+  }
+  return results;
+}
+
+export async function searchOpenGameArt({ fetchImpl, userAgent, q }) {
+  const params = new URLSearchParams({
+    keys: q,
+    "field_art_type_tid[]": "9",
+    "field_art_licenses_tid[]": "4",
+    sort_by: "count",
+    sort_order: "DESC",
+  });
+  const response = await fetchImpl(`${OGA}/art-search-advanced?${params}`, {
+    signal: AbortSignal.timeout(12000),
+    headers: { "User-Agent": userAgent },
+  });
+  if (!response.ok) throw new Error(`OpenGameArt returned ${response.status}.`);
+  return readOpenGameArt(await response.text());
 }

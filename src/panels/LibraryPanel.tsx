@@ -1,4 +1,5 @@
 import kenney from "../data/kenney.json";
+import { assetUrl } from "../search";
 import { Field } from "../ui/Field";
 import {
   BookOpen,
@@ -129,6 +130,7 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
                 value={webSource}
                 onChange={(e) => setWebSource(e.target.value)}
               >
+                <option value="auto">{t("Auto")}</option>
                 <option value="commons">Wikimedia Commons</option>
                 <option value="openverse">Openverse</option>
               </select>
@@ -151,7 +153,7 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
             {webResults.map((asset) => (
               <button key={asset.id} onClick={() => importWeb(asset)}>
                 <img
-                  src={`/api/image?${new URLSearchParams({ url: asset.thumbnail })}`}
+                  src={assetUrl(asset.thumbnail)}
                   alt={asset.name}
                   loading="lazy"
                 />

@@ -1,6 +1,6 @@
 # YDMing
 
-Browser map studio (React + TypeScript + Vite, PixiJS for the map view). Maps are saved in the browser; `server.mjs` serves the build and the image-search proxy (`/api/search`, `/api/image`).
+Browser map studio for dungeon masters (React + TypeScript + Vite, PixiJS for the map view). A world (`Project`) holds a tree of maps; worlds are saved in the browser; `server.mjs` serves the build and the image-search proxy (`/api/search`, `/api/image`).
 
 ## Commands
 
@@ -17,7 +17,8 @@ CI (`.github/workflows/linux.yml`) runs typecheck, tests, build, a server smoke 
 - `src/app/`: `useAppModel` builds the app state from small hooks, each with one job (`useProjectStore` for the project and undo, `useToolState`, `useTextureLayers`, `useGenerator`, `useObjectActions`, `useLibrary`, `useProjectFiles`, `useKeyboardShortcuts`, ...). A hook gets only the earlier hooks it needs, so the order in `useAppModel` matters. `constants.ts` holds tool tables and shared types.
 - `src/layout/` (top bar, tool rail, canvas, tool card, sidebar, status bar), `src/panels/` (Generator, Layers, Library, History, More tools, Rooms), `src/modals/`, `src/ui/` (shared buttons, tooltip, fields): components take `app: ReadyApp` and destructure what they use.
 - `src/editor/`: the map canvas. `useEditorCore` holds every ref; `overlay`, `rendering`, `sculpting`, `stamps`, `pinch` and the `pointer-*` files each build on the earlier ones, composed in `Editor.tsx`.
-- Pure logic with tests lives in the root of `src/`: `sculpt.ts`, `materials.ts`, `erase.ts`, `search.ts`, `storage.ts`, `generator.ts`. Rendering is `render.ts` and `terrain-render.ts`.
+- Pure logic with tests lives in the root of `src/`: `sculpt.ts`, `materials.ts`, `erase.ts`, `search.ts`, `storage.ts`, `generator.ts`, `worlds.ts` (saved worlds), `map-tree.ts` (map parents and stamp links), `note-link.ts` (Obsidian links). Rendering is `render.ts` and `terrain-render.ts`.
+- Server: `server-app.mjs` (Express app), `server-api.mjs` (the search proxy), `server-sources.mjs` (Wikimedia, Openverse, OpenGameArt), `server-sprites.mjs` (the sprite index and the sprite-or-picture rules of the Auto search). `data/sprite-index.json` is built by `npm run index:sprites`; the Dockerfile copies every server file and `data/`, so add new ones there.
 
 ## Keep files small
 

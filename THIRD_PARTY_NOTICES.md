@@ -16,6 +16,10 @@ The Kenney Cartography Pack (83 symbol sprites) and Kenney Medieval RTS (126 spr
 
 Original package licences are included in `public/assets/cartography/License.txt` and `public/assets/medieval/License.txt`. Pack downloads and source URLs are recorded in `scripts/import-kenney.mjs`. Sprite names and pack metadata appear in `src/data/kenney.json`.
 
+## Sprite search index
+
+`data/sprite-index.json` lists the names and paths of the icons in the game-icons.net collection (https://game-icons.net, https://github.com/game-icons/icons) so the image search can find them. The icons are licensed under CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/) by their authors (Lorc, Delapouite and others, credited per icon); they are not bundled but loaded on demand from cdn.jsdelivr.net. When one is imported, YDMing records its author, licence and source page in the project credits. OpenGameArt search results are limited to CC0 2D art.
+
 ## Runtime imports
 
 Images imported from external libraries remain subject to their own licences. YDMing retains the asset's author, licence, and source URL in the project and credits export. Private/local assets remain the user's responsibility to license. Non-commercial licences are flagged when a project is marked commercial.

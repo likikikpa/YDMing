@@ -3,7 +3,7 @@ import { set } from "idb-keyval";
 import { fitImage } from "../assets";
 import { getWithLegacy } from "../legacy-keys";
 import type { BrushSettings } from "../editor/types";
-import { searchImages } from "../search";
+import { assetUrl, searchImages } from "../search";
 import { uid } from "../types";
 import type { AssetResult, Credit, MapObject, Project } from "../types";
 import { emptyFit } from "./constants";
@@ -42,7 +42,7 @@ export function useLibrary({
   const [assetSearch, setAssetSearch] = useState("");
   const [assetPack, setAssetPack] = useState("cartography");
   const [webQuery, setWebQuery] = useState("");
-  const [webSource, setWebSource] = useState("commons");
+  const [webSource, setWebSource] = useState("auto");
   const [webResults, setWebResults] = useState<AssetResult[]>([]);
   const [webBusy, setWebBusy] = useState(false);
   const [webError, setWebError] = useState("");
@@ -101,13 +101,17 @@ export function useLibrary({
       clearTimeout(timer);
     };
   }, [fitSource, fitSettings]);
+  // Sprites that match the open map's style rank first.
+  const mapStyle = () =>
+    project?.maps.find((m) => m.id === project.activeMapId)?.settings.style ||
+    "parchment";
   async function searchWeb() {
     if (!webQuery.trim()) return;
     setWebBusy(true);
     setWebError("");
     try {
       const reply = await searchImages(
-        `/api/search?${new URLSearchParams({ q: webQuery, source: webSource, commercial: String(project?.commercial || false) })}`,
+        `/api/search?${new URLSearchParams({ q: webQuery, source: webSource, style: mapStyle(), commercial: String(project?.commercial || false) })}`,
       );
       if ("results" in reply) {
         setWebResults(reply.results);
@@ -129,9 +133,7 @@ export function useLibrary({
   async function importWeb(asset: AssetResult) {
     try {
       setWebBusy(true);
-      const response = await fetch(
-        `/api/image?${new URLSearchParams({ url: asset.image })}`,
-      );
+      const response = await fetch(assetUrl(asset.image));
       if (!response.ok) throw new Error("The source could not be downloaded.");
       setFitSource(await response.blob());
       setFitSettings({ ...emptyFit });
