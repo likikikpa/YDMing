@@ -703,6 +703,7 @@ function drawTerrainImage(
   ctx: CanvasRenderingContext2D,
   map: MapData,
   entry: Entry,
+  detail?: TerrainDetail,
 ) {
   const t = ctx.getTransform(),
     scale = t.a;
@@ -710,32 +711,135 @@ function drawTerrainImage(
     ctx.drawImage(entry.texture, 0, 0, map.width, map.height);
     return;
   }
-  const x0 = Math.max(0, -t.e / scale),
-    y0 = Math.max(0, -t.f / scale),
-    x1 = Math.min(map.width, (ctx.canvas.width - t.e) / scale),
-    y1 = Math.min(map.height, (ctx.canvas.height - t.f) / scale),
-    w = Math.ceil((x1 - x0) * scale),
-    h = Math.ceil((y1 - y0) * scale);
-  if (w <= 0 || h <= 0) return;
-  if (w * h > 40_000_000) {
+  // A view the detail was prepared for reuses those pixels; anything else
+  // paints them now.
+  const ready =
+    detail?.done &&
+    detail.entry === entry &&
+    detail.heights === entry.heights &&
+    detail.materials === entry.materials &&
+    detail.version === textureVersion &&
+    detail.key === viewKey(t, ctx.canvas)
+      ? detail
+      : prepareDetail(map, entry, t, ctx.canvas.width, ctx.canvas.height, Infinity);
+  if (!ready) {
     ctx.drawImage(entry.texture, 0, 0, map.width, map.height);
     return;
   }
+  while (!ready.done) ready.step(Infinity);
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(ready.canvas, ready.dx, ready.dy, ready.dw, ready.dh);
+  ctx.restore();
+}
+
+// Canvases keep their transform in single precision, so the key is rounded.
+const viewKey = (
+  t: { a: number; e: number; f: number },
+  canvas: { width: number; height: number },
+) =>
+  [t.a.toFixed(4), t.e.toFixed(1), t.f.toFixed(1), canvas.width, canvas.height].join(",");
+
+/**
+ * The visible part of the terrain painted sharper than the cached 1x bitmap,
+ * built a few rows at a time so a phone stays responsive while it is made.
+ */
+export interface TerrainDetail {
+  entry: Entry;
+  heights: number[];
+  materials?: number[];
+  version: number;
+  key: string;
+  canvas: HTMLCanvasElement;
+  /** Where the pixels go on the target canvas, in its device pixels. */
+  dx: number;
+  dy: number;
+  dw: number;
+  dh: number;
+  done: boolean;
+  /** Paints more rows for about `budget` ms; returns whether it is finished. */
+  step(budget: number): boolean;
+}
+
+function prepareDetail(
+  map: MapData,
+  entry: Entry,
+  t: { a: number; e: number; f: number },
+  width: number,
+  height: number,
+  maxPixels: number,
+  pixelScale = t.a,
+): TerrainDetail | undefined {
+  const scale = t.a,
+    x0 = Math.max(0, -t.e / scale),
+    y0 = Math.max(0, -t.f / scale),
+    x1 = Math.min(map.width, (width - t.e) / scale),
+    y1 = Math.min(map.height, (height - t.f) / scale);
+  // The terrain may be painted coarser than the target and scaled up.
+  let ps = Math.min(scale, pixelScale);
+  const area = (x1 - x0) * (y1 - y0);
+  if (area * ps * ps > maxPixels) ps = Math.sqrt(maxPixels / area);
+  const w = Math.ceil((x1 - x0) * ps),
+    h = Math.ceil((y1 - y0) * ps);
+  if (w <= 0 || h <= 0 || w * h > 40_000_000) return undefined;
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
   const c = canvas.getContext("2d")!,
     image = c.createImageData(w, h);
-  paintPixels(map, entry, image.data, w, x0, y0, scale, 0, 0, w, h);
-  c.putImageData(image, 0, 0);
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.drawImage(
+  let row = 0;
+  const detail: TerrainDetail = {
+    entry,
+    heights: entry.heights,
+    materials: entry.materials,
+    version: textureVersion,
+    key: viewKey(t, { width, height }),
     canvas,
-    Math.round(x0 * scale + t.e),
-    Math.round(y0 * scale + t.f),
-  );
-  ctx.restore();
+    dx: Math.round(x0 * scale + t.e),
+    dy: Math.round(y0 * scale + t.f),
+    dw: Math.round((w * scale) / ps),
+    dh: Math.round((h * scale) / ps),
+    done: false,
+    step(budget) {
+      const start = performance.now();
+      let rows = 8;
+      while (row < h) {
+        const end = Math.min(h, row + rows),
+          before = performance.now();
+        paintPixels(map, entry, image.data, w, x0, y0, ps, 0, row, w, end);
+        row = end;
+        const spent = performance.now() - before;
+        if (performance.now() - start >= budget) break;
+        // Aim for strips that each take about 4 ms.
+        rows = Math.max(1, Math.round((rows * 4) / Math.max(0.5, spent)));
+      }
+      if (row >= h) {
+        c.putImageData(image, 0, 0);
+        detail.done = true;
+      }
+      return detail.done;
+    },
+  };
+  return detail;
+}
+
+/**
+ * Starts painting the visible terrain for a view (`scale`, offset `e`/`f` in
+ * device pixels) on a `width` × `height` canvas. At most `pixelScale` terrain
+ * pixels are painted per map pixel; the result is scaled up to fit.
+ */
+export function startTerrainDetail(
+  map: MapData,
+  view: { a: number; e: number; f: number },
+  width: number,
+  height: number,
+  pixelScale: number,
+) {
+  const entry = entryFor(map);
+  updateTexture(map, entry);
+  if (view.a <= 1.05) return undefined;
+  return prepareDetail(map, entry, view, width, height, 6_000_000, pixelScale);
 }
 
 function coast(
@@ -984,6 +1088,7 @@ function paintLandscape(
   contours: boolean,
   vector: boolean,
   region?: CellRect,
+  detail?: TerrainDetail,
 ) {
   let area: Rect | undefined;
   if (region) {
@@ -1007,7 +1112,7 @@ function paintLandscape(
       y1: region.y1 + 3,
     };
   }
-  if (vector) drawTerrainImage(ctx, map, entry);
+  if (vector) drawTerrainImage(ctx, map, entry, detail);
   else ctx.drawImage(entry.texture, 0, 0, map.width, map.height);
   coast(ctx, map, map.settings.seaLevel, "#657c69", 1.1, region);
   coast(ctx, map, map.settings.seaLevel - 0.015, "#93aaa1", 0.65, region);
@@ -1027,13 +1132,26 @@ export function drawLandscape(
   ctx: CanvasRenderingContext2D,
   map: MapData,
   contours = false,
-  options: { dirty?: CellRect; vector?: boolean } = {},
+  options: {
+    dirty?: CellRect;
+    vector?: boolean;
+    /** Terrain pixels already painted for this view by `startTerrainDetail`. */
+    terrainDetail?: TerrainDetail;
+  } = {},
 ) {
   const entry = entryFor(map);
   let { changed, region } = updateTexture(map, entry, options.dirty);
   if (options.vector) {
     // Exports draw straight into the (possibly scaled) target for crisp lines.
-    paintLandscape(ctx, map, entry, contours, true);
+    paintLandscape(
+      ctx,
+      map,
+      entry,
+      contours,
+      true,
+      undefined,
+      options.terrainDetail,
+    );
     return;
   }
   const key = String(contours);

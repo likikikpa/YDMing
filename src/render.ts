@@ -6,7 +6,7 @@ import {
   shallowWaterPattern,
 } from "./terrain-render";
 import { landRuns, trimEnd } from "./water";
-import type { CellRect } from "./terrain-render";
+import type { CellRect, TerrainDetail } from "./terrain-render";
 import { hash } from "./random";
 import { drawStamp, path } from "./stamps";
 import { SYMBOL_SCALE, SYMBOL_SPRITES } from "./symbols";
@@ -24,6 +24,8 @@ export interface RenderOptions {
   liveStroke?: string;
   /** Draw everything as vectors into the target, for scaled exports. */
   vector?: boolean;
+  /** Terrain pixels already painted for this view, so a vector draw can skip that work. */
+  terrainDetail?: TerrainDetail;
 }
 export const imageCache = new Map<string, HTMLImageElement>();
 export function loadImage(src: string): Promise<HTMLImageElement> {

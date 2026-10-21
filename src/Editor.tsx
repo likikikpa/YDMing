@@ -25,6 +25,7 @@ import {
 import { isScatterSprite, preloadSymbols } from "./symbols";
 import { uid } from "./types";
 import { editableTerrain, terrainView } from "./terrain";
+import { startTerrainDetail } from "./terrain-render";
 import type { CellRect } from "./terrain-render";
 import type {
   MapData,
@@ -179,6 +180,8 @@ export const Editor = forwardRef<EditorHandle, Props>(
     } | null>(null);
     const detail = useRef<HTMLCanvasElement>(null);
     const detailTimer = useRef(0);
+    // Bumped on every view change so a half-painted detail job stops.
+    const detailJob = useRef(0);
     const queued = useRef<Frame | null>(null);
     const frame = useRef(0);
     const statusFrame = useRef(0);
@@ -240,10 +243,15 @@ export const Editor = forwardRef<EditorHandle, Props>(
       // The 1x bitmap is only a stand-in while the view moves; once it settles
       // the visible part is redrawn at screen resolution.
       if (detail.current) detail.current.style.display = "none";
+      detailJob.current++;
       window.clearTimeout(detailTimer.current);
       detailTimer.current = window.setTimeout(renderDetail, 220);
     };
-    /** Redraws the visible part of the map as vectors at the current zoom. */
+    /**
+     * Redraws the visible part of the map sharply at the current zoom. The
+     * terrain pixels are painted a few rows per task so pinching and panning
+     * stay smooth; any view change abandons the job and starts over.
+     */
     function renderDetail() {
       const canvas = detail.current;
       if (!canvas || drag.current || !sprite.current) return;
@@ -252,22 +260,46 @@ export const Editor = forwardRef<EditorHandle, Props>(
       if (v.scale * dpr < 1.1) return;
       const m = latest.current.map,
         w = Math.round(size.current.w * dpr),
-        h = Math.round(size.current.h * dpr);
-      if (canvas.width !== w || canvas.height !== h) {
-        canvas.width = w;
-        canvas.height = h;
-      }
-      const ctx = canvas.getContext("2d")!;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, w, h);
-      ctx.setTransform(v.scale * dpr, 0, 0, v.scale * dpr, v.x * dpr, v.y * dpr);
-      ctx.imageSmoothingQuality = "high";
-      drawMap(ctx, m, {
-        contours: latest.current.contours,
-        player: latest.current.player,
-        vector: true,
-      });
-      canvas.style.display = "block";
+        h = Math.round(size.current.h * dpr),
+        job = ++detailJob.current,
+        landscape =
+          m.kind !== "dungeon" ? m : m.terrain ? terrainView(m) : undefined,
+        // Terrain is painted at no more than 1.5 pixels per screen point;
+        // lines, labels and symbols are still drawn at full resolution.
+        terrain =
+          landscape &&
+          startTerrainDetail(
+            landscape,
+            { a: v.scale * dpr, e: v.x * dpr, f: v.y * dpr },
+            w,
+            h,
+            v.scale * Math.min(dpr, 1.5),
+          );
+      const finish = () => {
+        if (job !== detailJob.current || drag.current) return;
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+        }
+        const ctx = canvas.getContext("2d")!;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+        ctx.setTransform(v.scale * dpr, 0, 0, v.scale * dpr, v.x * dpr, v.y * dpr);
+        ctx.imageSmoothingQuality = "high";
+        drawMap(ctx, latest.current.map, {
+          contours: latest.current.contours,
+          player: latest.current.player,
+          vector: true,
+          terrainDetail: terrain,
+        });
+        canvas.style.display = "block";
+      };
+      const work = () => {
+        if (job !== detailJob.current || drag.current) return;
+        if (!terrain || terrain.step(8)) finish();
+        else window.setTimeout(work, 0);
+      };
+      work();
     }
     /** Draws the map now and uploads it to the GPU. */
     const render = (f: Frame) => {
