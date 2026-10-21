@@ -1,10 +1,10 @@
 {
-  "name": "atlasforge",
+  "name": "ydming",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "An offline fantasy map studio with world, city, and dungeon generators.",
-  "author": "Atlasforge",
+  "author": "YDMing",
   "engines": {
     "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
   },
@@ -14,10 +14,11 @@
     "preview": "vite preview --host 127.0.0.1",
     "start": "node server.mjs",
     "test": "vitest run && npm run test:server",
-    "test:server": "node --test tests/server.test.mjs",
+    "test:server": "node --test tests/server.test.mjs tests/sprites.test.mjs",
     "check:paths": "node scripts/check-paths.mjs",
     "check:runtime": "node scripts/check-runtime.mjs",
-    "import:srd": "node scripts/import-srd.mjs"
+    "import:srd": "node scripts/import-srd.mjs",
+    "index:sprites": "node scripts/build-sprite-index.mjs"
   },
   "dependencies": {
     "express": "^5.1.0"

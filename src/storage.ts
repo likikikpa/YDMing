@@ -1,8 +1,9 @@
-import { get, set } from "idb-keyval";
+import { getWithLegacy } from "./legacy-keys";
 import { BUILTIN_MATERIALS, PATTERNS } from "./materials";
+import { isNoteUrl } from "./note-link";
 import { CELL, MAX_CELLS } from "./mapsize";
 import type { Project } from "./types";
-const key = "atlasforge-project-v1";
+const key = "ydming-project-v1";
 /** Per-cell grids that are stored as Float32Array: a large map's heights stay a few MB. */
 const GRIDS = ["heights", "biomes", "materials"] as const;
 type Grids = Partial<Record<(typeof GRIDS)[number], ArrayLike<number>>>;
@@ -22,12 +23,15 @@ function mapGrids(project: Project, convert: (v: ArrayLike<number>) => ArrayLike
     }),
   } as Project;
 }
+/** Grids as Float32Array for IndexedDB, and back to plain arrays when loaded. */
+export const packProject = (project: Project) =>
+  mapGrids(project, (v) => Float32Array.from(v));
+export const unpackProject = (project: Project) =>
+  mapGrids(project, (v) => Array.from(v));
+/** The single project saved before worlds existed; `worlds.ts` moves it into the world list. */
 export async function loadProject(): Promise<Project | undefined> {
-  const project = await get<Project>(key);
-  return project && mapGrids(project, (v) => Array.from(v));
-}
-export async function saveProject(project: Project) {
-  await set(key, mapGrids(project, (v) => Float32Array.from(v)));
+  const project = await getWithLegacy<Project>(key);
+  return project && unpackProject(project);
 }
 export function validateProject(value: unknown): Project {
   const p = value as Project;
@@ -39,7 +43,7 @@ export function validateProject(value: unknown): Project {
     p.maps.length > 100 ||
     !Array.isArray(p.credits)
   )
-    throw new Error("This is not a valid Atlasforge project.");
+    throw new Error("This is not a valid YDMing project.");
   for (const m of p.maps) {
     if (
       !["world", "city", "dungeon"].includes(m.kind) ||
@@ -111,6 +115,12 @@ export function validateProject(value: unknown): Project {
             !path.widths.every((w) => Number.isFinite(w))))
       )
         throw new Error("The project contains an invalid path.");
+    if (
+      [m, ...m.objects].some(
+        (x) => x.noteUrl !== undefined && !isNoteUrl(x.noteUrl),
+      )
+    )
+      throw new Error("Note links must be obsidian:// or web links.");
     for (const o of m.objects) {
       if (
         o.image &&

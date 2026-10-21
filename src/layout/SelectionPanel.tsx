@@ -6,7 +6,6 @@ import {
   ArrowDownToLine,
   ArrowLeftRight,
   ArrowUpToLine,
-  ChevronRight,
   Copy,
   FlipHorizontal2,
   FlipVertical2,
@@ -16,6 +15,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReadyApp } from "../app/useAppModel";
+import { MapLinkField } from "./MapLinkField";
+import { NoteLinkField } from "./NoteLinkField";
 
 export function SelectionPanel({ app }: { app: ReadyApp }) {
   const {
@@ -24,7 +25,6 @@ export function SelectionPanel({ app }: { app: ReadyApp }) {
     duplicate,
     groupObjects,
     map,
-    openObject,
     selection,
     setSelected,
     t,
@@ -108,14 +108,14 @@ export function SelectionPanel({ app }: { app: ReadyApp }) {
           </Field>
         </>
       )}
-      {["city", "village", "castle", "dungeon"].includes(selection[0].kind) && (
-        <button
-          className="button subtle full"
-          onClick={() => openObject(selection[0])}
-        >
-          {t("Open linked map")}
-          <ChevronRight size={14} />
-        </button>
+      <NoteLinkField
+        label={t("Note")}
+        value={selection[0].noteUrl}
+        onChange={(noteUrl) => updateSelected({ noteUrl }, "Edit note link")}
+        t={t}
+      />
+      {selection[0].kind !== "label" && (
+        <MapLinkField app={app} o={selection[0]} />
       )}
     </section>
   );

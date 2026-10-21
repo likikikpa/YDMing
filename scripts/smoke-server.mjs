@@ -32,7 +32,7 @@ try {
   const index = await fetch(url);
   assert.equal(index.status, 200);
   const html = await index.text();
-  assert.match(html, /<title>Atlasforge/);
+  assert.match(html, /<title>YDMing/);
   const script = html.match(/src="([^"]+\.js)"/)[1];
   assert.match(
     (await fetch(new URL(script, url))).headers.get("content-type"),

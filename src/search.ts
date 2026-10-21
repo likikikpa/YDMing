@@ -10,7 +10,7 @@ export type SearchReply =
 /**
  * Reads the reply of the local server's `/api/search`. That server always
  * answers in JSON, so anything else (a plain "not found" page from a static
- * host, a proxy's error page) means the page runs without the Atlasforge
+ * host, a proxy's error page) means the page runs without the YDMing
  * server, and saying so beats a JSON parse error.
  */
 export function readSearchReply(ok: boolean, body: string): SearchReply {
@@ -27,6 +27,12 @@ export function readSearchReply(ok: boolean, body: string): SearchReply {
     return { problem: "message", message: reply.error };
   return { problem: "no-server" };
 }
+
+/** Where the browser loads a result's image: sprites that ship with the app directly, others through the server. */
+export const assetUrl = (url: string) =>
+  url.startsWith("/assets/")
+    ? url
+    : `/api/image?${new URLSearchParams({ url })}`;
 
 /** Runs a search; a request that never reaches any server means no connection. */
 export async function searchImages(url: string): Promise<SearchReply> {

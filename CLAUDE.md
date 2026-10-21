@@ -1,6 +1,6 @@
-# Atlasforge
+# YDMing
 
-Browser map studio (React + TypeScript + Vite, PixiJS for the map view). Maps are saved in the browser; `server.mjs` serves the build and the image-search proxy (`/api/search`, `/api/image`).
+Browser map studio for dungeon masters (React + TypeScript + Vite, PixiJS for the map view). A world (`Project`) holds a tree of maps; worlds are saved in the browser; `server.mjs` serves the build and the image-search proxy (`/api/search`, `/api/image`).
 
 ## Commands
 
@@ -17,7 +17,8 @@ CI (`.github/workflows/linux.yml`) runs typecheck, tests, build, a server smoke 
 - `src/app/`: `useAppModel` builds the app state from small hooks, each with one job (`useProjectStore` for the project and undo, `useToolState`, `useTextureLayers`, `useGenerator`, `useObjectActions`, `useLibrary`, `useProjectFiles`, `useKeyboardShortcuts`, ...). A hook gets only the earlier hooks it needs, so the order in `useAppModel` matters. `constants.ts` holds tool tables and shared types.
 - `src/layout/` (top bar, tool rail, canvas, tool card, sidebar, status bar), `src/panels/` (Generator, Layers, Library, History, More tools, Rooms), `src/modals/`, `src/ui/` (shared buttons, tooltip, fields): components take `app: ReadyApp` and destructure what they use.
 - `src/editor/`: the map canvas. `useEditorCore` holds every ref; `overlay`, `rendering`, `sculpting`, `stamps`, `pinch` and the `pointer-*` files each build on the earlier ones, composed in `Editor.tsx`.
-- Pure logic with tests lives in the root of `src/`: `sculpt.ts`, `materials.ts`, `erase.ts`, `search.ts`, `storage.ts`, `generator.ts`. Rendering is `render.ts` and `terrain-render.ts`.
+- Pure logic with tests lives in the root of `src/`: `sculpt.ts`, `materials.ts`, `erase.ts`, `search.ts`, `storage.ts`, `generator.ts`, `worlds.ts` (saved worlds), `map-tree.ts` (map parents and stamp links), `note-link.ts` (Obsidian links). Rendering is `render.ts` and `terrain-render.ts`.
+- Server: `server-app.mjs` (Express app), `server-api.mjs` (the search proxy), `server-sources.mjs` (Wikimedia, Openverse, OpenGameArt), `server-sprites.mjs` (the sprite index and the sprite-or-picture rules of the Auto search). `data/sprite-index.json` is built by `npm run index:sprites`; the Dockerfile copies every server file and `data/`, so add new ones there.
 
 ## Keep files small
 
@@ -55,7 +56,7 @@ Tests cover logic only. Rendering, touch and layout have none, so look at the re
 
 ## Saves and data
 
-Projects are stored in users' browsers and in `.atlasforge` files, so old saves must keep loading.
+Projects are stored in users' browsers and in `.ydming` files (older `.atlasforge` files and `atlasforge-*` browser keys still load, see `src/legacy-keys.ts`), so old saves must keep loading.
 
 - New fields on `Project`, `MapData` or `TextureLayer` are optional, and `validateProject` in `src/storage.ts` checks them.
 - Never change what an existing field means. Add a new field instead.
@@ -63,8 +64,9 @@ Projects are stored in users' browsers and in `.atlasforge` files, so old saves 
 ## UI text
 
 - No filler: no taglines, slogans, descriptions of tools or explanatory footnotes. Short labels, error messages and hover tooltips are fine.
+- Do not add text that describes a tool in the YDMing interface (captions, hints, help blocks) until the owner asks for it or it is clearly needed. Extra text hides the tools, most of all on a phone. Comments, docs and other descriptions outside the UI are still fine.
 - English strings go through `t()`; add the Russian translation to `src/i18n.ts`.
-- Error messages say what to do ("Image search needs the Atlasforge server"), never a raw exception. Image search only works with `server.mjs`; a static host answers `/api/search` with plain text, which `src/search.ts` turns into a clear message.
+- Error messages say what to do ("Image search needs the YDMing server"), never a raw exception. Image search only works with `server.mjs`; a static host answers `/api/search` with plain text, which `src/search.ts` turns into a clear message.
 
 ## Formatting
 

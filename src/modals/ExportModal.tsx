@@ -34,7 +34,7 @@ export function ExportModal({ app }: { app: ReadyApp }) {
             PDF {map.kind === "dungeon" ? "+ room key" : ""}
           </option>
           <option value="vtt">Universal VTT (.dd2vtt)</option>
-          <option value="project">{t("Project file")} (.atlasforge)</option>
+          <option value="project">{t("Project file")} (.ydming)</option>
         </select>
       </Field>
       {exportFormat !== "project" && (

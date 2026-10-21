@@ -25,7 +25,7 @@ test("server validates its port and defaults to local-only access", () => {
     search: true,
   });
   assert.equal(readServerConfig({ TRUST_PROXY: "1" }).trustProxy, "1");
-  assert.equal(readServerConfig({ ATLASFORGE_SEARCH: "off" }).search, false);
+  assert.equal(readServerConfig({ YDMING_SEARCH: "off" }).search, false);
   assert.equal(readServerConfig({ PORT: "0" }).port, 0);
   for (const PORT of ["", "abc", "-1", "65536", "5173.5"])
     assert.throws(() => readServerConfig({ PORT }), /PORT/);
@@ -41,7 +41,7 @@ test("missing builds report the command needed to create them", () => {
       createApp({
         staticDirectory: path.join(
           os.tmpdir(),
-          "atlasforge-missing-" + Date.now(),
+          "ydming-missing-" + Date.now(),
         ),
       }),
     /npm run build/,
@@ -49,11 +49,11 @@ test("missing builds report the command needed to create them", () => {
 });
 
 test("serves assets, health and navigation from directories containing spaces", async (t) => {
-  const directory = await mkdtemp(path.join(os.tmpdir(), "atlasforge server "));
+  const directory = await mkdtemp(path.join(os.tmpdir(), "ydming server "));
   await mkdir(path.join(directory, "assets"));
   await writeFile(
     path.join(directory, "index.html"),
-    "<!doctype html><title>Atlasforge fixture</title>",
+    "<!doctype html><title>YDMing fixture</title>",
   );
   await writeFile(
     path.join(directory, "assets", "editor.js"),
@@ -82,7 +82,7 @@ test("serves assets, health and navigation from directories containing spaces", 
   const index = await fetch(base + "/");
   assert.equal(index.status, 200);
   assert.equal(index.headers.get("cache-control"), "no-cache");
-  assert.match(await index.text(), /Atlasforge fixture/);
+  assert.match(await index.text(), /YDMing fixture/);
   assert.equal(
     (await fetch(base + "/maps/example", { headers: { Accept: "text/html" } }))
       .status,
@@ -103,7 +103,7 @@ test("serves assets, health and navigation from directories containing spaces", 
 });
 
 async function withServer(t, options, setup) {
-  const directory = await mkdtemp(path.join(os.tmpdir(), "atlasforge api "));
+  const directory = await mkdtemp(path.join(os.tmpdir(), "ydming api "));
   await mkdir(path.join(directory, "assets"));
   await writeFile(path.join(directory, "index.html"), "<!doctype html>ok");
   await writeFile(path.join(directory, "assets", "index-AbCd1234.js"), "1");

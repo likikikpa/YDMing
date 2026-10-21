@@ -19,7 +19,7 @@ export function readServerConfig(env = process.env) {
     // Set when a reverse proxy (Caddy, nginx) sits in front: "1" trusts one hop.
     trustProxy: env.TRUST_PROXY || "",
     // Image search sends queries to Wikimedia and Openverse; self-hosters can turn it off.
-    search: !/^(0|false|off|no)$/i.test(env.ATLASFORGE_SEARCH || "on"),
+    search: !/^(0|false|off|no)$/i.test(env.YDMING_SEARCH || env.ATLASFORGE_SEARCH || "on"),
   };
 }
 

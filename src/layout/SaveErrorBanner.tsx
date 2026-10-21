@@ -1,4 +1,4 @@
-import { saveProject } from "../storage";
+import { saveWorld } from "../worlds";
 import type { ReadyApp } from "../app/useAppModel";
 
 export function SaveErrorBanner({ app }: { app: ReadyApp }) {
@@ -7,10 +7,10 @@ export function SaveErrorBanner({ app }: { app: ReadyApp }) {
   return (
     <div className="save-error">
       {saveError}
-      <button onClick={saveProjectFile}>{t("Save project")}</button>
+      <button onClick={saveProjectFile}>{t("Save world file")}</button>
       <button
         onClick={() =>
-          void saveProject(project)
+          void saveWorld(project)
             .then(() => setSaveError(""))
             .catch(() => notify(saveError))
         }

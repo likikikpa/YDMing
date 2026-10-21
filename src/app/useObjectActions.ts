@@ -35,7 +35,8 @@ export function useObjectActions({
   const selection = map?.objects.filter((o) => selected.includes(o.id)) || [];
   function openObject(o: MapObject) {
     if (!project) return;
-    if (o.linkedMap) {
+    // A link to a map that no longer exists counts as no link.
+    if (o.linkedMap && project.maps.some((m) => m.id === o.linkedMap)) {
       setProject({ ...project, activeMapId: o.linkedMap });
       return;
     }

@@ -1,8 +1,12 @@
+import { searchCommons, searchOpenverse } from "./server-sources.mjs";
+import { inkIcon, loadSpriteIndex, searchAuto } from "./server-sprites.mjs";
+
 // Image search proxy. The browser never talks to Wikimedia/Openverse directly:
 // this keeps licence filtering in one place and lets the server cache results.
 const DAY = 24 * 60 * 60 * 1000;
 const MAX_IMAGE_BYTES = 10_000_000;
 const MAX_ALLOWED = 4000;
+const BUILT_IN = /^\/assets\/(cartography|medieval)\/[\w.-]+\.png$/;
 
 function send(res, status, body, headers = {}) {
   res.statusCode = status;
@@ -40,20 +44,22 @@ function createLimiter(limit, windowMs, now) {
  * @param {number} [options.imageLimit] image downloads per client per window
  * @param {number} [options.windowMs]
  * @param {() => number} [options.now]
+ * @param {ReturnType<typeof loadSpriteIndex>} [options.spriteIndex]
  */
 export function createSearchMiddleware({
   fetchImpl = fetch,
-  contact = process.env.ATLASFORGE_CONTACT,
+  contact = process.env.YDMING_CONTACT || process.env.ATLASFORGE_CONTACT,
   searchLimit = 30,
   imageLimit = 400,
   windowMs = 60_000,
   now = Date.now,
+  spriteIndex = loadSpriteIndex(),
 } = {}) {
   const cache = new Map();
   const allowed = new Map();
   const searchWait = createLimiter(searchLimit, windowMs, now);
   const imageWait = createLimiter(imageLimit, windowMs, now);
-  const userAgent = `Atlasforge/1.0 (self-hosted map editor${contact ? `; contact: ${contact}` : ""})`;
+  const userAgent = `YDMing/1.0 (self-hosted map editor${contact ? `; contact: ${contact}` : ""})`;
   let downloads = 0;
 
   return async function searchMiddleware(req, res, next) {
@@ -71,92 +77,32 @@ export function createSearchMiddleware({
             { "Retry-After": String(wait) },
           );
         const q = (url.searchParams.get("q") || "").trim().slice(0, 100),
-          source =
-            url.searchParams.get("source") === "openverse"
-              ? "openverse"
-              : "commons";
+          source = ["openverse", "auto"].includes(url.searchParams.get("source"))
+            ? url.searchParams.get("source")
+            : "commons",
+          style = ["atlas", "painted"].includes(url.searchParams.get("style"))
+            ? url.searchParams.get("style")
+            : "parchment";
         if (q.length < 2)
           return send(res, 400, { error: "Enter at least two characters." });
-        const key = `${source}:${q.toLowerCase()}`;
+        const key = `${source}:${style}:${q.toLowerCase()}`;
         const saved = cache.get(key);
         if (saved && now() - saved.at < DAY) return send(res, 200, saved.data);
-        let results = [];
-        if (source === "openverse") {
-          const query = new URLSearchParams({
-            q: `${q} map icon`,
-            page_size: "20",
-            license_type: "commercial,modification",
-          });
-          const response = await fetchImpl(
-            `https://api.openverse.org/v1/images/?${query}`,
-            {
-              signal: AbortSignal.timeout(12000),
-              headers: { "User-Agent": userAgent },
-            },
-          );
-          if (!response.ok)
-            throw new Error(
-              `Openverse returned ${response.status}. Try Wikimedia Commons.`,
-            );
-          const data = await response.json();
-          results = (data.results || []).map((r) => ({
-            id: r.id,
-            name: r.title,
-            author: r.creator || "Unknown",
-            license: `${r.license} ${r.license_version}`,
-            url: r.foreign_landing_url,
-            image: r.url,
-            thumbnail: r.thumbnail || r.url,
-          }));
-        } else {
-          const params = new URLSearchParams({
-            action: "query",
-            format: "json",
-            generator: "search",
-            gsrsearch: `${q} filetype:bitmap|drawing`,
-            gsrnamespace: "6",
-            gsrlimit: "20",
-            prop: "imageinfo",
-            iiprop: "url|extmetadata",
-            iiurlwidth: "300",
-          });
-          const response = await fetchImpl(
-            `https://commons.wikimedia.org/w/api.php?${params}`,
-            {
-              signal: AbortSignal.timeout(15000),
-              headers: { "User-Agent": userAgent },
-            },
-          );
-          if (!response.ok)
-            throw new Error(
-              response.status === 429
-                ? "Wikimedia is busy right now. Try again in a minute or use Openverse."
-                : `Wikimedia returned ${response.status}.`,
-            );
-          const data = await response.json();
-          results = Object.values(data.query?.pages || {})
-            .map((p) => {
-              const i = p.imageinfo?.[0],
-                m = i?.extmetadata || {};
-              return {
-                id: String(p.pageid),
-                name: p.title.replace(/^File:/, ""),
-                author: (m.Artist?.value || "Unknown").replace(/<[^>]*>/g, ""),
-                license: m.LicenseShortName?.value || "",
-                url: i?.descriptionurl,
-                image: i?.url,
-                thumbnail: i?.thumburl,
-              };
-            })
-            .filter(
-              (r) =>
-                r.image &&
-                r.license &&
-                /CC|public domain/i.test(r.license) &&
-                !/\bNC\b|\bND\b/i.test(r.license),
-            );
-        }
+        let results =
+          source === "auto"
+            ? await searchAuto({
+                index: spriteIndex,
+                fetchImpl,
+                userAgent,
+                q,
+                style,
+              })
+            : source === "openverse"
+              ? await searchOpenverse({ fetchImpl, userAgent, q })
+              : await searchCommons({ fetchImpl, userAgent, q });
         results = results.filter((r) => {
+          // Sprites that ship with the app load straight from it.
+          if (BUILT_IN.test(r.image) && BUILT_IN.test(r.thumbnail)) return true;
           try {
             return (
               new URL(r.image).protocol === "https:" &&
@@ -167,10 +113,11 @@ export function createSearchMiddleware({
           }
         });
         const time = now();
-        for (const result of results) {
-          allowed.set(result.image, time);
-          allowed.set(result.thumbnail, time);
-        }
+        for (const result of results)
+          if (!BUILT_IN.test(result.image)) {
+            allowed.set(result.image, time);
+            allowed.set(result.thumbnail, time);
+          }
         for (const [asset, at] of allowed)
           if (time - at > DAY || allowed.size > MAX_ALLOWED)
             allowed.delete(asset);
@@ -240,7 +187,12 @@ export function createSearchMiddleware({
             "Content-Security-Policy",
             "default-src 'none'; style-src 'unsafe-inline'; sandbox",
           );
-          res.end(Buffer.concat(chunks));
+          const body = Buffer.concat(chunks);
+          res.end(
+            target.startsWith(spriteIndex.base) && mime.includes("svg")
+              ? inkIcon(body.toString("utf8"))
+              : body,
+          );
           return;
         } finally {
           clearTimeout(timer);

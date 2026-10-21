@@ -47,17 +47,17 @@ fi
 
 docker compose up -d --build
 
-echo "Waiting for Atlasforge to start..."
+echo "Waiting for YDMing to start..."
 for _ in $(seq 1 60); do
-  if docker compose exec -T atlasforge node -e "fetch('http://127.0.0.1:5173/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
+  if docker compose exec -T ydming node -e "fetch('http://127.0.0.1:5173/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
     address=$(grep '^SITE_ADDRESS=' .env | cut -d= -f2-)
     case "$address" in
-      :*|"") echo "Atlasforge is running: http://$(curl -fsS https://api.ipify.org 2>/dev/null || echo '<your-server-ip>')" ;;
-      *) echo "Atlasforge is running: https://$address (the certificate can take a minute to appear)" ;;
+      :*|"") echo "YDMing is running: http://$(curl -fsS https://api.ipify.org 2>/dev/null || echo '<your-server-ip>')" ;;
+      *) echo "YDMing is running: https://$address (the certificate can take a minute to appear)" ;;
     esac
     exit 0
   fi
   sleep 2
 done
-echo "Atlasforge did not become healthy. Check: docker compose logs" >&2
+echo "YDMing did not become healthy. Check: docker compose logs" >&2
 exit 1

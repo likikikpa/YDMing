@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { get, set } from "idb-keyval";
+import { set } from "idb-keyval";
 import { fitImage } from "../assets";
+import { getWithLegacy } from "../legacy-keys";
 import type { BrushSettings } from "../editor/types";
-import { searchImages } from "../search";
+import { assetUrl, searchImages } from "../search";
 import { uid } from "../types";
 import type { AssetResult, Credit, MapObject, Project } from "../types";
 import { emptyFit } from "./constants";
@@ -41,7 +42,7 @@ export function useLibrary({
   const [assetSearch, setAssetSearch] = useState("");
   const [assetPack, setAssetPack] = useState("cartography");
   const [webQuery, setWebQuery] = useState("");
-  const [webSource, setWebSource] = useState("commons");
+  const [webSource, setWebSource] = useState("auto");
   const [webResults, setWebResults] = useState<AssetResult[]>([]);
   const [webBusy, setWebBusy] = useState(false);
   const [webError, setWebError] = useState("");
@@ -66,8 +67,10 @@ export function useLibrary({
     (async () => {
       try {
         const [sn, st] = await Promise.all([
-          get("atlasforge-snapshots"),
-          get("atlasforge-stamps"),
+          getWithLegacy<{ id: string; name: string; project: Project }[]>(
+            "ydming-snapshots",
+          ),
+          getWithLegacy<MapObject[]>("ydming-stamps"),
         ]);
         if (live) {
           setSnapshots(sn || []);
@@ -98,13 +101,17 @@ export function useLibrary({
       clearTimeout(timer);
     };
   }, [fitSource, fitSettings]);
+  // Sprites that match the open map's style rank first.
+  const mapStyle = () =>
+    project?.maps.find((m) => m.id === project.activeMapId)?.settings.style ||
+    "parchment";
   async function searchWeb() {
     if (!webQuery.trim()) return;
     setWebBusy(true);
     setWebError("");
     try {
       const reply = await searchImages(
-        `/api/search?${new URLSearchParams({ q: webQuery, source: webSource, commercial: String(project?.commercial || false) })}`,
+        `/api/search?${new URLSearchParams({ q: webQuery, source: webSource, style: mapStyle(), commercial: String(project?.commercial || false) })}`,
       );
       if ("results" in reply) {
         setWebResults(reply.results);
@@ -116,7 +123,7 @@ export function useLibrary({
             : reply.problem === "offline"
               ? t("Image search needs an internet connection.")
               : t(
-                  "Image search is not available here. It needs the Atlasforge server.",
+                  "Image search is not available here. It needs the YDMing server.",
                 ),
         );
     } finally {
@@ -126,9 +133,7 @@ export function useLibrary({
   async function importWeb(asset: AssetResult) {
     try {
       setWebBusy(true);
-      const response = await fetch(
-        `/api/image?${new URLSearchParams({ url: asset.image })}`,
-      );
+      const response = await fetch(assetUrl(asset.image));
       if (!response.ok) throw new Error("The source could not be downloaded.");
       setFitSource(await response.blob());
       setFitSettings({ ...emptyFit });
@@ -182,15 +187,16 @@ export function useLibrary({
     };
     const next = [...myStamps, stamp];
     try {
-      await set("atlasforge-stamps", next);
+      await set("ydming-stamps", next);
     } catch {
       notify(
         "Stamp storage is unavailable. The project still includes this image.",
       );
     }
     try {
-      const known: Credit[] = (await get("atlasforge-library-credits")) || [];
-      await set("atlasforge-library-credits", [
+      const known: Credit[] =
+        (await getWithLegacy<Credit[]>("ydming-library-credits")) || [];
+      await set("ydming-library-credits", [
         ...known.filter((c) => c.id !== fitCredit.id),
         fitCredit,
       ]);
@@ -219,7 +225,8 @@ export function useLibrary({
     next.objects.push(o);
     let credits = p.credits;
     try {
-      const known: Credit[] = (await get("atlasforge-library-credits")) || [];
+      const known: Credit[] =
+        (await getWithLegacy<Credit[]>("ydming-library-credits")) || [];
       const credit = known.find((c) => c.id === stamp.creditId);
       if (credit && !credits.some((c) => c.id === credit.id))
         credits = [...credits, credit];
@@ -243,7 +250,7 @@ export function useLibrary({
       },
     ];
     try {
-      await set("atlasforge-snapshots", next);
+      await set("ydming-snapshots", next);
       setSnapshots(next);
       setSnapshotName("");
       notify(t("Snapshot") + " ✓");

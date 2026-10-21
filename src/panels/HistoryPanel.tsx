@@ -7,6 +7,7 @@ export function HistoryPanel({ app }: { app: ReadyApp }) {
     commit,
     history,
     historyIndex,
+    project,
     setHistoryIndex,
     setProject,
     setSelected,
@@ -16,6 +17,7 @@ export function HistoryPanel({ app }: { app: ReadyApp }) {
     t,
     takeSnapshot,
   } = app;
+  const ownSnapshots = snapshots.filter((s) => s.project.id === project.id);
   return (
     <>
       <div className="panel-heading">
@@ -34,16 +36,20 @@ export function HistoryPanel({ app }: { app: ReadyApp }) {
         />
       </div>
       <h3 className="section-kicker">{t("Named snapshots")}</h3>
-      {snapshots.length === 0 && (
+      {ownSnapshots.length === 0 && (
         <p className="panel-footnote">{t("No snapshots yet.")}</p>
       )}
-      {snapshots.map((s) => (
+      {ownSnapshots.map((s) => (
         <div className="snapshot-row" key={s.id}>
           <Camera size={14} />
           <span>{s.name}</span>
           <button
             onClick={() => {
-              commit(structuredClone(s.project), "Restore snapshot");
+              // A snapshot restores into the open world and never moves it to another id.
+              commit(
+                { ...structuredClone(s.project), id: project.id },
+                "Restore snapshot",
+              );
               setSelected([]);
             }}
           >

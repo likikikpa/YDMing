@@ -1,3 +1,4 @@
+import { campaignRu } from "./i18n-campaign";
 import { toolDescriptionsRu } from "./tools";
 export const ru: Record<string, string> = {
   "Your world, made by you": "Ваш мир — в ваших руках",
@@ -51,8 +52,8 @@ export const ru: Record<string, string> = {
   "No stamps yet": "Штампов пока нет",
   "Image search needs an internet connection.":
     "Для поиска картинок нужен интернет.",
-  "Image search is not available here. It needs the Atlasforge server.":
-    "Поиск картинок здесь недоступен: нужен сервер Atlasforge.",
+  "Image search is not available here. It needs the YDMing server.":
+    "Поиск картинок здесь недоступен: нужен сервер YDMing.",
   "Blended (no visible repeats)": "Смешанное (без видимых повторов)",
   "Tiled (repeats exactly)": "Плиткой (точные повторы)",
   "Unveil a map-wide image": "Открывать картинку на всю карту",
@@ -354,3 +355,5 @@ Object.assign(ru, toolDescriptionsRu, {
   "Lock seed": "Закрепить сид",
   "Keep the same seed when generating": "Сохранять сид при генерации",
 });
+
+Object.assign(ru, campaignRu);

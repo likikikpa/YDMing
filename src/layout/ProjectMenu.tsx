@@ -8,15 +8,21 @@ import {
   HelpCircle,
   Plus,
   Save,
+  Trash2,
 } from "lucide-react";
 import type { ReadyApp } from "../app/useAppModel";
+import { mapTree } from "../map-tree";
+import { IconButton } from "../ui/IconButton";
+import { NoteLinkField } from "./NoteLinkField";
 
 export function ProjectMenu({ app }: { app: ReadyApp }) {
   const {
     fileInput,
     map,
     menu,
+    mutateMap,
     project,
+    removeMap,
     saveProjectFile,
     setMenu,
     setModal,
@@ -31,6 +37,15 @@ export function ProjectMenu({ app }: { app: ReadyApp }) {
         <div className="menu-title">{project.name}</div>
         <button
           onClick={() => {
+            setModal("worlds");
+            setMenu(false);
+          }}
+        >
+          <Globe2 size={16} />
+          {t("Worlds")}
+        </button>
+        <button
+          onClick={() => {
             setModal("new");
             setMenu(false);
           }}
@@ -40,34 +55,56 @@ export function ProjectMenu({ app }: { app: ReadyApp }) {
         </button>
         <button onClick={() => fileInput.current?.click()}>
           <FolderOpen size={16} />
-          {t("Open project")}
+          {t("Import world file")}
         </button>
         <button onClick={saveProjectFile}>
           <Save size={16} />
-          {t("Save project")}
+          {t("Save world file")}
           <kbd>Ctrl S</kbd>
         </button>
         <hr />
-        <small>{t("Maps in this project")}</small>
-        {project.maps.map((m) => (
-          <button
+        <small>{t("Maps in this world")}</small>
+        {mapTree(project.maps).map(({ map: m, depth }) => (
+          <div
             key={m.id}
-            onClick={() => {
-              setProject({ ...project, activeMapId: m.id });
-              setMenu(false);
-            }}
+            className="menu-map"
+            style={{ paddingLeft: depth * 14 }}
           >
-            {m.kind === "world" ? (
-              <Globe2 size={15} />
-            ) : m.kind === "city" ? (
-              <Castle size={15} />
-            ) : (
-              <DoorOpen size={15} />
+            <button
+              onClick={() => {
+                setProject({ ...project, activeMapId: m.id });
+                setMenu(false);
+              }}
+            >
+              {m.kind === "world" ? (
+                <Globe2 size={15} />
+              ) : m.kind === "city" ? (
+                <Castle size={15} />
+              ) : (
+                <DoorOpen size={15} />
+              )}
+              <span>{m.name}</span>
+              {m.id === map.id && <Check size={14} />}
+            </button>
+            {project.maps.length > 1 && (
+              <IconButton
+                icon={Trash2}
+                title={t("Delete map")}
+                onClick={() => removeMap(m.id)}
+              />
             )}
-            <span>{m.name}</span>
-            {m.id === map.id && <Check size={14} />}
-          </button>
+          </div>
         ))}
+        <div className="menu-note">
+          <NoteLinkField
+            label={t("Map note")}
+            value={map.noteUrl}
+            onChange={(noteUrl) =>
+              mutateMap((m) => (m.noteUrl = noteUrl), "Edit note link")
+            }
+            t={t}
+          />
+        </div>
         <hr />
         <button
           onClick={() => {

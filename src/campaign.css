@@ -1,0 +1,151 @@
+/* Worlds, map links and note links. */
+
+.world-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 50vh;
+  overflow-y: auto;
+  margin-bottom: 18px;
+}
+.world-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #a78a4b22;
+  padding: 4px 0;
+}
+.world-open {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 9px 6px;
+  font-size: 13px;
+  color: #bc9f70;
+  text-align: left;
+  border-radius: 3px;
+}
+button.world-open:hover {
+  background: #c19b5515;
+  color: #ebca8e;
+}
+.world-open span,
+.world-open input {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.world-row.current .world-open {
+  color: #e6ce9e;
+}
+.world-open input {
+  font: inherit;
+  color: inherit;
+  background: #0002;
+  border: 1px solid #b7944e33;
+  border-radius: 3px;
+  padding: 4px 6px;
+}
+.world-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #8b7d68;
+}
+.world-new {
+  display: flex;
+  gap: 8px;
+}
+.world-new input {
+  flex: 1;
+  min-width: 0;
+}
+
+.menu-map {
+  display: flex;
+  align-items: center;
+}
+.menu-map > button:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.menu-map > button:first-child span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.menu-map .icon-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  justify-content: center;
+  opacity: 0.6;
+}
+.menu-map .icon-button:hover {
+  opacity: 1;
+}
+.map-breadcrumb svg {
+  flex: none;
+}
+.map-breadcrumb .crumb {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.map-breadcrumb span.current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 1150px) {
+  .map-breadcrumb .crumb {
+    gap: 7px;
+  }
+  .map-breadcrumb .crumb > button,
+  .map-breadcrumb span.current {
+    max-width: 105px;
+  }
+}
+@media (max-width: 700px) {
+  .map-breadcrumb .crumb.far {
+    display: none;
+  }
+}
+
+.field > span.note-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0;
+  font-size: inherit;
+}
+.note-link input {
+  flex: 1;
+  min-width: 0;
+}
+.note-link input.invalid {
+  border-color: #b5563d;
+}
+.icon-button.note-open {
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+.eyebrow .note-open {
+  width: 22px;
+  height: 22px;
+  pointer-events: auto;
+}
+.menu-note {
+  padding: 4px 10px 6px;
+}

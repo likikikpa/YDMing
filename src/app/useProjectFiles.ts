@@ -3,23 +3,17 @@ import { download, slug } from "../export";
 import { validateProject } from "../storage";
 import type { Project } from "../types";
 
-/** Saving the project to a file and opening one, plus the export options. */
+/** Saving the world to a file and opening one, plus the export options. */
 export function useProjectFiles({
   project,
-  setProject,
-  setHistory,
-  setHistoryIndex,
+  importWorld,
   setMenu,
-  setSelected,
   notify,
   lang,
 }: {
   project: Project | null;
-  setProject: (project: Project) => void;
-  setHistory: (history: { project: Project; label: string }[]) => void;
-  setHistoryIndex: (index: number) => void;
+  importWorld: (project: Project) => Promise<void>;
   setMenu: (open: boolean) => void;
-  setSelected: (ids: string[]) => void;
   notify: (message: string) => void;
   lang: string;
 }) {
@@ -31,7 +25,7 @@ export function useProjectFiles({
     if (!project) return;
     download(
       new Blob([JSON.stringify(project)], { type: "application/json" }),
-      `${slug(project.name)}.atlasforge`,
+      `${slug(project.name)}.ydming`,
     );
     setMenu(false);
   }
@@ -40,12 +34,9 @@ export function useProjectFiles({
       if (file.size > 60_000_000)
         throw new Error("Project files must be smaller than 60 MB.");
       const p = validateProject(JSON.parse(await file.text()));
-      setProject(p);
-      setHistory([{ project: p, label: "Open project" }]);
-      setHistoryIndex(0);
+      await importWorld(p);
       setMenu(false);
-      setSelected([]);
-      notify(lang === "ru" ? "Проект открыт." : "Project opened.");
+      notify(lang === "ru" ? "Мир открыт." : "World opened.");
     } catch (e) {
       notify(String(e));
     }

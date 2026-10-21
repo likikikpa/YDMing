@@ -1,21 +1,21 @@
-# Atlasforge on a VPS: the app plus Caddy, which terminates HTTPS automatically.
+# YDMing on a VPS: the app plus Caddy, which terminates HTTPS automatically.
 #
 #   cp .env.example .env      # set SITE_ADDRESS to your domain
 #   docker compose up -d --build
 #
 # Without a domain the site is served over plain HTTP on port 80.
 services:
-  atlasforge:
+  ydming:
     build: .
-    image: atlasforge:latest
+    image: ydming:latest
     restart: unless-stopped
     environment:
       HOST: 0.0.0.0
       PORT: "5173"
       # Caddy is the single proxy hop in front of the app.
       TRUST_PROXY: "1"
-      ATLASFORGE_SEARCH: ${ATLASFORGE_SEARCH:-on}
-      ATLASFORGE_CONTACT: ${ATLASFORGE_CONTACT:-}
+      YDMING_SEARCH: ${YDMING_SEARCH:-on}
+      YDMING_CONTACT: ${YDMING_CONTACT:-}
     expose:
       - "5173"
     read_only: true
@@ -30,7 +30,7 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     depends_on:
-      atlasforge:
+      ydming:
         condition: service_healthy
     ports:
       - "80:80"

@@ -4,6 +4,7 @@ import type { MapData, Project } from "../types";
 import { useGenerator } from "./useGenerator";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { useLibrary } from "./useLibrary";
+import { useMapLinks } from "./useMapLinks";
 import { useObjectActions } from "./useObjectActions";
 import { useProjectFiles } from "./useProjectFiles";
 import { useProjectStore } from "./useProjectStore";
@@ -11,6 +12,7 @@ import { useTextureLayers } from "./useTextureLayers";
 import { useToast } from "./useToast";
 import { useToolState } from "./useToolState";
 import { useViewState } from "./useViewState";
+import { useWorlds } from "./useWorlds";
 
 /**
  * Everything the screen needs, built from small hooks. Each hook gets only the
@@ -56,13 +58,28 @@ export function useAppModel() {
     selected: view.selected,
     setSelected: view.setSelected,
   });
-  const files = useProjectFiles({
+  const worlds = useWorlds({
     project: store.project,
+    projectRef: store.projectRef,
     setProject: store.setProject,
     setHistory: store.setHistory,
     setHistoryIndex: store.setHistoryIndex,
-    setMenu: view.setMenu,
     setSelected: view.setSelected,
+    setModal: view.setModal,
+    notify,
+    t: view.t,
+  });
+  const links = useMapLinks({
+    project: store.project,
+    map: store.map,
+    commit: store.commit,
+    createMap: generator.createMap,
+    setSelected: view.setSelected,
+  });
+  const files = useProjectFiles({
+    project: store.project,
+    importWorld: worlds.importWorld,
+    setMenu: view.setMenu,
     notify,
     lang: view.lang,
   });
@@ -117,6 +134,8 @@ export function useAppModel() {
     ...objects,
     ...files,
     ...library,
+    ...worlds,
+    ...links,
   };
 }
 
