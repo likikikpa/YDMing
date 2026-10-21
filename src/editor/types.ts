@@ -1,6 +1,6 @@
 import type { StampSprite } from "../stamp-brush";
 import type { CellRect } from "../terrain-render";
-import type { MapData, MapObject, StampKind, Tool } from "../types";
+import type { MapData, MapObject, Point, StampKind, Tool } from "../types";
 
 export interface BrushSettings {
   size: number;
@@ -30,6 +30,8 @@ export interface EditorHandle {
     scale: number,
     fog?: boolean,
   ) => HTMLCanvasElement;
+  /** The map point in the middle of the view, kept inside the map. */
+  viewCentre: () => Point;
   /** Draws the river made of the points placed so far, then clears them. */
   finishRiver: () => void;
   /** Throws away the river being placed. */

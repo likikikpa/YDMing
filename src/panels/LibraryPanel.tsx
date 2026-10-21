@@ -1,6 +1,7 @@
 import kenney from "../data/kenney.json";
 import { assetUrl } from "../search";
 import { Field } from "../ui/Field";
+import { ScenesTab } from "./ScenesTab";
 import {
   BookOpen,
   ExternalLink,
@@ -45,7 +46,7 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
         <span className="section-kicker">{t("Library")}</span>
       </div>
       <div className="segmented">
-        {["Built-in", "Search web", "My stamps"].map((v) => (
+        {["Built-in", "Search web", "My stamps", "Scenes"].map((v) => (
           <button
             key={v}
             className={libraryTab === v ? "active" : ""}
@@ -174,6 +175,7 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
           )}
         </>
       )}
+      {libraryTab === "Scenes" && <ScenesTab app={app} />}
       {libraryTab === "My stamps" && (
         <>
           <button

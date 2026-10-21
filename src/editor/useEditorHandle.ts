@@ -2,6 +2,7 @@ import { useImperativeHandle } from "react";
 import type { ForwardedRef } from "react";
 import type { EditorHandle } from "./types";
 import { drawMap } from "../render";
+import { clamp } from "../random";
 import { riverThrough } from "../rivers";
 import { uid } from "../types";
 import { beginDraft, editable } from "./draft";
@@ -13,11 +14,24 @@ export function useEditorHandle(
   ref: ForwardedRef<EditorHandle>,
   deps: EditorCore & EditorOverlay & EditorRendering,
 ) {
-  const { latest, riverPoints, size, setRiverPoints, fit, refresh, zoomAt } =
-    deps;
+  const {
+    latest,
+    riverPoints,
+    size,
+    setRiverPoints,
+    fit,
+    refresh,
+    zoomAt,
+    worldPoint,
+  } = deps;
   useImperativeHandle(ref, () => ({
     fit,
     zoom: (f) => zoomAt(f, { x: size.current.w / 2, y: size.current.h / 2 }),
+    viewCentre: () => {
+      const m = latest.current.map,
+        at = worldPoint({ x: size.current.w / 2, y: size.current.h / 2 });
+      return { x: clamp(at.x, 0, m.width), y: clamp(at.y, 0, m.height) };
+    },
     finishRiver: () => {
       const p = latest.current,
         river =

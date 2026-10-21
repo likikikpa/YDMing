@@ -11,6 +11,7 @@ import { useObjectActions } from "./useObjectActions";
 import { usePackImport } from "./usePackImport";
 import { useProjectFiles } from "./useProjectFiles";
 import { useProjectStore } from "./useProjectStore";
+import { useScenes } from "./useScenes";
 import { useTextureLayers } from "./useTextureLayers";
 import { useToast } from "./useToast";
 import { useToolState } from "./useToolState";
@@ -111,6 +112,17 @@ export function useAppModel() {
     setLibraryTab: library.setLibraryTab,
     setPanel: view.setPanel,
   });
+  const scenes = useScenes({
+    project: store.project,
+    map: store.map,
+    selected: view.selected,
+    setSelected: view.setSelected,
+    commit: store.commit,
+    chooseTool: tools.chooseTool,
+    editor,
+    notify,
+    t: view.t,
+  });
   // Switching to another map resets what belonged to the previous one.
   const { setSettings } = generator,
     { setGroup, setRoomDetail, setSelected } = view;
@@ -163,6 +175,7 @@ export function useAppModel() {
     ...backup,
     ...library,
     ...packs,
+    ...scenes,
     ...worlds,
     ...links,
     ...clipboard,
