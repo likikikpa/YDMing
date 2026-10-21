@@ -36,7 +36,15 @@ export function useScenes({
     let live = true;
     get<unknown[]>(KEY)
       .then((saved) => {
-        if (live && Array.isArray(saved)) setMyScenes(saved.filter(validScene));
+        if (live && Array.isArray(saved))
+          setMyScenes(
+            saved
+              .filter(validScene)
+              .map((s) => ({
+                ...s,
+                clip: { ...s.clip, images: s.clip.images ?? {} },
+              })),
+          );
       })
       .catch(() => {});
     return () => {

@@ -116,7 +116,14 @@ export function useLibrary({
       );
       if ("results" in reply) {
         setWebResults(reply.results);
-        if (!reply.results.length) setWebError(t("No results"));
+        if (!reply.results.length)
+          setWebError(
+            reply.unavailable
+              ? t(
+                  "No results. Some sources did not answer; try again in a minute.",
+                )
+              : t("No results"),
+          );
       } else
         setWebError(
           reply.problem === "message"

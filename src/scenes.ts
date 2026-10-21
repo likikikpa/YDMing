@@ -246,6 +246,7 @@ export function builtinScenes(map: Pick<MapData, "kind" | "width" | "cols">) {
           }),
         ),
         credits: [],
+        images: {},
         centre: { x: 0, y: 0 },
       },
     }),
@@ -263,6 +264,8 @@ export const validScene = (value: unknown): value is Scene => {
     Array.isArray(s.clip.objects) &&
     Array.isArray(s.clip.paths) &&
     Array.isArray(s.clip.credits) &&
+    // Scenes saved before pictures were kept per world have no table.
+    (s.clip.images === undefined || typeof s.clip.images === "object") &&
     Number.isFinite(s.clip.centre?.x) &&
     Number.isFinite(s.clip.centre?.y)
   );

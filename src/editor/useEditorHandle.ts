@@ -61,6 +61,7 @@ export function useEditorHandle(
         ctx,
         fog ? latest.current.map : { ...latest.current.map, fog: undefined },
         {
+          images: latest.current.images,
           player,
           contours: latest.current.contours,
           vector: true,

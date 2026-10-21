@@ -1,4 +1,4 @@
-import { spriteSize } from "../stamp-brush";
+import { spriteImage, spriteSize } from "../stamp-brush";
 import { uid } from "../types";
 import type { Point } from "../types";
 import { editable } from "./draft";
@@ -16,7 +16,7 @@ export function createStamps(deps: EditorCore) {
       m.objects.push({
         id: uid(),
         kind: "image",
-        image: b.sprite.src,
+        ...spriteImage(b.sprite),
         x: p.x,
         y: p.y,
         name: b.sprite.name,

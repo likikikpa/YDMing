@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { imageSources } from "../images";
 import { loadImage } from "../render";
 import { preloadSymbols } from "../symbols";
 import { Application, Container } from "pixi.js";
@@ -136,9 +137,10 @@ export function useEditorLifecycle(
   useEffect(() => {
     if (!ready) return;
     let active = true;
-    const images = props.map.objects
-      .filter((o) => o.image)
-      .map((o) => loadImage(o.image!));
+    // Each distinct picture once, however many stamps show it.
+    const images = [...imageSources(props.map.objects, props.images)].map(
+      loadImage,
+    );
     refresh();
     if (images.length)
       void Promise.allSettled(images).then(() => {
@@ -147,7 +149,14 @@ export function useEditorLifecycle(
     return () => {
       active = false;
     };
-  }, [props.map, props.contours, props.player, props.textureVersion, ready]);
+  }, [
+    props.map,
+    props.images,
+    props.contours,
+    props.player,
+    props.textureVersion,
+    ready,
+  ]);
   useEffect(() => {
     if (ready) fit();
   }, [props.map.id, ready]);

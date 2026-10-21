@@ -1,5 +1,7 @@
 import { floodFill } from "./flood";
 import { drawFog } from "./fog-render";
+import { objectImage } from "./images";
+import type { ImageTable } from "./images";
 import { terrainView } from "./terrain";
 import {
   drawLandscape,
@@ -14,6 +16,8 @@ import { SYMBOL_SCALE, SYMBOL_SPRITES } from "./symbols";
 import type { MapData, MapObject, MapPath, Point, Stroke } from "./types";
 export { drawStamp, stampSvg } from "./stamps";
 export interface RenderOptions {
+  /** The world's imported pictures, for stamps that refer to one by `imageId`. */
+  images?: ImageTable;
   player?: boolean;
   /** Dim the parts hidden by fog of war (the GM's view); players always get them covered. */
   fog?: boolean;
@@ -303,7 +307,9 @@ function drawObject(
   ctx: CanvasRenderingContext2D,
   o: MapObject,
   variant: number,
+  images?: ImageTable,
 ) {
+  const picture = o.kind === "image" ? objectImage(o, images) : undefined;
   ctx.save();
   ctx.translate(o.x, o.y);
   ctx.rotate((o.rotation * Math.PI) / 180);
@@ -313,11 +319,11 @@ function drawObject(
     ctx.textAlign = "center";
     ctx.fillStyle = o.color;
     ctx.fillText(o.name, 0, 0, o.width);
-  } else if (o.kind === "image" && o.image) {
-    const img = imageCache.get(o.image);
+  } else if (picture) {
+    const img = imageCache.get(picture);
     if (img?.complete)
       ctx.drawImage(img, -o.width / 2, -o.height / 2, o.width, o.height);
-    else void loadImage(o.image).catch(() => undefined);
+    else void loadImage(picture).catch(() => undefined);
   } else {
     const src = SYMBOL_SPRITES[o.kind as keyof typeof SYMBOL_SPRITES],
       img = src ? imageCache.get(src) : undefined;
@@ -501,7 +507,9 @@ function drawMapLayers(
     }
     map.objects
       .filter((o) => o.layer === l.id)
-      .forEach((o, i) => objectInClip(o) && drawObject(ctx, o, i));
+      .forEach(
+        (o, i) => objectInClip(o) && drawObject(ctx, o, i, options.images),
+      );
     ctx.restore();
   }
   if (map.kind === "world" && visible("Labels")) {

@@ -156,6 +156,29 @@ describe("copy and paste", () => {
     expect(next.credits.map((c) => c.id)).toEqual(["c1"]);
   });
 
+  it("carries the pictures of imported stamps into another world", () => {
+    const { project, map, other } = setup();
+    const png = "data:image/png;base64,iVBORw0KGgo=";
+    map.objects = [
+      stamp("p1", 10, 10, { imageId: "pic" }),
+      stamp("p2", 30, 10, { imageId: "pic" }),
+      stamp("plain", 50, 10),
+    ];
+    project.images = { pic: png, unrelated: "data:image/png;base64,AAAA" };
+    const clip = copySelection(project, map, ["p1", "p2", "plain"])!;
+    expect(clip.images).toEqual({ pic: png });
+    const elsewhere: Project = { ...project, maps: [other], images: undefined };
+    const { project: next } = pasteClip(elsewhere, other, clip);
+    expect(next.images).toEqual({ pic: png });
+    // A world that has the picture keeps its table as it is.
+    const again = pasteClip(next, next.maps[0], clip).project;
+    expect(again.images).toBe(next.images);
+    // Nothing is added for stamps without a picture.
+    const plain = copySelection(project, map, ["plain"])!;
+    expect(plain.images).toEqual({});
+    expect(pasteClip(elsewhere, other, plain).project.images).toBeUndefined();
+  });
+
   it("cuts only what is on editable layers", () => {
     const { map } = setup();
     map.layers.find((l) => l.id === "Water")!.locked = true;

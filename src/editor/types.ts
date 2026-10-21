@@ -54,6 +54,8 @@ export interface EditorProps {
   player: boolean;
   /** Changes whenever the project's texture layers were reloaded. */
   textureVersion?: number;
+  /** The world's imported pictures, for stamps that refer to one by `imageId`. */
+  images?: Record<string, string>;
   onStatus: (status: {
     zoom: number;
     x: number;

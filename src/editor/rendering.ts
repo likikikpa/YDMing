@@ -121,6 +121,7 @@ export function createRendering(deps: EditorCore & EditorOverlay) {
       );
       ctx.imageSmoothingQuality = "high";
       drawMap(ctx, latest.current.map, {
+        images: latest.current.images,
         contours: latest.current.contours,
         player: latest.current.player,
         fog: true,
@@ -154,6 +155,7 @@ export function createRendering(deps: EditorCore & EditorOverlay) {
           ? dirtyArea(f.map, f.dirty)
           : f.area;
     drawMap(canvas.getContext("2d")!, f.map, {
+      images: latest.current.images,
       contours: latest.current.contours,
       player: latest.current.player,
       fog: true,
