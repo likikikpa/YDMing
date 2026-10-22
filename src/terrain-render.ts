@@ -14,6 +14,8 @@ import {
 import { hash, noise } from "./random";
 import { decorRegion, drawDecor } from "./decor";
 import { resolveStyle } from "./map-styles";
+import { reliefOf, shadeAt } from "./relief";
+import type { Relief } from "./relief";
 import { coastLines } from "./style-coast";
 import {
   fantasyPalette,
@@ -261,6 +263,8 @@ interface Entry {
   /** Index into `layers` of each cell's ground material. */
   cellMaterial: Uint8Array;
   slope: Float32Array;
+  /** How the style shades the land, or null for the faint diagonal shade. */
+  relief: Relief | null;
   layers: Material[];
   shallow: number;
   deep: number;
@@ -319,6 +323,7 @@ function entryFor(map: MapData) {
       biomeGrid: new Uint8Array(map.cols * map.rows),
       cellMaterial: new Uint8Array(map.cols * map.rows),
       slope: new Float32Array(map.cols * map.rows),
+      relief: reliefOf(map.settings.style),
       layers,
       shallow: find(SHALLOW_WATER),
       deep: find(DEEP_WATER),
@@ -354,7 +359,7 @@ function classifyCells(
   x1: number,
   y1: number,
 ) {
-  const { cols, heights } = map,
+  const { cols, rows, heights } = map,
     index = new Map(textureLayers.map((l, i) => [l.id, i]));
   for (let y = y0; y <= y1; y++)
     for (let x = x0; x <= x1; x++) {
@@ -366,10 +371,11 @@ function classifyCells(
         (painted !== undefined ? index.get(painted) : undefined) ??
         index.get(biomeMaterial(b)) ??
         0;
-      entry.slope[i] =
-        (heights[Math.max(0, i - cols - 1)] -
-          heights[Math.min(heights.length - 1, i + cols + 1)]) *
-        65;
+      entry.slope[i] = entry.relief
+        ? shadeAt(heights, cols, rows, x, y, entry.relief)
+        : (heights[Math.max(0, i - cols - 1)] -
+            heights[Math.min(heights.length - 1, i + cols + 1)]) *
+          65;
     }
 }
 
@@ -511,6 +517,7 @@ function paintPixels(
     sy = map.height / rows,
     mats = entry.cellMaterial,
     slope = entry.slope,
+    [tintR, tintG, tintB] = entry.relief?.tint ?? [1, 1, 1],
     // Pick the mip level whose texels are about one output pixel each.
     pick = (m: Material) => {
       const level = Math.max(
@@ -628,9 +635,9 @@ function paintPixels(
           slope[i + cols + 1] * wd;
       }
       const p = (v * dataWidth + u) * 4;
-      data[p] = colour[0] + shade;
-      data[p + 1] = colour[1] + shade;
-      data[p + 2] = colour[2] + shade;
+      data[p] = colour[0] + shade * tintR;
+      data[p + 1] = colour[1] + shade * tintG;
+      data[p + 2] = colour[2] + shade * tintB;
       data[p + 3] = 255;
     }
   }
@@ -674,10 +681,11 @@ function updateTexture(
   } else if (dirty) {
     // Biome rules look eight cells upwind, so a height edit can recolour a
     // horizontal margin around the brush.
-    const bx0 = Math.max(0, dirty.x0 - 9),
+    const reach = entry.relief?.reach ?? 1,
+      bx0 = Math.max(0, dirty.x0 - 9),
       bx1 = Math.min(map.cols - 1, dirty.x1 + 9),
-      by0 = Math.max(0, dirty.y0 - 1),
-      by1 = Math.min(map.rows - 1, dirty.y1 + 1);
+      by0 = Math.max(0, dirty.y0 - reach),
+      by1 = Math.min(map.rows - 1, dirty.y1 + reach);
     classifyCells(map, entry, bx0, by0, bx1, by1);
     const x0 = Math.max(0, bx0 - 1),
       y0 = Math.max(0, by0 - 1),
