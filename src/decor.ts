@@ -1,9 +1,12 @@
 import { biomeAt } from "./generator";
 import { random } from "./random";
 import { imageCache } from "./render";
-import { DECOR_SPRITES } from "./symbols";
+import { decorSprite } from "./decor-sprites";
+import type { DecorSprite } from "./decor-sprites";
+import { decorSetFor } from "./style-decor";
+import type { DecorKind } from "./style-decor";
 import type { CellRect } from "./terrain-render";
-import type { MapData } from "./types";
+import type { MapData, MapObject } from "./types";
 
 interface DecorSpot {
   x: number;
@@ -123,13 +126,62 @@ function decorFor(map: MapData, area?: Rect) {
   return out.sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
+/**
+ * Which picture of a pool a spot gets. Desert and savanna spots are only
+ * those whose `n` is a multiple of 9, so dividing by 3 would give a pool of
+ * three pictures just its first one every time.
+ */
+export const poolIndex = (n: number, kind: DecorKind, length: number) =>
+  ((n / (kind === "desert" || kind === "savanna" ? 9 : 3)) | 0) % length;
+
+const SETTLEMENTS = new Set(["city", "village", "castle", "dungeon"]);
+/** Painted decoration keeps this far from a settlement's symbol, in map pixels. */
+const CLEAR = 22;
+const settlementCache = new WeakMap<MapObject[], MapObject[]>();
+/** The map's towns and cities, looked up once per list of objects, however many stamps it has. */
+function settlements(map: MapData) {
+  let found = settlementCache.get(map.objects);
+  if (!found) {
+    found = map.objects.filter((o) => SETTLEMENTS.has(o.kind));
+    settlementCache.set(map.objects, found);
+  }
+  return found;
+}
+
+/** A picture cut to its drawing: base on the spot, equal visual area for any proportions, soft shadow. */
+function drawPainted(
+  ctx: CanvasRenderingContext2D,
+  sprite: DecorSprite,
+  spot: { x: number; y: number },
+  size: number,
+) {
+  const aspect = sprite.width / sprite.height,
+    w = size * Math.sqrt(aspect),
+    h = size / Math.sqrt(aspect);
+  ctx.fillStyle = "rgba(28, 42, 22, 0.28)";
+  ctx.beginPath();
+  ctx.ellipse(
+    spot.x + w * 0.04,
+    spot.y,
+    w * 0.42,
+    Math.max(1.5, h * 0.09),
+    0,
+    0,
+    Math.PI * 2,
+  );
+  ctx.fill();
+  ctx.drawImage(sprite.source, spot.x - w / 2, spot.y - h * 0.94, w, h);
+}
+
 export function drawDecor(
   ctx: CanvasRenderingContext2D,
   map: MapData,
   biomes: Uint8Array | undefined,
   area?: Rect,
 ) {
-  const { cols, rows, heights, width, height } = map;
+  const { cols, rows, heights, width, height } = map,
+    set = decorSetFor(map.settings.style),
+    towns = set.trimmed ? settlements(map) : [];
   for (const spot of decorFor(map, area)) {
     // Sprites reach up to ~60 px beyond their centre.
     if (
@@ -145,36 +197,42 @@ export function drawDecor(
       i = cy * cols + cx,
       h = heights[i],
       b = biomes ? biomes[i] : biomeAt(map, cx, cy);
-    let pool: readonly string[] | null = null,
+    let kind: DecorKind | null = null,
       size = 0;
     if (spot.n % 3 === 0) {
       if (h > 0.71) {
         // Occasional volcano-like peaks stand out among the ranges.
         // Every other candidate: ranges stay readable instead of a solid scribble.
         if (spot.n % 2) continue;
-        pool =
-          h > 0.85 && spot.n % 18 === 0
-            ? DECOR_SPRITES.peak
-            : DECOR_SPRITES.mountain;
+        kind = h > 0.85 && spot.n % 18 === 0 ? "peak" : "mountain";
         size = spot.mw * 1.55;
       } else {
-        pool =
+        kind =
           b === 4
-            ? DECOR_SPRITES.pine
+            ? "pine"
             : b === 6
-              ? DECOR_SPRITES.forest
+              ? "forest"
               : b === 10
-                ? DECOR_SPRITES.jungle
+                ? "jungle"
                 : b === 8 && spot.n % 9 === 0
-                  ? DECOR_SPRITES.desert
+                  ? "desert"
                   : b === 9 && spot.n % 9 === 0
-                    ? DECOR_SPRITES.savanna
+                    ? "savanna"
                     : null;
         size = spot.tw * 2.8;
       }
     }
-    if (!pool) continue;
-    const img = imageCache.get(pool[((spot.n / 3) % pool.length) | 0]);
+    if (!kind) continue;
+    if (towns.some((o) => Math.hypot(o.x - spot.x, o.y - spot.y) < CLEAR))
+      continue;
+    const pool = set.pools[kind],
+      src = pool[poolIndex(spot.n, kind, pool.length)];
+    if (set.trimmed) {
+      const sprite = decorSprite(src);
+      if (sprite) drawPainted(ctx, sprite, spot, size * set.scale[kind]);
+      continue;
+    }
+    const img = imageCache.get(src);
     if (!img?.complete) continue;
     // The sprite's base sits on the spot, so symbols overlap like real terrain.
     ctx.globalAlpha = size > 20 && h > 0.71 ? 0.82 : 0.75;

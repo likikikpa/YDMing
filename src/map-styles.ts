@@ -27,10 +27,12 @@ export const MAP_STYLES: Record<MapStyleId, MapStyle> = {
  * Styles that no longer exist. A map saved with one is drawn in its
  * replacement, so old saves and `.ydming` files keep loading.
  */
-export const RETIRED_STYLES: Partial<Record<MapStyleId, MapStyleId>> = {};
+export const RETIRED_STYLES: Partial<Record<MapStyleId, MapStyleId>> = {
+  painted: "fantasy",
+};
 
 /** The styles the picker offers, in order. */
-export const PICKER_STYLES: MapStyleId[] = ["parchment", "atlas", "painted"];
+export const PICKER_STYLES: MapStyleId[] = ["fantasy", "parchment", "atlas"];
 
 /** The style a map is drawn in. Anything unknown draws as Atlas, as it always did. */
 export function resolveStyle(id: string | undefined): MapStyleId {

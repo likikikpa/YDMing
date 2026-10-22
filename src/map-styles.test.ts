@@ -23,6 +23,13 @@ describe("map styles", () => {
     expect(resolveStyle("__proto__")).toBe("atlas");
   });
 
+  it("draws maps saved in the retired Painted style as Painted fantasy", () => {
+    expect(resolveStyle("painted")).toBe("fantasy");
+    expect(styleOf({ style: "painted" }).label).toBe("Painted fantasy");
+    expect(PICKER_STYLES).not.toContain("painted");
+    expect(PICKER_STYLES).toContain("fantasy");
+  });
+
   it("offers only styles that exist and are not retired", () => {
     for (const id of PICKER_STYLES) {
       expect(MAP_STYLES[id]).toBeDefined();

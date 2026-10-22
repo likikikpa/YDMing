@@ -315,7 +315,7 @@ export const defaultSettings: GeneratorSettings = {
   rainfall: 58,
   rivers: 9,
   cities: 7,
-  style: "parchment",
+  style: "fantasy",
   citySize: "town",
   defense: "stone",
   site: "river",

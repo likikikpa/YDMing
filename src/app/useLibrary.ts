@@ -3,7 +3,7 @@ import { set } from "idb-keyval";
 import { fitImage } from "../assets";
 import { spriteFromStamp } from "../stamp-brush";
 import { getWithLegacy } from "../legacy-keys";
-import { styleOf } from "../map-styles";
+import { MAP_STYLES, resolveStyle, styleOf } from "../map-styles";
 import type { BrushSettings } from "../editor/types";
 import { assetUrl, searchImages } from "../search";
 import { uid } from "../types";
@@ -43,6 +43,14 @@ export function useLibrary({
   const [libraryTab, setLibraryTab] = useState("Built-in");
   const [assetSearch, setAssetSearch] = useState("");
   const [assetPack, setAssetPack] = useState("cartography");
+  // The collection that matches the open map's style opens when the style changes.
+  const openStyle = resolveStyle(
+    project?.maps.find((m) => m.id === project.activeMapId)?.settings.style,
+  );
+  useEffect(() => {
+    const pack = MAP_STYLES[openStyle].stampPack;
+    if (pack) setAssetPack(pack);
+  }, [openStyle]);
   const [webQuery, setWebQuery] = useState("");
   const [webSource, setWebSource] = useState("auto");
   const [webResults, setWebResults] = useState<AssetResult[]>([]);

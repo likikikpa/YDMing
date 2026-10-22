@@ -1,3 +1,4 @@
+import { styleOf } from "../map-styles";
 import { PACK_STAMPS, STAMP_PACKS } from "../packs";
 import { assetUrl } from "../search";
 import { Field } from "../ui/Field";
@@ -22,6 +23,7 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
     packInput,
     importWeb,
     libraryTab,
+    map,
     myStamps,
     searchWeb,
     setAssetPack,
@@ -40,6 +42,12 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
     webResults,
     webSource,
   } = app;
+  const matching = map ? styleOf(map.settings).stampPack : undefined;
+  const option = (p: (typeof STAMP_PACKS)[number]) => (
+    <option key={p.key} value={p.key}>
+      {p.label}
+    </option>
+  );
   return (
     <>
       <div className="panel-heading">
@@ -63,11 +71,18 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
               value={assetPack}
               onChange={(e) => setAssetPack(e.target.value)}
             >
-              {STAMP_PACKS.map((p) => (
-                <option key={p.key} value={p.key}>
-                  {p.label}
-                </option>
-              ))}
+              {matching ? (
+                <>
+                  <optgroup label={t("Matches the style")}>
+                    {STAMP_PACKS.filter((p) => p.key === matching).map(option)}
+                  </optgroup>
+                  <optgroup label={t("Other collections")}>
+                    {STAMP_PACKS.filter((p) => p.key !== matching).map(option)}
+                  </optgroup>
+                </>
+              ) : (
+                STAMP_PACKS.map(option)
+              )}
             </select>
           </Field>
           <div className="search-input">

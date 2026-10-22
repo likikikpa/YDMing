@@ -14,6 +14,7 @@ import {
 import { hash, noise } from "./random";
 import { decorRegion, drawDecor } from "./decor";
 import { resolveStyle } from "./map-styles";
+import { fantasyPalette, GREEN_BIOMES } from "./style-palettes";
 import type { Erased, Rect } from "./decor";
 import type { MapData, TextureLayer, TextureTiling } from "./types";
 
@@ -41,22 +42,6 @@ const parchment = [
   [190, 210, 207],
   [190, 164, 118],
 ];
-const painted = [
-  [238, 244, 235],
-  [206, 210, 193],
-  [136, 147, 129],
-  [169, 185, 152],
-  [91, 139, 103],
-  [148, 181, 109],
-  [64, 127, 83],
-  [69, 143, 117],
-  [223, 194, 119],
-  [181, 190, 99],
-  [42, 117, 76],
-  [224, 214, 162],
-  [62, 122, 150],
-  [172, 130, 88],
-];
 const atlas = [
   [241, 244, 236],
   [192, 188, 168],
@@ -76,8 +61,7 @@ const atlas = [
 
 // Every green biome shares one ground colour, the dark forest grass (index 6).
 // Biomes still differ in what grows on them: pines, broadleaf trees, palms.
-const GREEN_BIOMES = [4, 5, 7, 9, 10];
-for (const palette of [parchment, painted, atlas])
+for (const palette of [parchment, atlas])
   for (const b of GREEN_BIOMES) palette[b] = palette[6];
 
 /** Open-water colour of a map style, so rivers can match the sea exactly. */
@@ -98,7 +82,11 @@ const STYLE_COLOURS: Record<string, number> = {
 };
 const paletteOf = (style: string) => {
   const id = resolveStyle(style);
-  return id === "parchment" ? parchment : id === "painted" ? painted : atlas;
+  return id === "parchment"
+    ? parchment
+    : id === "fantasy"
+      ? fantasyPalette
+      : atlas;
 };
 
 let textureLayers: TextureLayer[] = defaultTextures(),
@@ -342,6 +330,12 @@ function entryFor(map: MapData) {
 export function invalidateTerrain(mapId?: string) {
   if (mapId) entries.delete(mapId);
   else entries.clear();
+}
+
+/** Repaint a map's cached decoration on the next draw, once pictures it lacked have loaded. */
+export function invalidateDecor(mapId: string) {
+  const entry = entries.get(mapId);
+  if (entry) entry.baseKey = "";
 }
 
 /** Recomputes biome, material and slope for a block of cells. */

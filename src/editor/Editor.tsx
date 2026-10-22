@@ -11,6 +11,7 @@ import { createSculpting } from "./sculpting";
 import { createSelectTool } from "./select-tool";
 import { createStamps } from "./stamps";
 import type { EditorHandle, EditorProps } from "./types";
+import { useDecorSprites } from "./useDecorSprites";
 import { useEditorCore } from "./useEditorCore";
 import { useEditorHandle } from "./useEditorHandle";
 import { useEditorLifecycle } from "./useEditorLifecycle";
@@ -46,6 +47,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(
     const { doubleClick } = createDoubleClick(core);
     useEditorHandle(ref, all);
     useEditorLifecycle(all);
+    useDecorSprites(all);
     const { host, detail, overlay, drag, renderError } = core;
     const { drawOverlay } = overlayTools;
     return (

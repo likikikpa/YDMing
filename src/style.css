@@ -929,9 +929,9 @@ input[type="range"]::-webkit-slider-thumb {
   background: #789c9a;
   color: #dfdbb4;
 }
-.style-sample.painted {
-  background: #5d7a54;
-  color: #bcb078;
+.style-sample.fantasy {
+  background: linear-gradient(135deg, #6c9650 0 56%, #38789a 56%);
+  color: #f1e2ae;
 }
 .style-picker button.active .style-sample {
   border-color: #e3bf78;
