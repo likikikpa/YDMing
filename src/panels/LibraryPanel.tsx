@@ -105,6 +105,8 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
                         name: a.name,
                         aspect: a.aspect,
                         cells: a.cells,
+                        credit: STAMP_PACKS.find((p) => p.key === a.pack)
+                          ?.attribution,
                       },
                       layer: "Objects",
                       mask: false,

@@ -1,5 +1,8 @@
+import amanz from "./data/amanz-lite.json";
+import classic from "./data/classic-dungeon.json";
 import gosbell from "./data/gosbell.json";
 import kenney from "./data/kenney.json";
+import type { Credit } from "./types";
 
 /** A sprite of a bundled pack, as the Library lists it. */
 export interface PackStamp {
@@ -12,7 +15,12 @@ export interface PackStamp {
   /** Dungeon grid squares the picture is drawn to fill: width, height. */
   cells?: [number, number];
 }
-export const PACK_STAMPS = [...kenney, ...gosbell] as PackStamp[];
+export const PACK_STAMPS = [
+  ...kenney,
+  ...gosbell,
+  ...classic,
+  ...amanz,
+] as PackStamp[];
 
 const count = (pack: string) =>
   PACK_STAMPS.filter((s) => s.pack === pack).length;
@@ -33,4 +41,27 @@ export const STAMP_PACKS = [
     label: `Dungeon dressing · ${count("gosbell")}`,
     credit: "Mark Gosbell · CC0 1.0",
   },
-];
+  {
+    key: "classic-dungeon",
+    label: `Classic dungeon symbols · ${count("classic-dungeon")}`,
+    credit: "Mark Gosbell · CC0 1.0",
+  },
+  {
+    key: "amanz-lite",
+    label: `Map icons · ${count("amanz-lite")}`,
+    credit: "Amanz · CC BY 4.0",
+    // Placing one of its stamps adds this to the world's credits.
+    attribution: {
+      id: "bundled-amanz-lite",
+      name: "Fantasy Map Assets Pack Lite",
+      author: "Amanz (Deface Games)",
+      license: "CC BY 4.0",
+      url: "https://amanz.itch.io/fantasy-map-assets-pack-lite",
+    } as Credit,
+  },
+] as {
+  key: string;
+  label: string;
+  credit: string;
+  attribution?: Credit;
+}[];

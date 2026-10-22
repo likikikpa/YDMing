@@ -55,7 +55,7 @@ describe("importing a stamp pack", () => {
 
   it("stops with advice when a pack has too many images", async () => {
     const many: Record<string, Uint8Array> = {};
-    for (let i = 0; i < 301; i++) many[`s${i}.png`] = bytes(4);
+    for (let i = 0; i < 601; i++) many[`s${i}.png`] = bytes(4);
     await expect(packImages([zip(many)])).rejects.toThrow(/Split it/);
   });
 

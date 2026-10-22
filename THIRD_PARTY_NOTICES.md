@@ -25,6 +25,23 @@ The 50 pictures in the Library's "Dungeon dressing" collection (beds, tables, ch
 
 The effects, number and 5x5 tile files of the pack are not included. Download and file list: `scripts/import-gosbell.mjs`; sprite data: `src/data/gosbell.json`.
 
+## Mark Gosbell, classic dungeon symbols
+
+The 86 pictures in the Library's "Classic dungeon symbols" collection come from "Classic Dungeon Map Symbols" (high resolution set) by Mark Gosbell, released under CC0 1.0 Universal. Credit is optional.
+
+- https://markgosbell.itch.io/classic-dungeon-map-symbols
+- https://creativecommons.org/publicdomain/zero/1.0/
+
+Download and file list: `scripts/import-classic-dungeon.mjs`; sprite data: `src/data/classic-dungeon.json`.
+
+## Amanz (Deface Games), map icons
+
+The 41 pictures in the Library's "Map icons" collection are icons from "Fantasy Map Assets Pack Lite" by Amanz (Deface Games), trimmed to their drawing. The itch.io page licenses the pack under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/); the pack's readme says credit is not required. YDMing credits it anyway: placing one of these stamps adds the pack to the world's credits and to `CREDITS.txt` in exports.
+
+- https://amanz.itch.io/fantasy-map-assets-pack-lite
+
+The backgrounds, overlays and islands of the pack are not included. Download and conversion: `scripts/import-amanz.py`; sprite data: `src/data/amanz-lite.json`.
+
 ## Poly Haven, photo textures
 
 The 15 ground tiles offered under "Photo textures" in the Layers panel are shrunk to 128 px from textures on Poly Haven, released under CC0 1.0 Universal. Each one's page and author are listed in `public/assets/textures/License.txt` and `src/data/textures.json`.

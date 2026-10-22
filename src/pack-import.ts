@@ -6,7 +6,7 @@ export interface PackImage {
   blob: Blob;
 }
 
-const MAX_IMAGES = 300;
+const MAX_IMAGES = 600;
 const MAX_IMAGE_BYTES = 10_000_000;
 const MAX_TOTAL_BYTES = 150_000_000;
 const TYPES: Record<string, string> = {

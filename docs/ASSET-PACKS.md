@@ -13,6 +13,16 @@ Bundled in the app: #5 Mark Gosbell's dungeon assets (the Library's "Dungeon dre
 
 Not bundled: #1 Simple Stamps could not be downloaded here (the site answers 403) and its licence is unconfirmed. #2, #3, #4, #7 and #8 do not allow redistribution; import them yourself with **Import pack** in My stamps. #6 and #10 are unconfirmed.
 
+## Links reviewed on 22 October 2026
+
+| Link | Licence | In the app? |
+|------|---------|-------------|
+| [Classic Dungeon Map Symbols](https://markgosbell.itch.io/classic-dungeon-map-symbols) (free) | CC0 | Yes: the Library's "Classic dungeon symbols" (86 old-school symbols: doors, stairs, traps, furniture), drawn to grid squares on dungeons. `node scripts/import-classic-dungeon.mjs` |
+| [Amanz Fantasy Map Assets Pack Lite](https://amanz.itch.io/fantasy-map-assets-pack-lite) (free) | CC BY 4.0 on the page; its readme says no credit needed | Yes, the 41 icons only, as "Map icons". They are flat black silhouettes (buildings, markers, trees) with hand-inked mountain ridges, not painted art. Placing one adds the credit to the world. The 4K backgrounds, overlays and islands are left out. `python3 scripts/import-amanz.py` |
+| [Wuggy's Classic Cartography Set](https://wuggy.itch.io/wuggys-classic-cartography-set) ($1.50) and [Urban Cartography Set](https://wuggy.itch.io/wuggys-urban-cartography-set) ($2.00) | CC BY 4.0, so bundling is allowed with credit | Not yet: they cost money and could not be downloaded here. Buy them and use **Import pack** with `ImageAssets.zip` (342 and 514 PNGs), or hand the ZIP over and it can be bundled with the credit. |
+| [Narrasil](https://monkeyblooddesign.itch.io/narrasil) ($7) and [Myrklund](https://monkeyblooddesign.itch.io/myrklund) ($9) | Personal use only | No. Import your own copy with **Import pack**. |
+| [Fantasy Map Design's Simple Stamps](https://cartographyassets.com/assets/4940/fantasy-map-designs-simple-stamps/) (free) and [Fantasy Map Assets 56](https://cartographyassets.com/assets/104097/56-fantasy-map-symbols-wonderdraft-png-svg-eps/) (EUR 6) | Simple Stamps: CC BY 4.0 per search results; the other is not confirmed | No. The site answers 403 to anything but a logged-in browser. Download them yourself and use **Import pack**. |
+
 ## Packs that fit
 
 | # | Pack | Style | Price | Licence | Bundle with the app? | Checked |
