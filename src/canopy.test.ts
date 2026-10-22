@@ -9,7 +9,7 @@ describe("canopy", () => {
     expect(canopy).toBeDefined();
     expect(decorSetFor("painted").canopy).toBe(canopy);
     expect(decorSetFor("ink").canopy).toBeDefined();
-    expect(decorSetFor("parchment").canopy).toBeUndefined();
+    expect(decorSetFor("parchment").canopy).toBe(decorSetFor("ink").canopy);
     expect(decorSetFor("atlas").canopy).toBeUndefined();
   });
 
@@ -20,7 +20,7 @@ describe("canopy", () => {
 
   it("draws Old ink with the inked glyphs, not the painted pictures", () => {
     expect(decorSetFor("ink").trimmed).toBe(false);
-    expect(decorSetFor("ink").pools).toBe(decorSetFor("parchment").pools);
+    expect(decorSetFor("ink").pools).toBe(decorSetFor("atlas").pools);
   });
 
   it("grows in taiga, forest and jungle and nowhere else", () => {

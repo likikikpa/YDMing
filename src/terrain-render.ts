@@ -35,22 +35,6 @@ export interface CellRect {
   y1: number;
 }
 
-const parchment = [
-  [234, 232, 215],
-  [226, 225, 213],
-  [168, 164, 139],
-  [183, 187, 159],
-  [151, 165, 130],
-  [190, 197, 151],
-  [140, 159, 113],
-  [142, 164, 139],
-  [215, 198, 150],
-  [191, 192, 128],
-  [122, 153, 106],
-  [222, 214, 178],
-  [190, 210, 207],
-  [190, 164, 118],
-];
 const atlas = [
   [241, 244, 236],
   [192, 188, 168],
@@ -70,8 +54,7 @@ const atlas = [
 
 // Every green biome shares one ground colour, the dark forest grass (index 6).
 // Biomes still differ in what grows on them: pines, broadleaf trees, palms.
-for (const palette of [parchment, atlas])
-  for (const b of GREEN_BIOMES) palette[b] = palette[6];
+for (const b of GREEN_BIOMES) atlas[b] = atlas[6];
 
 /** Open-water colour of a map style, so rivers can match the sea exactly. */
 export function seaColor(style: string) {
@@ -91,13 +74,11 @@ const STYLE_COLOURS: Record<string, number> = {
 };
 const paletteOf = (style: string) => {
   const id = resolveStyle(style);
-  return id === "parchment"
-    ? parchment
-    : id === "fantasy"
-      ? fantasyPalette
-      : id === "ink"
-        ? inkPalette
-        : atlas;
+  return id === "fantasy"
+    ? fantasyPalette
+    : id === "ink"
+      ? inkPalette
+      : atlas;
 };
 
 let textureLayers: TextureLayer[] = defaultTextures(),
@@ -240,8 +221,7 @@ function buildMaterial(layer: TextureLayer, style: string): Material {
     patterns.set(layer.pattern, (detail = patternTile(layer.pattern)));
   const base = baseColour(layer, style),
     deep = layer.id === DEEP_WATER && !layer.tint,
-    paper = resolveStyle(style) === "parchment" || resolveStyle(style) === "ink",
-    darken = deep ? (paper ? 3 : 10) : 0,
+    darken = deep ? (resolveStyle(style) === "ink" ? 3 : 10) : 0,
     contrast = layer.visible
       ? (layer.strength / 100) * 0.3 * groundContrast(style)
       : 0;

@@ -13,7 +13,7 @@ import { BIOMES } from "./generator";
 
 describe("style decoration sets", () => {
   it("draws the inked symbols in the styles that have no pictures of their own", () => {
-    for (const style of ["parchment", "atlas", "nonsense", undefined])
+    for (const style of ["atlas", "nonsense", undefined])
       expect(decorSetFor(style as string).trimmed).toBe(false);
   });
 
@@ -88,7 +88,7 @@ describe("choosing a picture for a decoration spot", () => {
 
 describe("coast lines", () => {
   it("draw the shore first and ripples further out, in every style", () => {
-    for (const style of ["parchment", "atlas", "fantasy", "painted"]) {
+    for (const style of ["ink", "parchment", "atlas", "fantasy", "painted"]) {
       const lines = coastLines(style);
       expect(lines[0].offset).toBe(0);
       for (let i = 1; i < lines.length; i++)
@@ -96,10 +96,10 @@ describe("coast lines", () => {
     }
   });
 
-  it("keeps the thin dark shore of Parchment and Atlas", () => {
-    expect(coastLines("parchment")).toBe(coastLines("atlas"));
-    expect(coastLines("parchment")).toHaveLength(3);
+  it("keeps the thin dark shore of Atlas", () => {
+    expect(coastLines("atlas")).toHaveLength(3);
     expect(coastLines("fantasy").length).toBeGreaterThan(3);
+    expect(coastLines("parchment")).toBe(coastLines("ink"));
   });
 
   it("draws Old ink's shore heavier than its water lines, which fade out to sea", () => {

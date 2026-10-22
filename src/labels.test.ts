@@ -66,7 +66,7 @@ const sheet = (style: string, kind: MapData["kind"] = "world") =>
 
 describe("place-name labels", () => {
   it("are plain text in the inked styles", () => {
-    for (const style of ["parchment", "atlas"]) {
+    for (const style of ["atlas"]) {
       const { ctx, calls, state } = recorder();
       drawLabel(ctx, label, style);
       expect(calls.map((c) => c.call)).toEqual(["fillText"]);
@@ -101,8 +101,8 @@ describe("frame, compass and scale bar", () => {
     return calls.filter((c) => c.call === "strokeRect");
   };
 
-  it("keep the thin olive frame in the inked styles", () => {
-    for (const style of ["parchment", "atlas"]) {
+  it("keep the thin olive frame in Atlas", () => {
+    for (const style of ["atlas"]) {
       const [outer, inner] = frame(style);
       expect(outer).toMatchObject({ strokeStyle: "#5e624b66", lineWidth: 1 });
       expect(inner).toMatchObject({ strokeStyle: "#5e624b66", lineWidth: 0.5 });
@@ -132,8 +132,10 @@ describe("frame, compass and scale bar", () => {
     expect(ink).toContain("createRadialGradient");
     // The tint goes down before the frame is drawn over it.
     expect(ink.indexOf("fillRect")).toBeLessThan(ink.indexOf("strokeRect"));
-    for (const style of ["fantasy", "parchment", "atlas"])
+    for (const style of ["fantasy", "atlas"])
       expect(edge(style)).not.toContain("createRadialGradient");
+    // Maps saved in the retired Parchment style draw as Old ink.
+    expect(edge("parchment")).toContain("createRadialGradient");
   });
 
   it("leave a dungeon's stone untinted even in Old ink", () => {

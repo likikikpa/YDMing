@@ -22,7 +22,7 @@ Maps made in YDMing look plain next to Inkarnate:
 | Style             | Replaces  | Stamp set                                           | Ground                                                   |
 | ----------------- | --------- | --------------------------------------------------- | -------------------------------------------------------- |
 | Painted fantasy   | Painted   | AI_GEN pictures                                     | Painted ground, coast glow, shaded relief, forest canopy |
-| Old ink           | Parchment | Kenney Cartography (line art)                       | Sepia paper with ink-style ground                        |
+| Old ink           | Parchment | Kenney Cartography (line art)                       | Sepia paper, ink shore and water lines, sepia relief     |
 | Watercolour atlas | Atlas     | New procedural vector sprites, outlined and hatched | Washed colour, soft edges                                |
 | Realistic         | none      | none (relief and canopy come from the terrain)      | Photo ground (Poly Haven tiles that already ship)        |
 
@@ -30,14 +30,14 @@ Maps made in YDMing look plain next to Inkarnate:
 
 Each step is its own commit, checked in screenshots at desktop and phone size, with zoom, pinch, a terrain stroke and a paint stroke measured before and after.
 
-Steps 1 to 5 are done (Painted fantasy). Each style owns a decoration set (`style-decor.ts`), coast lines (`style-coast.ts`), relief (`relief.ts`), frame and compass colours (`ornaments.ts`) and label look (`labels.ts`); the next styles add an entry to each.
+Steps 1 to 6 are done (Painted fantasy and Old ink). Each style owns a decoration set (`style-decor.ts`), coast lines (`style-coast.ts`), relief (`relief.ts`), frame and compass colours (`ornaments.ts`) and label look (`labels.ts`); the next styles add an entry to each.
 
 1. **Style system and Painted fantasy ground.** Done. A style registry (`map-styles.ts`: palette, stamp set, retired styles), the mapping of old styles on load, the Library marks, and Painted fantasy as the default for new maps. Painted is retired and draws as Painted fantasy.
 2. **Coast glow and water depth.** Done. Turquoise shallows, a foam line and ripples along the shore.
 3. **Shaded relief.** Done. A two-scale hillshade lit from the north-west, stronger on high ground.
 4. **Forest canopy.** Done. Woods as clumps with clearings, drawn from the biome map, not as stamps.
 5. **Frame, borders and labels.** Done, except fonts: a cream frame, a gold compass, a readable scale bar, and place names with a halo. Place names still use Georgia; a bundled open-licence display face is the next step here.
-6. **Old ink.** Kenney Cartography as its set; hatched ground.
+6. **Old ink.** Done. Pale paper ground with calmer texture, a heavy ink shore with water lines fading out to sea, a sepia relief wash, woods drawn as thinned clumps of the Kenney tree glyphs, a brown ink frame, compass and scale bar, italic place names, and paper that darkens towards its edges (not on dungeons). Parchment is retired and draws as Old ink. Not done: hatched slopes. A fine line pattern on the ground would need testing for shimmer when the map is shown smaller than its pixels. The Kenney glyphs are still black, not sepia; tinting them would need a tinted copy for the settlement symbols too.
 7. **Watercolour atlas.** The procedural vector sprites (trees, hills, ridges, forests drawn in code, in many sizes) and washed ground.
 8. **Realistic.** Photo ground and relief; no symbols.
 

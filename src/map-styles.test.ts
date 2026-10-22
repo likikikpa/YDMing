@@ -10,8 +10,16 @@ import { STAMP_PACKS } from "./packs";
 
 describe("map styles", () => {
   it("keeps every current style as it is", () => {
-    for (const id of ["parchment", "atlas", "fantasy"] as const)
+    for (const id of ["ink", "atlas", "fantasy"] as const)
       expect(resolveStyle(id)).toBe(id);
+  });
+
+  it("draws maps saved in the retired Parchment style as Old ink", () => {
+    expect(resolveStyle("parchment")).toBe("ink");
+    expect(styleOf({ style: "parchment" }).label).toBe("Old ink");
+    expect(styleOf({ style: "parchment" }).stampPack).toBe("cartography");
+    expect(PICKER_STYLES).not.toContain("parchment");
+    expect(PICKER_STYLES).toEqual(["fantasy", "ink", "atlas"]);
   });
 
   it("draws unknown or missing ids as Atlas, never throwing", () => {

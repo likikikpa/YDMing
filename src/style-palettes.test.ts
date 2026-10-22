@@ -51,7 +51,8 @@ describe("Old ink style", () => {
 describe("ground contrast", () => {
   it("is calmer on paper and untouched everywhere else", () => {
     expect(groundContrast("ink")).toBeLessThan(1);
-    for (const style of ["fantasy", "painted", "parchment", "atlas"])
+    expect(groundContrast("parchment")).toBe(groundContrast("ink"));
+    for (const style of ["fantasy", "painted", "atlas"])
       expect(groundContrast(style)).toBe(1);
   });
 });

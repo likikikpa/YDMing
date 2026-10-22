@@ -35,15 +35,11 @@ export const MAP_STYLES: Record<MapStyleId, MapStyle> = {
  */
 export const RETIRED_STYLES: Partial<Record<MapStyleId, MapStyleId>> = {
   painted: "fantasy",
+  parchment: "ink",
 };
 
 /** The styles the picker offers, in order. */
-export const PICKER_STYLES: MapStyleId[] = [
-  "fantasy",
-  "ink",
-  "parchment",
-  "atlas",
-];
+export const PICKER_STYLES: MapStyleId[] = ["fantasy", "ink", "atlas"];
 
 /** The style a map is drawn in. Anything unknown draws as Atlas, as it always did. */
 export function resolveStyle(id: string | undefined): MapStyleId {

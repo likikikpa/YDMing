@@ -115,7 +115,7 @@ export function useLibrary({
   const mapStyle = () =>
     styleOf(
       project?.maps.find((m) => m.id === project.activeMapId)?.settings ?? {
-        style: "parchment",
+        style: "ink",
       },
     ).search;
   async function searchWeb() {

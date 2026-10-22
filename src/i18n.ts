@@ -139,7 +139,6 @@ export const ru: Record<string, string> = {
   Dungeons: "Подземелья",
   Kingdoms: "Королевства",
   Style: "Стиль",
-  Parchment: "Пергамент",
   Atlas: "Атлас",
   "Painted fantasy": "Живописное фэнтези",
   "Old ink": "Старые чернила",

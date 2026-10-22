@@ -31,7 +31,7 @@ const INK: Relief = {
   reach: 3,
 };
 
-/** The relief a style draws, or null for the faint diagonal shade Parchment and Atlas use. */
+/** The relief a style draws, or null for the faint diagonal shade Atlas uses. */
 export const reliefOf = (style: string): Relief | null => {
   const id = resolveStyle(style);
   return id === "fantasy" ? FANTASY : id === "ink" ? INK : null;

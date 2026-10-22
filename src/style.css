@@ -922,9 +922,6 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 3px;
   color: #69734d;
 }
-.style-sample.parchment {
-  background: #d7cba6;
-}
 .style-sample.atlas {
   background: #789c9a;
   color: #dfdbb4;

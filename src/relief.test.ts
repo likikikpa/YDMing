@@ -16,7 +16,7 @@ describe("relief", () => {
     expect(reliefOf("fantasy")).not.toBeNull();
     expect(reliefOf("painted")).toBe(reliefOf("fantasy"));
     expect(reliefOf("ink")).not.toBeNull();
-    expect(reliefOf("parchment")).toBeNull();
+    expect(reliefOf("parchment")).toBe(reliefOf("ink"));
     expect(reliefOf("atlas")).toBeNull();
   });
 
