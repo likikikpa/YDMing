@@ -7,13 +7,16 @@ export function drawLabel(
   o: MapObject,
   style: string,
 ) {
-  ctx.font = `${o.height}px Georgia, serif`;
+  const id = resolveStyle(style);
+  // Old charts letter their names in italic.
+  ctx.font = `${id === "ink" ? "italic " : ""}${o.height}px Georgia, serif`;
   ctx.textAlign = "center";
-  if (resolveStyle(style) === "fantasy") {
+  if (id === "fantasy" || id === "ink") {
     // A light halo keeps names readable over dark water and busy ground.
     ctx.lineJoin = "round";
     ctx.lineWidth = Math.max(2, o.height * 0.28);
-    ctx.strokeStyle = "rgba(244, 236, 212, 0.85)";
+    ctx.strokeStyle =
+      id === "ink" ? "rgba(238, 227, 196, 0.8)" : "rgba(244, 236, 212, 0.85)";
     ctx.strokeText(o.name, 0, 0, o.width);
   }
   ctx.fillStyle = o.color;

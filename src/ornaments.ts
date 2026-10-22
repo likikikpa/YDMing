@@ -16,6 +16,8 @@ interface Ornaments {
   compassLight: string;
   /** Drawn behind the letters so they read on any ground; none for the inked styles. */
   halo?: string;
+  /** Red, green, blue and strongest alpha of a tint that darkens the sheet towards its edges, like old paper. */
+  edge?: [number, number, number, number];
   scale: { text: string; line: string; lineWidth: number };
 }
 
@@ -34,6 +36,22 @@ const INKED: Ornaments = {
   scale: { text: "#59614b", line: "#5e624b66", lineWidth: 0.5 },
 };
 
+/** Sepia ink on aged paper: a heavier frame, brown-black lines, darker edges. */
+const INK: Ornaments = {
+  frame: "#4a3826c8",
+  outerWidth: 1.5,
+  innerWidth: 0.6,
+  dot: "#4a3826",
+  dotRadius: 3,
+  compassText: "#3f2f1f",
+  compassLine: "#3f2f1f",
+  compassLineWidth: 0.8,
+  compassDark: "#4a3826",
+  compassLight: "#efe2bf",
+  scale: { text: "#3f2f1f", line: "#4a3826cc", lineWidth: 0.8 },
+  edge: [110, 72, 28, 0.34],
+};
+
 /** Cream and gold with dark teal outlines: legible on a deep sea. */
 const PAINTED: Ornaments = {
   frame: "#f0e6c8c0",
@@ -50,10 +68,35 @@ const PAINTED: Ornaments = {
   scale: { text: "#f6efd8", line: "#f0e6c8cc", lineWidth: 1 },
 };
 
+/** Darkens the sheet towards its corners and edges. */
+function agedEdge(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  [r, g, b, alpha]: [number, number, number, number],
+) {
+  const gradient = ctx.createRadialGradient(
+    width / 2,
+    height / 2,
+    Math.min(width, height) * 0.4,
+    width / 2,
+    height / 2,
+    Math.hypot(width, height) / 2,
+  );
+  gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`);
+  gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, ${alpha})`);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, width, height);
+}
+
 /** The frame, compass and scale bar drawn on a map's sheet. */
 export function ornaments(ctx: CanvasRenderingContext2D, map: MapData) {
-  const o = resolveStyle(map.settings.style) === "fantasy" ? PAINTED : INKED;
+  const id = resolveStyle(map.settings.style),
+    o = id === "fantasy" ? PAINTED : id === "ink" ? INK : INKED;
   ctx.save();
+  // A dungeon is stone, not paper.
+  if (o.edge && map.kind !== "dungeon")
+    agedEdge(ctx, map.width, map.height, o.edge);
   ctx.strokeStyle = o.frame;
   ctx.lineWidth = o.outerWidth;
   ctx.strokeRect(15, 15, map.width - 30, map.height - 30);
