@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Editor } from "../editor/Editor";
+import { styleOf } from "../map-styles";
 import { imagesWithSprite, spriteAssets } from "../stamp-brush";
 import { cursorStatus } from "../status";
 import { IconButton } from "../ui/IconButton";
@@ -150,13 +151,7 @@ export function CanvasWorkspace({ app }: { app: ReadyApp }) {
         <span className="seed-dot" />
         SEED <b>{map.settings.seed}</b>
         <span>·</span>
-        {t(
-          map.settings.style === "parchment"
-            ? "Parchment"
-            : map.settings.style === "atlas"
-              ? "Atlas"
-              : "Painted",
-        )}
+        {t(styleOf(map.settings).label)}
       </div>
       <div className="view-controls wood">
         <IconButton

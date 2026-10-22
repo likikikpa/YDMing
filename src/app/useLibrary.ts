@@ -3,6 +3,7 @@ import { set } from "idb-keyval";
 import { fitImage } from "../assets";
 import { spriteFromStamp } from "../stamp-brush";
 import { getWithLegacy } from "../legacy-keys";
+import { styleOf } from "../map-styles";
 import type { BrushSettings } from "../editor/types";
 import { assetUrl, searchImages } from "../search";
 import { uid } from "../types";
@@ -104,8 +105,11 @@ export function useLibrary({
   }, [fitSource, fitSettings]);
   // Sprites that match the open map's style rank first.
   const mapStyle = () =>
-    project?.maps.find((m) => m.id === project.activeMapId)?.settings.style ||
-    "parchment";
+    styleOf(
+      project?.maps.find((m) => m.id === project.activeMapId)?.settings ?? {
+        style: "parchment",
+      },
+    ).search;
   async function searchWeb() {
     if (!webQuery.trim()) return;
     setWebBusy(true);

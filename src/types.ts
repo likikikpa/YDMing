@@ -116,6 +116,8 @@ export interface Layer {
   blend: GlobalCompositeOperation;
   mask?: Stroke[];
 }
+/** A map style; the registry is in `map-styles.ts`. Old saves may hold a retired one. */
+export type MapStyleId = "parchment" | "atlas" | "painted" | "fantasy";
 export interface GeneratorSettings {
   seed: string;
   template: string;
@@ -127,7 +129,7 @@ export interface GeneratorSettings {
   rainfall: number;
   rivers: number;
   cities: number;
-  style: "parchment" | "atlas" | "painted";
+  style: MapStyleId;
   citySize: string;
   defense: string;
   site: string;

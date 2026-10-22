@@ -1,0 +1,51 @@
+import { describe, expect, it } from "vitest";
+import {
+  MAP_STYLES,
+  PICKER_STYLES,
+  RETIRED_STYLES,
+  resolveStyle,
+  styleOf,
+} from "./map-styles";
+import { STAMP_PACKS } from "./packs";
+
+describe("map styles", () => {
+  it("keeps every current style as it is", () => {
+    for (const id of ["parchment", "atlas", "fantasy"] as const)
+      expect(resolveStyle(id)).toBe(id);
+  });
+
+  it("draws unknown or missing ids as Atlas, never throwing", () => {
+    expect(resolveStyle(undefined)).toBe("atlas");
+    expect(resolveStyle("")).toBe("atlas");
+    expect(resolveStyle("watercolour")).toBe("atlas");
+    // Names on Object.prototype are not styles.
+    expect(resolveStyle("toString")).toBe("atlas");
+    expect(resolveStyle("__proto__")).toBe("atlas");
+  });
+
+  it("offers only styles that exist and are not retired", () => {
+    for (const id of PICKER_STYLES) {
+      expect(MAP_STYLES[id]).toBeDefined();
+      expect(RETIRED_STYLES[id]).toBeUndefined();
+    }
+  });
+
+  it("replaces a retired style by one that is not itself retired", () => {
+    for (const [from, to] of Object.entries(RETIRED_STYLES)) {
+      expect(MAP_STYLES[to]).toBeDefined();
+      expect(RETIRED_STYLES[to]).toBeUndefined();
+      expect(resolveStyle(from)).toBe(to);
+    }
+  });
+
+  it("points every style at a Library collection that exists", () => {
+    const packs = new Set(STAMP_PACKS.map((p) => p.key));
+    for (const style of Object.values(MAP_STYLES))
+      if (style.stampPack) expect(packs.has(style.stampPack)).toBe(true);
+  });
+
+  it("reads the style out of a map's settings", () => {
+    expect(styleOf({ style: "atlas" }).label).toBe("Atlas");
+    expect(styleOf({ style: "nonsense" }).id).toBe("atlas");
+  });
+});

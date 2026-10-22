@@ -13,6 +13,7 @@ import {
 } from "./materials";
 import { hash, noise } from "./random";
 import { decorRegion, drawDecor } from "./decor";
+import { resolveStyle } from "./map-styles";
 import type { Erased, Rect } from "./decor";
 import type { MapData, TextureLayer, TextureTiling } from "./types";
 
@@ -95,8 +96,10 @@ const STYLE_COLOURS: Record<string, number> = {
   [SHALLOW_WATER]: 12,
   [DEEP_WATER]: 12,
 };
-const paletteOf = (style: string) =>
-  style === "parchment" ? parchment : style === "painted" ? painted : atlas;
+const paletteOf = (style: string) => {
+  const id = resolveStyle(style);
+  return id === "parchment" ? parchment : id === "painted" ? painted : atlas;
+};
 
 let textureLayers: TextureLayer[] = defaultTextures(),
   textureVersion = 0;

@@ -1,5 +1,6 @@
 import { Mountain } from "lucide-react";
 import type { ReadyApp } from "../../app/useAppModel";
+import { MAP_STYLES, PICKER_STYLES, resolveStyle } from "../../map-styles";
 
 export function AppearanceFields({
   app,
@@ -14,10 +15,12 @@ export function AppearanceFields({
       {title === "Appearance" && (
         <>
           <div className="style-picker">
-            {(["parchment", "atlas", "painted"] as const).map((style) => (
+            {PICKER_STYLES.map((style) => (
               <button
                 key={style}
-                className={settings.style === style ? "active" : ""}
+                className={
+                  resolveStyle(settings.style) === style ? "active" : ""
+                }
                 onClick={() => {
                   changeSetting("style", style);
                   mutateMap((m) => {
@@ -29,13 +32,7 @@ export function AppearanceFields({
                 <span className={`style-sample ${style}`}>
                   <Mountain size={24} />
                 </span>
-                {t(
-                  style === "parchment"
-                    ? "Parchment"
-                    : style === "atlas"
-                      ? "Atlas"
-                      : "Painted",
-                )}
+                {t(MAP_STYLES[style].label)}
               </button>
             ))}
           </div>

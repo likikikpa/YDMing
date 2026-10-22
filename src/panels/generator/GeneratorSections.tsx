@@ -5,6 +5,7 @@ import { DungeonFields } from "./DungeonFields";
 import { WorldFields } from "./WorldFields";
 import { ChevronDown } from "lucide-react";
 import type { ReadyApp } from "../../app/useAppModel";
+import { styleOf } from "../../map-styles";
 
 export function GeneratorSections({ app }: { app: ReadyApp }) {
   const { group, map, setGroup, setMore, settings, t } = app;
@@ -38,11 +39,7 @@ export function GeneratorSections({ app }: { app: ReadyApp }) {
                   {title === "Shape"
                     ? presetNames[settings.template]
                     : title === "Appearance"
-                      ? t(
-                          settings.style === "parchment"
-                            ? "Parchment"
-                            : "Atlas",
-                        )
+                      ? t(styleOf(settings).label)
                       : ""}
                 </small>
               )}
