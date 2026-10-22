@@ -14,7 +14,12 @@ import {
 import { hash, noise } from "./random";
 import { decorRegion, drawDecor } from "./decor";
 import { resolveStyle } from "./map-styles";
-import { fantasyPalette, GREEN_BIOMES } from "./style-palettes";
+import { coastLines } from "./style-coast";
+import {
+  fantasyPalette,
+  GREEN_BIOMES,
+  SHALLOW_WATER_COLOUR,
+} from "./style-palettes";
 import type { Erased, Rect } from "./decor";
 import type { MapData, TextureLayer, TextureTiling } from "./types";
 
@@ -205,11 +210,13 @@ function withMean(
 
 /** The colour a texture layer starts from: its own tint, else the map style's. */
 function baseColour(layer: TextureLayer, style: string) {
-  return layer.tint
-    ? hexToRgb(layer.tint)
-    : (paletteOf(style)[
-        STYLE_COLOURS[layer.id] ?? STYLE_COLOURS[layer.pattern] ?? 5
-      ] as [number, number, number]);
+  if (layer.tint) return hexToRgb(layer.tint);
+  const palette = paletteOf(style);
+  return (
+    layer.id === SHALLOW_WATER && palette[SHALLOW_WATER_COLOUR]
+      ? palette[SHALLOW_WATER_COLOUR]
+      : palette[STYLE_COLOURS[layer.id] ?? STYLE_COLOURS[layer.pattern] ?? 5]
+  ) as [number, number, number];
 }
 /** `baseColour` as a hex string, for colour pickers. */
 export const textureColour = (layer: TextureLayer, style: string) =>
@@ -942,9 +949,15 @@ function paintLandscape(
   }
   if (vector) drawTerrainImage(ctx, map, entry, detail);
   else ctx.drawImage(entry.texture, 0, 0, map.width, map.height);
-  coast(ctx, map, map.settings.seaLevel, "#657c69", 1.1, region);
-  coast(ctx, map, map.settings.seaLevel - 0.015, "#93aaa1", 0.65, region);
-  coast(ctx, map, map.settings.seaLevel - 0.035, "#aabbb0", 0.6, region);
+  for (const line of coastLines(map.settings.style))
+    coast(
+      ctx,
+      map,
+      map.settings.seaLevel + line.offset,
+      line.colour,
+      line.width,
+      region,
+    );
   if (contours)
     for (let h = map.settings.seaLevel + 0.07; h < 1; h += 0.055)
       coast(ctx, map, h, "#6d725d44", 0.7, region);

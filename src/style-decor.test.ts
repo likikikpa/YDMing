@@ -2,8 +2,13 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { poolIndex } from "./decor";
+import { coastLines } from "./style-coast";
 import { decorSetFor } from "./style-decor";
-import { fantasyPalette, GREEN_BIOMES } from "./style-palettes";
+import {
+  fantasyPalette,
+  GREEN_BIOMES,
+  SHALLOW_WATER_COLOUR,
+} from "./style-palettes";
 import { BIOMES } from "./generator";
 
 describe("style decoration sets", () => {
@@ -35,11 +40,18 @@ describe("style decoration sets", () => {
 
 describe("Painted fantasy palette", () => {
   it("has a colour for every biome", () => {
-    expect(fantasyPalette).toHaveLength(BIOMES.length);
+    expect(fantasyPalette.length).toBeGreaterThanOrEqual(BIOMES.length);
     for (const rgb of fantasyPalette) {
       expect(rgb).toHaveLength(3);
       for (const c of rgb) expect(c >= 0 && c <= 255).toBe(true);
     }
+  });
+
+  it("makes shallow water lighter than the sea beside it", () => {
+    const sum = (rgb: number[]) => rgb[0] + rgb[1] + rgb[2];
+    expect(sum(fantasyPalette[SHALLOW_WATER_COLOUR])).toBeGreaterThan(
+      sum(fantasyPalette[12]),
+    );
   });
 
   it("gives every green biome the same grass", () => {
@@ -71,5 +83,22 @@ describe("choosing a picture for a decoration spot", () => {
   it("never picks outside the pool", () => {
     for (let n = 0; n < 5000; n++)
       expect(poolIndex(n, "savanna", 3)).toBeLessThan(3);
+  });
+});
+
+describe("coast lines", () => {
+  it("draw the shore first and ripples further out, in every style", () => {
+    for (const style of ["parchment", "atlas", "fantasy", "painted"]) {
+      const lines = coastLines(style);
+      expect(lines[0].offset).toBe(0);
+      for (let i = 1; i < lines.length; i++)
+        expect(lines[i].offset).toBeLessThan(lines[i - 1].offset);
+    }
+  });
+
+  it("keeps the thin dark shore of the inked styles", () => {
+    expect(coastLines("parchment")).toBe(coastLines("atlas"));
+    expect(coastLines("parchment")).toHaveLength(3);
+    expect(coastLines("fantasy").length).toBeGreaterThan(3);
   });
 });
