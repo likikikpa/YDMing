@@ -11,7 +11,7 @@ import {
   TILE,
   WORLD_TILE,
 } from "./materials";
-import { hexBlend } from "./hex-tiling";
+import { hexBlend, turnsFor } from "./hex-tiling";
 import { hash, noise } from "./random";
 import { decorRegion, drawDecor } from "./decor";
 import { resolveStyle } from "./map-styles";
@@ -166,6 +166,8 @@ interface Material {
   tiling: TextureTiling;
   /** Average colour of the tile, which blending and unveiling keep. */
   mean: [number, number, number];
+  /** The quarter turns blended copies may take (see `turnsFor`). */
+  turns: number;
   /** How much the tile's detail shows on top of an unveiled cover, 0–1. */
   detail: number;
   cover?: Cover;
@@ -191,6 +193,7 @@ function withMean(
     density,
     tiling: tilingOf(layer),
     mean,
+    turns: turnsFor(levels[0], Math.sqrt(levels[0].length / 3)),
     detail: layer.visible ? layer.strength / 100 : 0,
     cover: layer.cover ? covers.get(layer.cover) : undefined,
   };
@@ -422,6 +425,7 @@ function paintPixels(
         rgb: m.levels[level],
         size: TILE >> level,
         k: m.density / 2 ** level,
+        turns: m.turns,
       };
     },
     tiles = entry.layers.map(pick),

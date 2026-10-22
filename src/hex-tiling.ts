@@ -3,7 +3,42 @@ export interface Tile {
   rgb: Float32Array;
   size: number;
   k: number;
+  /** Which quarter turns a copy may take: `ANY_TURN`, or `HALF_TURNS` for a directional tile. */
+  turns: number;
 }
+export const ANY_TURN = 3,
+  HALF_TURNS = 2;
+/** A tile with more coherence than this has detail that lines up: ripples, grain, stripes. */
+export const DIRECTIONAL = 0.5;
+/**
+ * How parallel the detail of a tile is, from 0 for noise that runs every way
+ * to 1 for straight stripes: the share of the gradients that points one way
+ * (the structure tensor). The tile wraps, so its gradients do too.
+ */
+export function coherence(rgb: Float32Array, size: number) {
+  if (size < 2 || rgb.length !== size * size * 3) return 0;
+  const lum = (i: number) =>
+    rgb[i * 3] * 0.3 + rgb[i * 3 + 1] * 0.59 + rgb[i * 3 + 2] * 0.11;
+  let xx = 0,
+    yy = 0,
+    xy = 0;
+  for (let y = 0; y < size; y++)
+    for (let x = 0; x < size; x++) {
+      const gx =
+          lum(y * size + ((x + 1) % size)) -
+          lum(y * size + ((x + size - 1) % size)),
+        gy =
+          lum(((y + 1) % size) * size + x) -
+          lum(((y + size - 1) % size) * size + x);
+      xx += gx * gx;
+      yy += gy * gy;
+      xy += gx * gy;
+    }
+  return xx + yy > 0 ? Math.hypot(xx - yy, 2 * xy) / (xx + yy) : 0;
+}
+/** The turns a tile's copies may take: only half turns for a directional one. */
+export const turnsFor = (rgb: Float32Array, size: number) =>
+  coherence(rgb, size) > DIRECTIONAL ? HALF_TURNS : ANY_TURN;
 /** How many blended copies span one tile; more means smaller patches. */
 const HEX_SCALE = 1.7;
 function latticeHash(x: number, y: number) {
@@ -79,7 +114,9 @@ export function hexBlend(
       h = latticeHash(hexU[n], hexV[n]),
       ox = (h & 1023) / 1024,
       oy = ((h >>> 10) & 1023) / 1024,
-      turn = (h >>> 20) & 3,
+      // A quarter turn would lay ripples across their neighbours; a half turn
+      // keeps them running the same way, so patches join without a line.
+      turn = (h >>> 20) & 3 & t.turns,
       ru = turn === 0 ? u : turn === 1 ? -v : turn === 2 ? -u : v,
       rv = turn === 0 ? v : turn === 1 ? u : turn === 2 ? -v : -u,
       // Tiles are a power of two wide, so wrapping is a bit mask.
