@@ -107,12 +107,14 @@ it("keeps bundled sprites from every pack as paths and rejects other paths", () 
     "/assets/cartography/house.png",
     "/assets/medieval/castle.png",
     "/assets/gosbell/table-long.png",
+    "/assets/ai-gen/tree-oak.webp",
   ])
     expect(() => validateProject(withImage(ok))).not.toThrow();
   for (const bad of [
     "/assets/unknown/house.png",
     "/assets/gosbell/../../secret.png",
     "https://example.com/a.png",
+    "/assets/ai-gen/tree-oak.svg",
   ])
     expect(() => validateProject(withImage(bad))).toThrow();
 });

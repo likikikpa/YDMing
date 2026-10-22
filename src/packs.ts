@@ -1,3 +1,4 @@
+import aiGen from "./data/ai-gen.json";
 import amanz from "./data/amanz-lite.json";
 import classic from "./data/classic-dungeon.json";
 import gosbell from "./data/gosbell.json";
@@ -20,6 +21,7 @@ export const PACK_STAMPS = [
   ...gosbell,
   ...classic,
   ...amanz,
+  ...aiGen,
 ] as PackStamp[];
 
 const count = (pack: string) =>
@@ -58,6 +60,11 @@ export const STAMP_PACKS = [
       license: "CC BY 4.0",
       url: "https://amanz.itch.io/fantasy-map-assets-pack-lite",
     } as Credit,
+  },
+  {
+    key: "ai-gen",
+    label: `AI_GEN · ${count("ai-gen")}`,
+    credit: "AI generated · no third-party licence",
   },
 ] as {
   key: string;

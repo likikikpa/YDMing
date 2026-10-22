@@ -5,7 +5,7 @@ Research from 21 October 2026. The goal: art closer to Inkarnate's painted and h
 Two rules shape the list:
 
 - Only packs whose licence allows redistribution can be bundled with the app (CC0, CC-BY). Everything else is for a DM to buy and import into **My stamps** on their own computer. Nothing here points to unlicensed copies of paid packs.
-- The README promises no AI-generated art, so listings tagged as AI-assisted are left out.
+- Third-party listings tagged as AI-assisted are left out. The one AI-generated collection in the app, AI_GEN, holds pictures the project owner generated themselves, and the README says so.
 
 ## Status
 

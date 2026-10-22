@@ -24,7 +24,7 @@ describe("bundled stamp packs", () => {
 
   it("credits every pack that is not CC0 in the world once its stamps are placed", () => {
     for (const pack of STAMP_PACKS) {
-      if (/CC0/.test(pack.credit)) continue;
+      if (/CC0|^AI generated/.test(pack.credit)) continue;
       expect(pack.attribution, pack.key).toBeDefined();
       expect(pack.attribution!.license).toMatch(/^CC BY/);
       expect(pack.attribution!.url).toMatch(/^https:\/\//);

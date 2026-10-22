@@ -1,0 +1,4 @@
+AI_GEN: pictures generated with an AI image model by the YDMing project owner.
+They are not taken from a third-party pack and no third-party licence applies;
+use of them follows the terms of the tool that generated them.
+Each picture is trimmed to its drawing and scaled to 512 px.

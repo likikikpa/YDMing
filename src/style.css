@@ -1198,7 +1198,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 .stamp-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 7px;
 }
 .stamp-grid button {
