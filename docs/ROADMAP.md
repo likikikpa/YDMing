@@ -15,16 +15,15 @@ Maps made in YDMing look plain next to Inkarnate:
 
 - A map style is a **ground look plus a matching stamp set**. Choosing a style makes its set the default in the Library; other sets stay usable and are marked as not matching.
 - Switching a map's style changes only the ground. Stamps already placed stay as they are.
-- The old styles (Parchment, Atlas, Painted) are replaced. Each leaves the picker when its replacement lands. Saved worlds and `.ydming` files that name an old style still load and are mapped to the replacement, so they look different afterwards.
+- The old styles Parchment and Painted are replaced and have left the picker. Saved worlds and `.ydming` files that name one still load and are mapped to the replacement (Old ink and Painted fantasy), so they look different afterwards. Atlas stays in the picker: the Watercolour atlas that was to replace it is dropped.
 - New style code goes in new files; `terrain-render.ts` and `render.ts` are already too large.
 - Preview builds are published as a Claude artifact named YDMing (see "Hosting the preview").
 
-| Style             | Replaces  | Stamp set                                           | Ground                                                   |
-| ----------------- | --------- | --------------------------------------------------- | -------------------------------------------------------- |
-| Painted fantasy   | Painted   | AI_GEN pictures                                     | Painted ground, coast glow, shaded relief, forest canopy |
-| Old ink           | Parchment | Kenney Cartography (line art)                       | Sepia paper, ink shore and water lines, sepia relief     |
-| Watercolour atlas | Atlas     | New procedural vector sprites, outlined and hatched | Washed colour, soft edges                                |
-| Realistic         | none      | none (relief and canopy come from the terrain)      | Photo ground (Poly Haven tiles that already ship)        |
+| Style           | Replaces  | Stamp set                                      | Ground                                                   |
+| --------------- | --------- | ---------------------------------------------- | -------------------------------------------------------- |
+| Painted fantasy | Painted   | AI_GEN pictures                                | Painted ground, coast glow, shaded relief, forest canopy |
+| Old ink         | Parchment | Kenney Cartography (line art)                  | Sepia paper, ink shore and water lines, sepia relief     |
+| Realistic       | none      | none (relief and canopy come from the terrain) | Photo ground (Poly Haven tiles that already ship)        |
 
 ## Being built: styles
 
@@ -38,22 +37,21 @@ Steps 1 to 6 are done (Painted fantasy and Old ink). Each style owns a decoratio
 4. **Forest canopy.** Done. Woods as clumps with clearings, drawn from the biome map, not as stamps.
 5. **Frame, borders and labels.** Done, except fonts: a cream frame, a gold compass, a readable scale bar, and place names with a halo. Place names still use Georgia; a bundled open-licence display face is the next step here.
 6. **Old ink.** Done. Pale paper ground with calmer texture, a heavy ink shore with water lines fading out to sea, a sepia relief wash, woods drawn as thinned clumps of the Kenney tree glyphs, a brown ink frame, compass and scale bar, italic place names, and paper that darkens towards its edges (not on dungeons). Parchment is retired and draws as Old ink. Not done: hatched slopes. A fine line pattern on the ground would need testing for shimmer when the map is shown smaller than its pixels. The Kenney glyphs are still black, not sepia; tinting them would need a tinted copy for the settlement symbols too.
-7. **Watercolour atlas.** The procedural vector sprites (trees, hills, ridges, forests drawn in code, in many sizes) and washed ground.
-8. **Realistic.** Photo ground and relief; no symbols.
+7. **Realistic.** Photo ground and relief; no symbols.
 
-Procedural sprites add no files, which matters for the preview limit below.
+Watercolour atlas (procedural vector sprites and a washed ground) was dropped by the owner. New art that is code, not image files, still helps with the preview limit below.
 
-## Fix first (found in the review, causes not traced yet)
+## Found in the review
 
-Each needs reproducing before any change (see Bugs in `CLAUDE.md`).
+Each was reproduced and traced before any change (see Bugs in `CLAUDE.md`).
 
 - **Scale bar labels sit between the ticks.** Fixed: the labels were one string padded with spaces in a proportional font; each number is now drawn over its own tick (`scale-bar.ts`).
+- **Blocky coasts.** Fixed. Traced to the Terrain paint tool, not the generator: `buildGround` set every cell inside the brush circle to the ground's height, so the edge of each dab was whole cells, and it never read Edge hardness (the slider did nothing for ground painting). A shore painted on a 560 × 400 map wandered 0.92 of a cell (9 px in a 2x export). The edge is now a skirt by distance from the dab's centre (`ground-paint.ts`): 0.06 of a cell at the default hardness, and the slider works. The island tool's ragged edge is intended.
+- **Stray outlines in open water.** Fixed for new worlds. Traced to the generator: its noise leaves single cells just above the sea, and low humps just under it, far from any island, and each gets its own shore line and rings of shallows. `tidyShore` (`shore-tidy.ts`) sinks land under 6 cells and landless banks up to 64 cells at the end of terrain generation. Worlds already made keep what they have, and generating again from the same seed now gives a slightly different world.
+- **Possible seams in the ocean texture.** Confirmed and fixed. Hex tiling turned each patch of the water tile by a quarter turn, and the water tile is a single stripe direction, so stripes met sideways along straight lines. A tile whose detail lines up now takes half turns only (`hex-tiling.ts`); only water changes.
+- **The scale bar is not tied to the map.** Not a rendering bug. Every map draws the same 185 px as 200 miles, so a Large world is about 3,000 miles wide and a Small one about 1,300, and a stamp stands for tens of miles. Tying the bar to a map needs a scale setting, which is under "A better world generator" below.
+- **Uniform beach band.** Not a tool bug. The sand and dirt bands follow height, and the generator's coasts slope evenly, so the band is an even ring, frayed where the slope is gentle. It belongs to the biome work under "A better world generator" below.
 - **Settlement symbols do not match the style.** Towns and cities are still Kenney line art on Painted fantasy, next to painted trees and peaks. The generator has no painted town picture to use yet.
-- **The scale bar is not tied to the map.** It is always 185 map units labelled 200 miles, so every world map is about 3,000 miles wide whatever it holds. A stamp then stands for tens of miles.
-- **Stray outlines in open water.** Faint coast outlines with no land under them east of the main island, loose fragments of the shore line off the south tip, and small detached sand specks off the east coast. They look like land that was erased but left its outline.
-- **Blocky coasts.** The main island's coast is stair-stepped and the east coast runs ruler-straight for hundreds of pixels; the small island's coast is smooth. The land mask looks like it comes from different resolutions.
-- **Uniform beach band.** The sand and dirt bands are an even-width ring that follows the whole coast, frayed into noise on one side.
-- **Possible seams in the ocean texture.** Straight rectangular breaks in the wave pattern in a few crops. Unconfirmed; check at 100% in the app.
 
 ## Next: denser stamps with size variety
 
@@ -69,6 +67,7 @@ Each needs reproducing before any change (see Bugs in `CLAUDE.md`).
 - Coasts: smooth, varied shorelines; bays, capes, small islands near large ones.
 - Biomes that follow height, latitude and rainfall: snow only on high ground or far north, grassland between, desert in rain shadows. Today snow patches sit on flat lowland.
 - Transitions between biomes instead of hard-edged blobs; rock around peaks, not around every snow patch.
+- Beaches of varied width: wide on gentle shores, none on cliffs, instead of an even ring round every coast.
 - Rivers that start in the hills and reach the sea or a lake.
 - Population: settlements, roads, forests, hills and mountain ranges placed from the terrain with the active style's stamp set, so a generated map is not empty.
 - A scale-aware map: the generator and the scale bar agree on how many miles the map is.
