@@ -30,11 +30,13 @@ Maps made in YDMing look plain next to Inkarnate:
 
 Each step is its own commit, checked in screenshots at desktop and phone size, with zoom, pinch, a terrain stroke and a paint stroke measured before and after.
 
-1. **Style system and Painted fantasy ground.** A style registry (palette, ground tiles, stamp set), the mapping of old styles on load, the Library marks, and Painted fantasy as the default for new maps.
-2. **Coast glow and water depth.** Soft shallows, a coloured coast edge and ripples along the shore.
-3. **Shaded relief.** Hills and mountains shown by light and shadow from the terrain heights.
-4. **Forest canopy.** Tree cover drawn as clumps that follow the biome map, not as stamps.
-5. **Frame, borders and labels.** A better paper frame, compass, scale bar and place-name fonts.
+Steps 1 to 5 are done (Painted fantasy). Each style owns a decoration set (`style-decor.ts`), coast lines (`style-coast.ts`), relief (`relief.ts`), frame and compass colours (`ornaments.ts`) and label look (`labels.ts`); the next styles add an entry to each.
+
+1. **Style system and Painted fantasy ground.** Done. A style registry (`map-styles.ts`: palette, stamp set, retired styles), the mapping of old styles on load, the Library marks, and Painted fantasy as the default for new maps. Painted is retired and draws as Painted fantasy.
+2. **Coast glow and water depth.** Done. Turquoise shallows, a foam line and ripples along the shore.
+3. **Shaded relief.** Done. A two-scale hillshade lit from the north-west, stronger on high ground.
+4. **Forest canopy.** Done. Woods as clumps with clearings, drawn from the biome map, not as stamps.
+5. **Frame, borders and labels.** Done, except fonts: a cream frame, a gold compass, a readable scale bar, and place names with a halo. Place names still use Georgia; a bundled open-licence display face is the next step here.
 6. **Old ink.** Kenney Cartography as its set; hatched ground.
 7. **Watercolour atlas.** The procedural vector sprites (trees, hills, ridges, forests drawn in code, in many sizes) and washed ground.
 8. **Realistic.** Photo ground and relief; no symbols.
@@ -45,7 +47,8 @@ Procedural sprites add no files, which matters for the preview limit below.
 
 Each needs reproducing before any change (see Bugs in `CLAUDE.md`).
 
-- **Scale bar labels sit between the ticks.** `src/render.ts:750` draws "0 100 200 miles" as one string padded with spaces in a proportional font. Each label should be drawn at its own tick. Fixed in step 5.
+- **Scale bar labels sit between the ticks.** Fixed: the labels were one string padded with spaces in a proportional font; each number is now drawn over its own tick (`scale-bar.ts`).
+- **Settlement symbols do not match the style.** Towns and cities are still Kenney line art on Painted fantasy, next to painted trees and peaks. The generator has no painted town picture to use yet.
 - **The scale bar is not tied to the map.** It is always 185 map units labelled 200 miles, so every world map is about 3,000 miles wide whatever it holds. A stamp then stands for tens of miles.
 - **Stray outlines in open water.** Faint coast outlines with no land under them east of the main island, loose fragments of the shore line off the south tip, and small detached sand specks off the east coast. They look like land that was erased but left its outline.
 - **Blocky coasts.** The main island's coast is stair-stepped and the east coast runs ruler-straight for hundreds of pixels; the small island's coast is smooth. The land mask looks like it comes from different resolutions.
