@@ -1,6 +1,6 @@
 # YDMing
 
-A browser map studio with a tavern-inspired walnut, brass, and parchment interface. Built from the attached D&D Map Maker product plan. All artwork is procedural or openly licensed; no AI-generated images are used.
+A browser map studio with a tavern-inspired walnut, brass, and parchment interface. Built from the attached D&D Map Maker product plan. Artwork is procedural, openly licensed, or (the AI_GEN stamp pack only) generated with an AI image model.
 
 ## Host it for other people
 
@@ -109,6 +109,7 @@ The source works on Linux x64 and ARM64; native dependency selection is handled 
 - A reminder offers to save the world to a file when browser storage is all that holds changes: after a day for a world never saved to a file, three days after the last file copy otherwise.
 - A "Dungeon dressing" collection of 50 CC0 greyscale furniture and props (beds, tables, chests, barrels, bookcases). On a dungeon each one is drawn to the grid squares it was made for, scaled by the brush size; elsewhere it follows the brush size.
 - A "Classic dungeon symbols" collection of 86 CC0 old-school map symbols (doors, stairs, traps, pits, furniture), also drawn to grid squares on dungeons, and a "Map icons" collection of 41 CC BY black icons (buildings, markers, trees, mountains, waves, compass). Placing a Map icons stamp adds its credit to the world.
+- An "AI_GEN" collection of 68 stamps generated with an AI image model by the project owner: isometric trees and mountains, and top-down city, dungeon and forest pieces (canopies, roofs, rocks, barrels, fountain, pillars, crystals, logs). They are the only AI-generated pictures in the app. `python3 -I scripts/import-ai-gen.py` rebuilds them from the ZIPs in `data/`.
 - Fifteen CC0 photo ground textures from Poly Haven (grass, forest floor, dirt, mud, sand, gravel, rock, snow, cobblestone, planks) under Photo textures in the Layers panel; each becomes a texture layer you can paint with.
 - Local image imports and reusable stamps with edge-connected background removal, tolerance, trimming, parchment recolouring, posterization, ink outlines, and shadows. Imported stamps retain credits across projects.
 - PNG at 1×–3×, PDF with dungeon room keys, and Universal VTT `.dd2vtt` export. Downloads are ZIP files containing the map and `CREDITS.txt`. Player PDF exports omit room keys and GM markers. Project files retain GM information for editing.

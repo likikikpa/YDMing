@@ -42,6 +42,10 @@ The 41 pictures in the Library's "Map icons" collection are icons from "Fantasy 
 
 The backgrounds, overlays and islands of the pack are not included. Download and conversion: `scripts/import-amanz.py`; sprite data: `src/data/amanz-lite.json`.
 
+## AI_GEN, generated stamps
+
+The 68 pictures in the Library's "AI_GEN" collection were generated with an AI image model by the project owner and trimmed to their drawing. They are not copied from a third-party pack and no third-party licence applies; their use follows the terms of the tool that generated them. They are the only AI-generated pictures in YDMing. `scripts/import-ai-gen.py` builds them from the ZIPs in `data/`.
+
 ## Poly Haven, photo textures
 
 The 15 ground tiles offered under "Photo textures" in the Layers panel are shrunk to 128 px from textures on Poly Haven, released under CC0 1.0 Universal. Each one's page and author are listed in `public/assets/textures/License.txt` and `src/data/textures.json`.

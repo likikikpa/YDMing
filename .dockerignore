@@ -9,3 +9,4 @@ qa
 *.log
 *.tsbuildinfo
 release
+data/*.zip
