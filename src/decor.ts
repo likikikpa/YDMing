@@ -1,12 +1,13 @@
 import { biomeAt } from "./generator";
-import { random } from "./random";
+import { hash, random } from "./random";
 import { imageCache } from "./render";
-import { decorSprite } from "./decor-sprites";
-import type { DecorSprite } from "./decor-sprites";
+import { inClump, isWooded } from "./canopy";
+import { decorSprite, drawPainted } from "./decor-sprites";
+import { nearTown, poolIndex, settlements } from "./decor-spots";
 import { decorSetFor } from "./style-decor";
 import type { DecorKind } from "./style-decor";
 import type { CellRect } from "./terrain-render";
-import type { MapData, MapObject } from "./types";
+import type { MapData } from "./types";
 
 interface DecorSpot {
   x: number;
@@ -126,53 +127,6 @@ function decorFor(map: MapData, area?: Rect) {
   return out.sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
-/**
- * Which picture of a pool a spot gets. Desert and savanna spots are only
- * those whose `n` is a multiple of 9, so dividing by 3 would give a pool of
- * three pictures just its first one every time.
- */
-export const poolIndex = (n: number, kind: DecorKind, length: number) =>
-  ((n / (kind === "desert" || kind === "savanna" ? 9 : 3)) | 0) % length;
-
-const SETTLEMENTS = new Set(["city", "village", "castle", "dungeon"]);
-/** Painted decoration keeps this far from a settlement's symbol, in map pixels. */
-const CLEAR = 22;
-const settlementCache = new WeakMap<MapObject[], MapObject[]>();
-/** The map's towns and cities, looked up once per list of objects, however many stamps it has. */
-function settlements(map: MapData) {
-  let found = settlementCache.get(map.objects);
-  if (!found) {
-    found = map.objects.filter((o) => SETTLEMENTS.has(o.kind));
-    settlementCache.set(map.objects, found);
-  }
-  return found;
-}
-
-/** A picture cut to its drawing: base on the spot, equal visual area for any proportions, soft shadow. */
-function drawPainted(
-  ctx: CanvasRenderingContext2D,
-  sprite: DecorSprite,
-  spot: { x: number; y: number },
-  size: number,
-) {
-  const aspect = sprite.width / sprite.height,
-    w = size * Math.sqrt(aspect),
-    h = size / Math.sqrt(aspect);
-  ctx.fillStyle = "rgba(28, 42, 22, 0.28)";
-  ctx.beginPath();
-  ctx.ellipse(
-    spot.x + w * 0.04,
-    spot.y,
-    w * 0.42,
-    Math.max(1.5, h * 0.09),
-    0,
-    0,
-    Math.PI * 2,
-  );
-  ctx.fill();
-  ctx.drawImage(sprite.source, spot.x - w / 2, spot.y - h * 0.94, w, h);
-}
-
 export function drawDecor(
   ctx: CanvasRenderingContext2D,
   map: MapData,
@@ -181,6 +135,8 @@ export function drawDecor(
 ) {
   const { cols, rows, heights, width, height } = map,
     set = decorSetFor(map.settings.style),
+    canopy = set.canopy,
+    seed = hash(map.settings.seed),
     towns = set.trimmed ? settlements(map) : [];
   for (const spot of decorFor(map, area)) {
     // Sprites reach up to ~60 px beyond their centre.
@@ -199,7 +155,12 @@ export function drawDecor(
       b = biomes ? biomes[i] : biomeAt(map, cx, cy);
     let kind: DecorKind | null = null,
       size = 0;
-    if (spot.n % 3 === 0) {
+    if (canopy && h <= 0.71 && isWooded(b)) {
+      // Every spot may grow a tree, but only inside a clump.
+      if (!inClump(canopy, spot.x, spot.y, seed)) continue;
+      kind = b === 4 ? "pine" : b === 6 ? "forest" : "jungle";
+      size = spot.tw * 2.8;
+    } else if (spot.n % 3 === 0) {
       if (h > 0.71) {
         // Occasional volcano-like peaks stand out among the ranges.
         // Every other candidate: ranges stay readable instead of a solid scribble.
@@ -223,8 +184,7 @@ export function drawDecor(
       }
     }
     if (!kind) continue;
-    if (towns.some((o) => Math.hypot(o.x - spot.x, o.y - spot.y) < CLEAR))
-      continue;
+    if (nearTown(towns, spot.x, spot.y)) continue;
     const pool = set.pools[kind],
       src = pool[poolIndex(spot.n, kind, pool.length)];
     if (set.trimmed) {

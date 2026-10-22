@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { poolIndex } from "./decor";
+import { poolIndex } from "./decor-spots";
 import { coastLines } from "./style-coast";
 import { decorSetFor } from "./style-decor";
 import {

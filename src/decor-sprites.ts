@@ -49,3 +49,28 @@ function reduced(image: HTMLImageElement): DecorSprite {
   }
   return { source, width, height };
 }
+
+/** A picture cut to its drawing: base on the spot, equal visual area for any proportions, soft shadow. */
+export function drawPainted(
+  ctx: CanvasRenderingContext2D,
+  sprite: DecorSprite,
+  spot: { x: number; y: number },
+  size: number,
+) {
+  const aspect = sprite.width / sprite.height,
+    w = size * Math.sqrt(aspect),
+    h = size / Math.sqrt(aspect);
+  ctx.fillStyle = "rgba(28, 42, 22, 0.28)";
+  ctx.beginPath();
+  ctx.ellipse(
+    spot.x + w * 0.04,
+    spot.y,
+    w * 0.42,
+    Math.max(1.5, h * 0.09),
+    0,
+    0,
+    Math.PI * 2,
+  );
+  ctx.fill();
+  ctx.drawImage(sprite.source, spot.x - w / 2, spot.y - h * 0.94, w, h);
+}

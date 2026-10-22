@@ -1,3 +1,4 @@
+import type { Canopy } from "./canopy";
 import { resolveStyle } from "./map-styles";
 import { imageCache, loadImage } from "./render";
 import { DECOR_SPRITES } from "./symbols";
@@ -16,6 +17,8 @@ export interface DecorSet {
   trimmed: boolean;
   /** How large each kind is drawn, relative to the spot's size (trimmed sets). */
   scale: Record<DecorKind, number>;
+  /** Woods as dense clumps; without it a wooded biome gets a lone tree now and then. */
+  canopy?: Canopy;
 }
 
 const AI = "/assets/ai-gen/";
@@ -76,6 +79,7 @@ const PAINTED: DecorSet = {
     desert: 1.2,
     savanna: 1.2,
   },
+  canopy: { clump: 70, open: 0.38 },
 };
 
 /** The decoration set a map style draws with. */
