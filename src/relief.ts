@@ -22,9 +22,20 @@ const FANTASY: Relief = {
   reach: 3,
 };
 
-/** The relief a style draws, or null for the faint diagonal shade the inked styles use. */
-export const reliefOf = (style: string): Relief | null =>
-  resolveStyle(style) === "fantasy" ? FANTASY : null;
+/** A gentler wash in sepia: lit paper stays pale, shade turns brown. */
+const INK: Relief = {
+  fine: 170,
+  broad: 120,
+  highland: 0.9,
+  tint: [1, 0.9, 0.7],
+  reach: 3,
+};
+
+/** The relief a style draws, or null for the faint diagonal shade Parchment and Atlas use. */
+export const reliefOf = (style: string): Relief | null => {
+  const id = resolveStyle(style);
+  return id === "fantasy" ? FANTASY : id === "ink" ? INK : null;
+};
 
 /** Light or shade, in colour levels, of the land in cell `x, y`: positive where the ground faces the light. */
 export function shadeAt(

@@ -137,7 +137,7 @@ export function drawDecor(
     set = decorSetFor(map.settings.style),
     canopy = set.canopy,
     seed = hash(map.settings.seed),
-    towns = set.trimmed ? settlements(map) : [];
+    towns = set.trimmed || set.canopy ? settlements(map) : [];
   for (const spot of decorFor(map, area)) {
     // Sprites reach up to ~60 px beyond their centre.
     if (
@@ -157,6 +157,7 @@ export function drawDecor(
       size = 0;
     if (canopy && h <= 0.71 && isWooded(b)) {
       // Every spot may grow a tree, but only inside a clump.
+      if (canopy.every && spot.n % canopy.every) continue;
       if (!inClump(canopy, spot.x, spot.y, seed)) continue;
       kind = b === 4 ? "pine" : b === 6 ? "forest" : "jungle";
       size = spot.tw * 2.8;

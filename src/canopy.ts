@@ -6,6 +6,8 @@ export interface Canopy {
   clump: number;
   /** Where the noise falls below this the wood is open ground: higher means smaller, rarer clumps. */
   open: number;
+  /** Only one decoration spot in this many may grow a tree; 1 or none for every spot. */
+  every?: number;
 }
 
 /** Biomes that grow woods: taiga, forest and jungle. */

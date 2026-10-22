@@ -45,6 +45,11 @@ const inkedSet = (): DecorSet =>
     },
   });
 
+/** Old ink: the same glyphs, with woods drawn as thinned clumps of them. */
+let ink: DecorSet | undefined;
+const inkSet = (): DecorSet =>
+  (ink ??= { ...inkedSet(), canopy: { clump: 70, open: 0.42, every: 2 } });
+
 const PAINTED: DecorSet = {
   pools: {
     mountain: ai(
@@ -83,8 +88,10 @@ const PAINTED: DecorSet = {
 };
 
 /** The decoration set a map style draws with. */
-export const decorSetFor = (style: string): DecorSet =>
-  resolveStyle(style) === "fantasy" ? PAINTED : inkedSet();
+export const decorSetFor = (style: string): DecorSet => {
+  const id = resolveStyle(style);
+  return id === "fantasy" ? PAINTED : id === "ink" ? inkSet() : inkedSet();
+};
 
 /**
  * Loads the pictures a style needs. Resolves true when some were not loaded

@@ -5,11 +5,22 @@ import { decorSetFor } from "./style-decor";
 const canopy = decorSetFor("fantasy").canopy!;
 
 describe("canopy", () => {
-  it("is part of Painted fantasy only", () => {
+  it("is part of Painted fantasy and Old ink only", () => {
     expect(canopy).toBeDefined();
     expect(decorSetFor("painted").canopy).toBe(canopy);
+    expect(decorSetFor("ink").canopy).toBeDefined();
     expect(decorSetFor("parchment").canopy).toBeUndefined();
     expect(decorSetFor("atlas").canopy).toBeUndefined();
+  });
+
+  it("thins Old ink's woods, drawn with small glyphs, and leaves Painted fantasy's full", () => {
+    expect(decorSetFor("ink").canopy!.every).toBeGreaterThan(1);
+    expect(decorSetFor("fantasy").canopy!.every ?? 1).toBe(1);
+  });
+
+  it("draws Old ink with the inked glyphs, not the painted pictures", () => {
+    expect(decorSetFor("ink").trimmed).toBe(false);
+    expect(decorSetFor("ink").pools).toBe(decorSetFor("parchment").pools);
   });
 
   it("grows in taiga, forest and jungle and nowhere else", () => {

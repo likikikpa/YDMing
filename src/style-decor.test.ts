@@ -96,9 +96,18 @@ describe("coast lines", () => {
     }
   });
 
-  it("keeps the thin dark shore of the inked styles", () => {
+  it("keeps the thin dark shore of Parchment and Atlas", () => {
     expect(coastLines("parchment")).toBe(coastLines("atlas"));
     expect(coastLines("parchment")).toHaveLength(3);
     expect(coastLines("fantasy").length).toBeGreaterThan(3);
+  });
+
+  it("draws Old ink's shore heavier than its water lines, which fade out to sea", () => {
+    const lines = coastLines("ink");
+    expect(lines.length).toBeGreaterThan(3);
+    expect(lines[0].width).toBeGreaterThan(lines[1].width);
+    const alpha = (c: string) => parseInt(c.slice(7, 9), 16);
+    for (let i = 2; i < lines.length; i++)
+      expect(alpha(lines[i].colour)).toBeLessThan(alpha(lines[i - 1].colour));
   });
 });

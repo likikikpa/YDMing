@@ -15,6 +15,16 @@ const INKED: CoastLine[] = [
   { offset: -0.035, colour: "#aabbb0", width: 0.6 },
 ];
 
+/** A strong ink shore and water lining that fades out to sea, as drawn on old charts. */
+const INK: CoastLine[] = [
+  { offset: 0, colour: "#3f2f1fe0", width: 1.5 },
+  { offset: -0.012, colour: "#5a4630a8", width: 0.8 },
+  { offset: -0.026, colour: "#5a463090", width: 0.75 },
+  { offset: -0.044, colour: "#5a463070", width: 0.7 },
+  { offset: -0.066, colour: "#5a463050", width: 0.65 },
+  { offset: -0.092, colour: "#5a463036", width: 0.6 },
+];
+
 /** A soft dark edge against the land, a foam line, and ripples fading out to sea. */
 const PAINTED: CoastLine[] = [
   { offset: 0, colour: "#2f6270b0", width: 1.5 },
@@ -24,5 +34,7 @@ const PAINTED: CoastLine[] = [
 ];
 
 /** The lines a style draws along its coasts, from the shore outwards. */
-export const coastLines = (style: string): CoastLine[] =>
-  resolveStyle(style) === "fantasy" ? PAINTED : INKED;
+export const coastLines = (style: string): CoastLine[] => {
+  const id = resolveStyle(style);
+  return id === "fantasy" ? PAINTED : id === "ink" ? INK : INKED;
+};

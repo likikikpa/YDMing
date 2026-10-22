@@ -15,8 +15,17 @@ describe("relief", () => {
   it("shades only the styles that ask for it", () => {
     expect(reliefOf("fantasy")).not.toBeNull();
     expect(reliefOf("painted")).toBe(reliefOf("fantasy"));
+    expect(reliefOf("ink")).not.toBeNull();
     expect(reliefOf("parchment")).toBeNull();
     expect(reliefOf("atlas")).toBeNull();
+  });
+
+  it("turns the shade of Old ink brown, and keeps it gentler than Painted fantasy", () => {
+    const ink = reliefOf("ink")!;
+    // Less of the blue and green channel moves than the red one.
+    expect(ink.tint[0]).toBeGreaterThan(ink.tint[1]);
+    expect(ink.tint[1]).toBeGreaterThan(ink.tint[2]);
+    expect(ink.fine).toBeLessThan(reliefOf("fantasy")!.fine);
   });
 
   it("leaves flat ground unshaded", () => {
