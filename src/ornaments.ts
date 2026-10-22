@@ -1,3 +1,4 @@
+import { drawScaleBar, scaleBar } from "./scale-bar";
 import type { MapData } from "./types";
 
 /** The frame, compass and scale bar drawn on a map's sheet. */
@@ -45,24 +46,13 @@ export function ornaments(ctx: CanvasRenderingContext2D, map: MapData) {
       ctx.restore();
     }
     ctx.restore();
-    ctx.fillStyle = "#59614b";
-    ctx.font = "10px Georgia";
-    ctx.textAlign = "left";
-    ctx.fillText(
-      map.kind === "world"
-        ? "0                    100                    200 miles"
-        : "0                    250                    500 feet",
-      45,
-      map.height - 47,
-    );
-    ctx.beginPath();
-    ctx.moveTo(45, map.height - 37);
-    ctx.lineTo(230, map.height - 37);
-    for (let x = 45; x <= 230; x += 92.5) {
-      ctx.moveTo(x, map.height - 42);
-      ctx.lineTo(x, map.height - 33);
-    }
-    ctx.stroke();
+    const bar = scaleBar(map.kind);
+    if (bar)
+      drawScaleBar(ctx, map.height, bar, {
+        text: "#59614b",
+        line: "#5e624b66",
+        lineWidth: 0.5,
+      });
   }
   ctx.restore();
 }
