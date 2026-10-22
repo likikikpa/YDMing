@@ -4,6 +4,7 @@
 // for one the way the "Download" button does.
 import { mkdir, writeFile } from "node:fs/promises";
 import { unzipSync } from "fflate";
+import { itchDownload, pngSize } from "./itch.mjs";
 
 const PAGE =
   "https://markgosbell.itch.io/70-free-flat-greyscale-dungeon-assets";
@@ -64,34 +65,7 @@ const KEEP = [
   ["windowtwo1x1", "window-2", "Window 2"],
 ];
 
-const cookies = (response) =>
-  response.headers
-    .getSetCookie()
-    .map((c) => c.split(";")[0])
-    .join("; ");
-
-const page = await fetch(PAGE, { headers: { "user-agent": "Mozilla/5.0" } });
-if (!page.ok) throw new Error(`${page.status} loading ${PAGE}`);
-const html = await page.text();
-const token = html.match(/csrf_token" value="([^"]+)"/)?.[1];
-if (!token) throw new Error("itch.io page has no download form any more");
-const link = await fetch(
-  `${PAGE}/file/${UPLOAD}?source=view_game&as_props=1&after_download_lightbox=true`,
-  {
-    method: "POST",
-    headers: {
-      "user-agent": "Mozilla/5.0",
-      cookie: cookies(page),
-      "content-type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({ csrf_token: token }),
-  },
-);
-if (!link.ok) throw new Error(`${link.status} asking for the download link`);
-const { url } = await link.json();
-const zip = await fetch(url);
-if (!zip.ok) throw new Error(`${zip.status} downloading the pack`);
-const files = unzipSync(new Uint8Array(await zip.arrayBuffer()));
+const files = unzipSync(await itchDownload(PAGE, UPLOAD));
 
 const root = new URL("../public/assets/gosbell/", import.meta.url);
 await mkdir(root, { recursive: true });
@@ -103,15 +77,11 @@ await writeFile(
   new TextDecoder().decode(readme).replace(/^﻿|​/g, ""),
 );
 
-const size = (png) => {
-  const view = new DataView(png.buffer, png.byteOffset);
-  return [view.getUint32(16), view.getUint32(20)];
-};
 const manifest = [];
 for (const [from, name, label] of KEEP) {
   const bytes = files[`${from}.png`];
   if (!bytes) throw new Error(`${from}.png is missing from the pack`);
-  const [width, height] = size(bytes);
+  const [width, height] = pngSize(bytes);
   // "2x1" in the original name is how many grid squares the picture fills.
   const squares = from.match(/(\d)x(\d)/);
   await writeFile(new URL(`${name}.png`, root), bytes);
