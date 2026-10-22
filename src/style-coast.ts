@@ -38,3 +38,8 @@ export const coastLines = (style: string): CoastLine[] => {
   const id = resolveStyle(style);
   return id === "fantasy" ? PAINTED : id === "ink" ? INK : INKED;
 };
+
+/** How far below the sea level the deepest line of any style is drawn. */
+export const DEEPEST_COAST_LINE = Math.max(
+  ...[INKED, INK, PAINTED].flatMap((lines) => lines.map((l) => -l.offset)),
+);

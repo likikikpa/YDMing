@@ -3,6 +3,7 @@ import { cityBuildings, generateCity } from "./city";
 import { worldLakes, worldPeople, worldWater } from "./generation-parts";
 import { clamp, fbm, hash, random } from "./random";
 import { CELL, clampSize } from "./mapsize";
+import { tidyShore } from "./shore-tidy";
 import { defaultSettings, makeLayers } from "./types";
 import type {
   GeneratorSettings,
@@ -255,6 +256,7 @@ function generateWorld(map: MapData, r: () => number) {
         base + mountains - Math.max(0, 0.065 - edge) * 7,
       );
     }
+  tidyShore(map);
   // Lakes first, so rivers drain into them; rivers then follow the water.
   worldLakes(map, s.seed);
   worldWater(map, s.seed);
