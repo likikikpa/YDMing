@@ -11,6 +11,7 @@ import {
 import { landRuns, trimEnd } from "./water";
 import type { CellRect, TerrainDetail } from "./terrain-render";
 import { hash } from "./random";
+import { drawLabel } from "./labels";
 import { ornaments } from "./ornaments";
 import { drawStamp, path } from "./stamps";
 import { SYMBOL_SCALE, SYMBOL_SPRITES } from "./symbols";
@@ -309,6 +310,7 @@ function drawObject(
   o: MapObject,
   variant: number,
   images?: ImageTable,
+  style = "",
 ) {
   const picture = o.kind === "image" ? objectImage(o, images) : undefined;
   ctx.save();
@@ -316,10 +318,7 @@ function drawObject(
   ctx.rotate((o.rotation * Math.PI) / 180);
   ctx.scale(o.flipX ? -1 : 1, o.flipY ? -1 : 1);
   if (o.kind === "label") {
-    ctx.font = `${o.height}px Georgia, serif`;
-    ctx.textAlign = "center";
-    ctx.fillStyle = o.color;
-    ctx.fillText(o.name, 0, 0, o.width);
+    drawLabel(ctx, o, style);
   } else if (picture) {
     const img = imageCache.get(picture);
     if (img?.complete)
@@ -509,7 +508,9 @@ function drawMapLayers(
     map.objects
       .filter((o) => o.layer === l.id)
       .forEach(
-        (o, i) => objectInClip(o) && drawObject(ctx, o, i, options.images),
+        (o, i) =>
+          objectInClip(o) &&
+          drawObject(ctx, o, i, options.images, map.settings.style),
       );
     ctx.restore();
   }
