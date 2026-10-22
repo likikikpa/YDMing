@@ -20,6 +20,8 @@ import { coastLines } from "./style-coast";
 import {
   fantasyPalette,
   GREEN_BIOMES,
+  groundContrast,
+  inkPalette,
   SHALLOW_WATER_COLOUR,
 } from "./style-palettes";
 import type { Erased, Rect } from "./decor";
@@ -93,7 +95,9 @@ const paletteOf = (style: string) => {
     ? parchment
     : id === "fantasy"
       ? fantasyPalette
-      : atlas;
+      : id === "ink"
+        ? inkPalette
+        : atlas;
 };
 
 let textureLayers: TextureLayer[] = defaultTextures(),
@@ -236,8 +240,11 @@ function buildMaterial(layer: TextureLayer, style: string): Material {
     patterns.set(layer.pattern, (detail = patternTile(layer.pattern)));
   const base = baseColour(layer, style),
     deep = layer.id === DEEP_WATER && !layer.tint,
-    darken = deep ? (style === "parchment" ? 3 : 10) : 0,
-    contrast = layer.visible ? (layer.strength / 100) * 0.3 : 0;
+    paper = resolveStyle(style) === "parchment" || resolveStyle(style) === "ink",
+    darken = deep ? (paper ? 3 : 10) : 0,
+    contrast = layer.visible
+      ? (layer.strength / 100) * 0.3 * groundContrast(style)
+      : 0;
   return withMean(
     layer,
     detail.map((level) => {

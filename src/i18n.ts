@@ -142,6 +142,7 @@ export const ru: Record<string, string> = {
   Parchment: "Пергамент",
   Atlas: "Атлас",
   "Painted fantasy": "Живописное фэнтези",
+  "Old ink": "Старые чернила",
   "Matches the style": "Подходит к стилю",
   "Other collections": "Другие наборы",
   "Generate map": "Создать карту",

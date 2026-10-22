@@ -117,7 +117,12 @@ export interface Layer {
   mask?: Stroke[];
 }
 /** A map style; the registry is in `map-styles.ts`. Old saves may hold a retired one. */
-export type MapStyleId = "parchment" | "atlas" | "painted" | "fantasy";
+export type MapStyleId =
+  | "parchment"
+  | "atlas"
+  | "painted"
+  | "fantasy"
+  | "ink";
 export interface GeneratorSettings {
   seed: string;
   template: string;
