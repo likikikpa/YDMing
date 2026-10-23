@@ -67,6 +67,10 @@ The Terrain paint tool lists all 23 bundled Poly Haven photo textures under the 
 
 ## Next: denser stamps with size variety
 
+Decided in an interview on 23 October 2026: a scatter brush inside the Stamp tool for world and region maps, drawing from a category's whole set of pictures or from a saved custom mix; one density slider; random size, flip, rotation and tint; an optional "follow biomes" toggle; desktop first. Steps: (1) the placement logic, done in `scatter.ts` and not yet used by the app; (2) the brush and its controls; (3) follow biomes; (4) custom mixes; (5) large-count checks.
+
+Found while starting: a picture stamp ignores `MapObject.color` when drawn, so random tint needs a new optional field and a change in `drawObject` (step 2). `scatter.ts` already returns the tint value. Rotation is a per-kind choice (rocks yes, trees no) that step 2 must make.
+
 - A scatter tool: paint an area, choose a kind and a density, and it fills the area with stamps.
 - Random size, flip, rotation and tint within a range per kind, so a forest is not a grid of equal trees.
 - Mixing several pictures of a kind: the AI_GEN set has about 20 trees, one volcano and one mesa, which repeat visibly.
