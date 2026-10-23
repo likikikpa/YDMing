@@ -68,7 +68,13 @@ const PHOTOS: Partial<Record<LiveStyleId, Record<string, GroundPhoto>>> = {
       keep: 0.2,
     },
     swamp: { src: `${TEXTURES}dark-mud.jpg`, colour: [72, 84, 52], keep: 0.35 },
-    savanna: { src: `${TEXTURES}grass.jpg`, colour: [176, 156, 88], keep: 0.3 },
+    savanna: {
+      src: `${TEXTURES}sparse-grass.jpg`,
+      colour: [156, 158, 86],
+      keep: 0.3,
+      gain: 1.6,
+      scale: 1.3,
+    },
     tundra: {
       src: `${TEXTURES}sparse-grass.jpg`,
       colour: [140, 148, 120],

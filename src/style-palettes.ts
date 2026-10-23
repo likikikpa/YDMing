@@ -58,7 +58,7 @@ export const realisticPalette: number[][] = [
   [58, 86, 48], // forest
   [74, 88, 56], // swamp
   [222, 190, 126], // desert
-  [172, 156, 88], // savanna
+  [150, 152, 84], // savanna
   [40, 104, 52], // jungle
   [216, 202, 162], // beach
   [30, 82, 124], // sea
@@ -110,7 +110,7 @@ export const fantasyPalette: number[][] = [
   [92, 138, 70], // forest
   [92, 118, 80], // swamp
   [219, 189, 118], // desert
-  [188, 172, 98], // savanna
+  [162, 170, 90], // savanna
   [58, 140, 72], // jungle
   [234, 220, 168], // beach
   [58, 124, 152], // sea

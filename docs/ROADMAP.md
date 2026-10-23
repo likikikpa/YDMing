@@ -51,12 +51,22 @@ Each was reproduced and traced before any change (see Bugs in `CLAUDE.md`).
 - **Uniform beach band.** Not a tool bug. The sand and dirt bands follow height, and the generator's coasts slope evenly, so the band is an even ring, frayed where the slope is gentle. It belongs to the biome work under "A better world generator" below.
 - **Settlement symbols do not match the style.** Towns and cities are still Kenney line art on Painted fantasy, next to painted trees and peaks. The generator has no painted town picture to use yet.
 
+## Done: more biomes
+
+Nine biomes join the fourteen the generator knew: Badlands, Glacier, Steppe, Moorland, Autumn woods, Volcanic, Blighted, Mangrove and Coral reef (ids 14 to 22; saved maps store the id of each painted cell, so ids are only ever added at the end, see `biomes.ts`). The Biome tool paints them; the generator does not place them yet.
+
+- Every style draws each biome its own way (`biome-grounds.ts`): the greens are no longer one colour, so taiga, forest, swamp, savanna and jungle differ, and tundra and desert stop borrowing dirt and sand. Painted fantasy and Old ink use patterns in the biome's palette colour; Realistic uses recoloured Poly Haven tiles (`style-ground.ts`), eight of them new.
+- Lava is a pattern whose cracks glow orange (dark ink lines in Old ink), and in Realistic a cracked-mud tile whose dark cracks turn molten. A coral reef is painted on shallow water as heads of coral that fade out where the water deepens.
+- Each biome grows its own pictures (`biome-decor.ts`) from the art that already ships: willows in swamp, mesas in badlands, snowy firs on glaciers, craters and boulders on volcanic ground, dead trees in blighted land, roots and palms in mangrove. A picture that a map did not need up front loads when first drawn.
+
+Not done: the generator places none of the nine (see "A better world generator"); no slider sets how much of each appears; blighted and volcanic land have no sprites of their own beyond dead trees and craters; Realistic scatters nothing, so its biomes are told apart by ground alone.
+
 ## Next: denser stamps with size variety
 
 - A scatter tool: paint an area, choose a kind and a density, and it fills the area with stamps.
 - Random size, flip, rotation and tint within a range per kind, so a forest is not a grid of equal trees.
 - Mixing several pictures of a kind: the AI_GEN set has about 20 trees, one volcano and one mesa, which repeat visibly.
-- Biome-aware placement: pines on taiga and snow, palms on beach and jungle, none on water.
+- Biome-aware placement: pines on taiga and snow, palms on beach and jungle, none on water. The biomes and the kind of picture each grows are in `biome-decor.ts`.
 - Large counts: copy and paste already doubles a map's stamps. Never spread a list into a call, and look ids up through `idSet` (see Performance in `CLAUDE.md`).
 - Phones: thousands of stamps must stay smooth, so measure before and after.
 
@@ -64,6 +74,7 @@ Each was reproduced and traced before any change (see Bugs in `CLAUDE.md`).
 
 - Coasts: smooth, varied shorelines; bays, capes, small islands near large ones.
 - Biomes that follow height, latitude and rainfall: snow only on high ground or far north, grassland between, desert in rain shadows. Today snow patches sit on flat lowland.
+- Place the nine painted-only biomes: volcanic land around volcano peaks, badlands in rain shadows and on high dry ground, glaciers in the far north and on the highest peaks, steppe between grassland and desert, moorland on cool highland, mangrove and coral reef on warm shores, autumn woods at the edge of the cold. A slider per special biome (volcanic activity, blight) would set how much of each appears.
 - Transitions between biomes instead of hard-edged blobs; rock around peaks, not around every snow patch.
 - Beaches of varied width: wide on gentle shores, none on cliffs, instead of an even ring round every coast.
 - Rivers that start in the hills and reach the sea or a lake.

@@ -84,6 +84,13 @@ interface Entry {
   relief: Relief;
   layers: Material[];
   /**
+   * Where the slots after the project's layers begin: one for each biome's own
+   * ground and one for the reef's coral. A slot holds a stand-in until it is
+   * built, and keeps its index however the map was painted: the noise that
+   * frays the border between two grounds is seeded by it.
+   */
+  firstSlot: number;
+  /**
    * Index into `layers` of each biome's own ground, built the first time a
    * cell of that biome is classified: `UNBUILT` until then, -1 for a biome
    * drawn with a built-in layer.
@@ -119,7 +126,8 @@ function biomeLayer(map: MapData, entry: Entry, biome: number) {
               textureLayers.find((l) => l.id === recipe.base),
             )
           : undefined;
-    layer = ground ? entry.layers.push(ground) - 1 : -1;
+    layer = ground ? entry.firstSlot + biome : -1;
+    if (ground) entry.layers[layer] = ground;
     entry.biomeLayer[biome] = layer;
   }
   return layer;
@@ -161,7 +169,9 @@ function entryFor(map: MapData) {
         Math.max(
           0,
           textureLayers.findIndex((l) => l.id === id),
-        );
+        ),
+      firstSlot = layers.length;
+    for (let k = 0; k <= MAX_BIOME + 1; k++) layers.push(layers[0]);
     entry = {
       heights: [],
       biomes: [],
@@ -175,6 +185,7 @@ function entryFor(map: MapData) {
       slope: new Float32Array(map.cols * map.rows),
       relief: reliefOf(map.settings.style),
       layers,
+      firstSlot,
       biomeLayer: new Int16Array(MAX_BIOME + 1).fill(UNBUILT),
       reef: UNBUILT,
       shallow: find(SHALLOW_WATER),
@@ -223,7 +234,8 @@ function classifyCells(
           map.settings.style,
           textureLayers.find((l) => l.id === "sand"),
         );
-        entry.reef = coral ? entry.layers.push(coral) - 1 : -1;
+        entry.reef = coral ? entry.firstSlot + MAX_BIOME + 1 : -1;
+        if (coral) entry.layers[entry.reef] = coral;
       }
       const painted = paintedMaterial(map, map, i);
       entry.cellMaterial[i] =

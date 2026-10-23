@@ -155,6 +155,8 @@ export function drawDecor(
       i = cy * cols + cx,
       h = heights[i],
       b = biomes ? biomes[i] : biomeAt(map, cx, cy);
+    // Nothing grows under water, whatever biome was painted there.
+    if (h < map.settings.seaLevel) continue;
     let kind: DecorKind | null = null,
       size = 0;
     if (canopy && h <= 0.71 && isWooded(b)) {
