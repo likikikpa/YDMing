@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { BIOME_KEYS } from "./biomes";
 import { BUILTIN_MATERIALS } from "./materials";
 import {
   groundKinds,
@@ -25,7 +26,10 @@ const mean = (rgb: Float32Array) => {
 
 describe("photo ground", () => {
   it("is listed for Realistic only, and maps saved as retired styles have none", () => {
-    expect(groundSources("realistic")).toHaveLength(6);
+    expect(groundSources("realistic")).toHaveLength(
+      groundKinds("realistic").length,
+    );
+    expect(groundKinds("realistic").length).toBeGreaterThan(6);
     for (const style of ["fantasy", "ink", "painted", "atlas", "nonsense"])
       expect(groundSources(style)).toEqual([]);
   });
@@ -92,8 +96,12 @@ describe("recolouring a photo tile", () => {
 });
 
 describe("the grounds a photo style covers", () => {
-  it("are the land materials and the woods, and nothing that does not exist", () => {
-    const land = BUILTIN_MATERIALS.filter((id) => !id.endsWith("water"));
-    expect(groundKinds("realistic").sort()).toEqual([...land, "forest"].sort());
+  it("include every land material, and the rest are biomes", () => {
+    const land = BUILTIN_MATERIALS.filter((id) => !id.endsWith("water")),
+      biomes = Object.values(BIOME_KEYS),
+      kinds = groundKinds("realistic");
+    for (const id of land) expect(kinds).toContain(id);
+    for (const kind of kinds)
+      expect([...land, ...biomes], kind).toContain(kind);
   });
 });

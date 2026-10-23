@@ -73,6 +73,13 @@ export const realisticPalette: number[][] = [
   [66, 158, 166], // shallow water
 ];
 
+/** The colour molten rock glows in each style: bright orange, or a dark ink line on paper. */
+export const GLOW_COLOUR = {
+  fantasy: [255, 128, 40],
+  ink: [96, 58, 40],
+  realistic: [255, 108, 28],
+} as const;
+
 /**
  * How strongly a style lets the ground tiles show, relative to the layer's own
  * strength. Old ink keeps the paper calm so the line work reads.
@@ -92,7 +99,7 @@ export const fantasyPalette: number[][] = [
   [178, 190, 152], // tundra
   [74, 120, 92], // taiga
   [108, 150, 80], // grassland
-  [108, 150, 80], // forest
+  [92, 138, 70], // forest
   [92, 118, 80], // swamp
   [219, 189, 118], // desert
   [188, 172, 98], // savanna

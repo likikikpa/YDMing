@@ -178,7 +178,9 @@ export type TexturePattern =
   | "snow"
   | "water"
   | "mud"
-  | "cobble";
+  | "cobble"
+  | "lava"
+  | "coral";
 /** A ground material the map, the generator and the terrain tools paint with. */
 export interface TextureLayer {
   id: string;

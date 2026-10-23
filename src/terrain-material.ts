@@ -1,5 +1,8 @@
+import { BIOME_KEYS } from "./biomes";
+import { BIOME_GROUNDS } from "./biome-grounds";
 import {
   DEEP_WATER,
+  GLOW_FROM,
   hexToRgb,
   patternTile,
   SHALLOW_WATER,
@@ -11,6 +14,7 @@ import { resolveStyle } from "./map-styles";
 import { groundPhoto } from "./style-ground";
 import {
   fantasyPalette,
+  GLOW_COLOUR,
   groundContrast,
   inkPalette,
   realisticPalette,
@@ -23,7 +27,7 @@ const STYLE_COLOURS: Record<string, number> = {
   snow: 1,
   rock: 2,
   dirt: 13,
-  grass: 6,
+  grass: 5,
   sand: 11,
   [SHALLOW_WATER]: 12,
   [DEEP_WATER]: 12,
@@ -138,10 +142,47 @@ export const photoFor = (
     ? groundPhoto(style, ground)
     : undefined;
 
-/** The ground of woods in styles with photos: a material beside the project's layers, shaped like its grass. */
-export function forestMaterial(style: string, grass?: TextureLayer) {
-  const photo = grass && photoFor(grass, style, "forest");
-  return grass && photo ? withMean(grass, photo, densityOf(grass)) : undefined;
+type Rgb = [number, number, number];
+
+/**
+ * A generated ground: `pattern` in `base`, with the strength, scale and tiling
+ * of `layer`. A glowing pattern lets the style's glow colour through where its
+ * offset is high, and keeps the crust's brightness below that.
+ */
+function patternMaterial(
+  layer: TextureLayer,
+  style: string,
+  pattern: TextureLayer["pattern"],
+  base: Rgb,
+  darken = 0,
+): Material {
+  let detail = patterns.get(pattern);
+  if (!detail) patterns.set(pattern, (detail = patternTile(pattern)));
+  const contrast = layer.visible
+      ? (layer.strength / 100) * 0.3 * groundContrast(style)
+      : 0,
+    glowFrom = GLOW_FROM[pattern],
+    glow = GLOW_COLOUR[resolveStyle(style)];
+  return withMean(
+    layer,
+    detail.map((level) => {
+      const rgb = new Float32Array(level.length * 3);
+      for (let i = 0; i < level.length; i++) {
+        const offset =
+            glowFrom === undefined ? level[i] : Math.min(level[i], glowFrom),
+          f = 1 + offset * contrast,
+          molten =
+            glowFrom === undefined || !layer.visible
+              ? 0
+              : Math.min(1, Math.max(0, (level[i] - glowFrom) / 0.7));
+        for (let k = 0; k < 3; k++)
+          rgb[i * 3 + k] =
+            (base[k] - darken) * f * (1 - molten) + glow[k] * molten;
+      }
+      return rgb;
+    }),
+    densityOf(layer),
+  );
 }
 
 export function buildMaterial(layer: TextureLayer, style: string): Material {
@@ -150,26 +191,39 @@ export function buildMaterial(layer: TextureLayer, style: string): Material {
   if (upload) return withMean(layer, upload, density);
   const photo = photoFor(layer, style);
   if (photo) return withMean(layer, photo, density);
-  let detail = patterns.get(layer.pattern);
-  if (!detail)
-    patterns.set(layer.pattern, (detail = patternTile(layer.pattern)));
-  const base = baseColour(layer, style),
-    deep = layer.id === DEEP_WATER && !layer.tint,
-    darken = deep ? (resolveStyle(style) === "ink" ? 3 : 10) : 0,
-    contrast = layer.visible
-      ? (layer.strength / 100) * 0.3 * groundContrast(style)
-      : 0;
-  return withMean(
+  const deep = layer.id === DEEP_WATER && !layer.tint;
+  return patternMaterial(
     layer,
-    detail.map((level) => {
-      const rgb = new Float32Array(level.length * 3);
-      for (let i = 0; i < level.length; i++) {
-        const f = 1 + level[i] * contrast;
-        for (let k = 0; k < 3; k++) rgb[i * 3 + k] = (base[k] - darken) * f;
-      }
-      return rgb;
-    }),
-    density,
+    style,
+    layer.pattern,
+    baseColour(layer, style) as Rgb,
+    deep ? (resolveStyle(style) === "ink" ? 3 : 10) : 0,
+  );
+}
+
+/**
+ * The ground of a biome that has one of its own: a material beside the
+ * project's layers, shaped by the built-in layer it is based on. It is the
+ * style's photo for the biome when there is one, else the biome's pattern in
+ * its palette colour. None when the biome has no ground of its own, or the
+ * layer it is based on was given a picture or a tint, or switched off: the
+ * map-maker's choice for that ground wins.
+ */
+export function biomeGround(
+  style: string,
+  biome: number,
+  base: TextureLayer | undefined,
+): Material | undefined {
+  const recipe = BIOME_GROUNDS[biome];
+  if (!recipe || !base || !base.visible || base.image || base.tint)
+    return undefined;
+  const photo = groundPhoto(style, BIOME_KEYS[biome]!);
+  if (photo) return withMean(base, photo, densityOf(base));
+  return patternMaterial(
+    base,
+    style,
+    recipe.pattern,
+    paletteOf(style)[biome] as Rgb,
   );
 }
 

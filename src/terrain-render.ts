@@ -8,13 +8,14 @@ import {
   TILE,
 } from "./materials";
 import { hexBlend } from "./hex-tiling";
-import { isWooded } from "./canopy";
+import { BIOME_GROUNDS } from "./biome-grounds";
+import { FIRST_PAINTED_ONLY, MAX_BIOME } from "./biomes";
 import { decodeTile } from "./tile-decode";
 import {
+  biomeGround,
   buildMaterial,
   covers,
   decodeCover,
-  forestMaterial,
   uploads,
 } from "./terrain-material";
 import type { Cover, Material } from "./terrain-material";
@@ -81,8 +82,12 @@ interface Entry {
   /** How the style shades the land, or null for the faint diagonal shade. */
   relief: Relief;
   layers: Material[];
-  /** Index into `layers` of the ground of woods, or -1 where the style has none. */
-  forest: number;
+  /**
+   * Index into `layers` of each biome's own ground, built the first time a
+   * cell of that biome is classified: `UNBUILT` until then, -1 for a biome
+   * drawn with a built-in layer.
+   */
+  biomeLayer: Int16Array;
   shallow: number;
   deep: number;
   base: HTMLCanvasElement;
@@ -91,6 +96,31 @@ interface Entry {
   decorErased?: Erased;
 }
 const entries = new Map<string, Entry>();
+const UNBUILT = -2;
+
+/**
+ * The layer index of a biome's own ground, building it on first use. A town or
+ * dungeon sits at one latitude whose biome is woods, so only a world map takes
+ * the grounds of the biomes a generator places; the hand-painted ones apply
+ * anywhere.
+ */
+function biomeLayer(map: MapData, entry: Entry, biome: number) {
+  let layer = entry.biomeLayer[biome];
+  if (layer === UNBUILT) {
+    const recipe = BIOME_GROUNDS[biome],
+      ground =
+        recipe && (map.kind === "world" || biome >= FIRST_PAINTED_ONLY)
+          ? biomeGround(
+              map.settings.style,
+              biome,
+              textureLayers.find((l) => l.id === recipe.base),
+            )
+          : undefined;
+    layer = ground ? entry.layers.push(ground) - 1 : -1;
+    entry.biomeLayer[biome] = layer;
+  }
+  return layer;
+}
 
 function signature(map: MapData) {
   const s = map.settings;
@@ -124,15 +154,6 @@ function entryFor(map: MapData) {
     const layers = textureLayers.map((l) =>
         buildMaterial(l, map.settings.style),
       ),
-      // A town or dungeon sits at one latitude, whose biome is woods: keep its ground open.
-      wood =
-        map.kind === "world"
-          ? forestMaterial(
-              map.settings.style,
-              textureLayers.find((l) => l.id === "grass"),
-            )
-          : undefined,
-      forest = wood ? layers.push(wood) - 1 : -1,
       find = (id: string) =>
         Math.max(
           0,
@@ -151,7 +172,7 @@ function entryFor(map: MapData) {
       slope: new Float32Array(map.cols * map.rows),
       relief: reliefOf(map.settings.style),
       layers,
-      forest,
+      biomeLayer: new Int16Array(MAX_BIOME + 1).fill(UNBUILT),
       shallow: find(SHALLOW_WATER),
       deep: find(DEEP_WATER),
       base,
@@ -196,7 +217,7 @@ function classifyCells(
       const painted = paintedMaterial(map, map, i);
       entry.cellMaterial[i] =
         (painted !== undefined ? index.get(painted) : undefined) ??
-        (entry.forest >= 0 && isWooded(b) ? entry.forest : undefined) ??
+        (biomeLayer(map, entry, b) >= 0 ? entry.biomeLayer[b] : undefined) ??
         index.get(biomeMaterial(b)) ??
         0;
       entry.slope[i] = shadeAt(heights, cols, rows, x, y, entry.relief);

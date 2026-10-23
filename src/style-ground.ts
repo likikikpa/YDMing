@@ -14,10 +14,11 @@ interface GroundPhoto {
 const TEXTURES = "/assets/textures/";
 
 /**
- * The photo ground of a style, by the material it stands in for: the built-in
- * grounds by id, and `forest` for the biomes that grow woods. A style listed
- * here draws these tiles in place of its generated patterns, unless the map's
- * own texture layer has a picture or a tint of its own.
+ * The photo ground of a style, by what it stands in for: a built-in layer by id,
+ * or a biome by its key (see `BIOME_KEYS`). A style listed here draws these
+ * tiles in place of its generated patterns, unless the map's own texture layer
+ * has a picture or a tint of its own. A tile may serve several grounds, each
+ * recoloured its own way.
  */
 const PHOTOS: Partial<Record<LiveStyleId, Record<string, GroundPhoto>>> = {
   realistic: {
@@ -32,6 +33,24 @@ const PHOTOS: Partial<Record<LiveStyleId, Record<string, GroundPhoto>>> = {
       colour: [48, 76, 40],
       keep: 0.15,
     },
+    taiga: {
+      src: `${TEXTURES}autumn-leaves.jpg`,
+      colour: [44, 72, 64],
+      keep: 0.15,
+    },
+    jungle: {
+      src: `${TEXTURES}forest-floor.jpg`,
+      colour: [52, 118, 54],
+      keep: 0.2,
+    },
+    swamp: { src: `${TEXTURES}dark-mud.jpg`, colour: [72, 84, 52], keep: 0.35 },
+    savanna: { src: `${TEXTURES}grass.jpg`, colour: [176, 156, 88], keep: 0.3 },
+    tundra: {
+      src: `${TEXTURES}forest-floor.jpg`,
+      colour: [138, 146, 116],
+      keep: 0.25,
+    },
+    desert: { src: `${TEXTURES}sand.jpg`, colour: [224, 188, 120], keep: 0.5 },
     dirt: { src: `${TEXTURES}dirt.jpg`, colour: [160, 124, 88], keep: 0.4 },
     sand: { src: `${TEXTURES}sand.jpg`, colour: [214, 196, 152], keep: 0.5 },
     rock: {
@@ -51,8 +70,14 @@ export const groundKinds = (style: string) =>
 export const groundSources = (style: string) =>
   Object.values(PHOTOS[resolveStyle(style)] ?? {}).map((p) => p.src);
 
-/** Decoded tiles (RGB mip levels, already recoloured), by source. */
+/** What identifies a recoloured tile: its picture and how it is recoloured. */
+const idOf = (p: GroundPhoto) => `${p.src}|${p.colour.join()}|${p.keep}`;
+
+/** Decoded tiles (RGB mip levels, already recoloured), by `idOf`. */
 const loaded = new Map<string, Float32Array[]>();
+
+/** Pictures decoded, by source, so a tile that serves several grounds is read once. */
+const decoded = new Map<string, Promise<Float32Array[]>>();
 
 const luminance = (r: number, g: number, b: number) =>
   r * 0.3 + g * 0.59 + b * 0.11;
@@ -96,10 +121,10 @@ export function recoloured(
 /** The decoded photo for a ground in a style, once it has loaded. */
 export const groundPhoto = (style: string, ground: string) => {
   const photo = PHOTOS[resolveStyle(style)]?.[ground];
-  return photo ? loaded.get(photo.src) : undefined;
+  return photo ? loaded.get(idOf(photo)) : undefined;
 };
 
-/** Tiles being decoded now, so two callers asking for one load it once. */
+/** Tiles being recoloured now, so two callers asking for one load it once. */
 const pending = new Map<string, Promise<void>>();
 
 /**
@@ -108,19 +133,27 @@ const pending = new Map<string, Promise<void>>();
  */
 export async function preloadGround(style: string) {
   const missing = Object.values(PHOTOS[resolveStyle(style)] ?? {}).filter(
-    (p) => !loaded.has(p.src),
+    (p) => !loaded.has(idOf(p)),
   );
   if (!missing.length) return false;
   const results = await Promise.allSettled(
     missing.map((p) => {
-      let job = pending.get(p.src);
+      const id = idOf(p);
+      let job = pending.get(id);
       if (!job) {
-        job = decodeTile(p.src)
+        let picture = decoded.get(p.src);
+        if (!picture) {
+          picture = decodeTile(p.src);
+          decoded.set(p.src, picture);
+          // A picture that failed to load is tried again next time.
+          picture.catch(() => decoded.delete(p.src));
+        }
+        job = picture
           .then((levels) => {
-            loaded.set(p.src, recoloured(levels, p.colour, p.keep));
+            loaded.set(id, recoloured(levels, p.colour, p.keep));
           })
-          .finally(() => pending.delete(p.src));
-        pending.set(p.src, job);
+          .finally(() => pending.delete(id));
+        pending.set(id, job);
       }
       return job;
     }),

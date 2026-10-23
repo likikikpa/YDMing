@@ -54,6 +54,30 @@ export const Biome = {
   CoralReef: 22,
 } as const;
 
+/**
+ * What a biome is called where something is looked up by name, such as the
+ * photo that stands in for its ground. Biomes without a ground of their own
+ * (snow, rock, beach, dirt, grassland) use the built-in material of that name.
+ */
+export const BIOME_KEYS: Partial<Record<number, string>> = {
+  [Biome.Tundra]: "tundra",
+  [Biome.Taiga]: "taiga",
+  [Biome.Forest]: "forest",
+  [Biome.Swamp]: "swamp",
+  [Biome.Desert]: "desert",
+  [Biome.Savanna]: "savanna",
+  [Biome.Jungle]: "jungle",
+  [Biome.Badlands]: "badlands",
+  [Biome.Glacier]: "glacier",
+  [Biome.Steppe]: "steppe",
+  [Biome.Moorland]: "moorland",
+  [Biome.AutumnWoods]: "autumn",
+  [Biome.Volcanic]: "volcanic",
+  [Biome.Blighted]: "blighted",
+  [Biome.Mangrove]: "mangrove",
+  [Biome.CoralReef]: "reef",
+};
+
 /** The highest biome id; saved maps may hold any id from 0 to this. */
 export const MAX_BIOME = BIOME_NAMES.length - 1;
 
