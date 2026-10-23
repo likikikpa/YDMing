@@ -4,6 +4,7 @@ import {
   imageId,
   imageSources,
   migrateImages,
+  notLoaded,
   objectImage,
   pruneImages,
   withImages,
@@ -190,5 +191,21 @@ describe("files with an image table", () => {
   it("still opens a file that embeds the picture in each stamp", () => {
     const old = world([stamp("a", { image: PNG })]);
     expect(validateProject(JSON.parse(JSON.stringify(old)))).toEqual(old);
+  });
+});
+
+describe("notLoaded", () => {
+  const cache = new Map([
+    ["/done.webp", { complete: true }],
+    ["/loading.webp", { complete: false }],
+  ]);
+  it("leaves out the pictures that are finished", () => {
+    expect(
+      notLoaded(["/done.webp", "/loading.webp", "/new.webp"], cache),
+    ).toEqual(["/loading.webp", "/new.webp"]);
+  });
+  it("is empty when every picture is ready, so no second draw", () => {
+    expect(notLoaded(new Set(["/done.webp"]), cache)).toEqual([]);
+    expect(notLoaded([], cache)).toEqual([]);
   });
 });

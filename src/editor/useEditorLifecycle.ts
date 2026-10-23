@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { imageSources } from "../images";
-import { loadImage } from "../render";
+import { imageSources, notLoaded } from "../images";
+import { imageCache, loadImage } from "../render";
 import { preloadSymbols } from "../symbols";
 import { Application, Container } from "pixi.js";
 import type { EditorCore } from "./useEditorCore";
@@ -137,10 +137,13 @@ export function useEditorLifecycle(
   useEffect(() => {
     if (!ready) return;
     let active = true;
-    // Each distinct picture once, however many stamps show it.
-    const images = [...imageSources(props.map.objects, props.images)].map(
-      loadImage,
-    );
+    // Each distinct picture once, however many stamps show it. Only pictures
+    // still loading earn a second draw: redrawing a map of tens of thousands
+    // of stamps twice per edit doubled every paste, undo and move.
+    const images = notLoaded(
+      imageSources(props.map.objects, props.images),
+      imageCache,
+    ).map(loadImage);
     refresh();
     if (images.length)
       void Promise.allSettled(images).then(() => {

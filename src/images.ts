@@ -45,6 +45,12 @@ export function imageSources(objects: MapObject[], images?: ImageTable) {
   return sources;
 }
 
+/** The sources `cache` does not hold a finished picture for. */
+export const notLoaded = (
+  sources: Iterable<string>,
+  cache: { get(src: string): { complete: boolean } | undefined },
+) => [...sources].filter((src) => !cache.get(src)?.complete);
+
 /**
  * Old saves embed the picture in every stamp. Moves each distinct picture into
  * the world's table and leaves the stamps with its id; anything else is left
