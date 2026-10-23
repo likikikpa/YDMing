@@ -65,7 +65,7 @@ Not done: the generator places none of the nine (see "A better world generator")
 
 The Terrain paint tool lists all 23 bundled Poly Haven photo textures under the project's own grounds. Picking one adds it to the world as a texture layer and selects it, so a world carries only the photos it uses; the "Photo textures" menu in the Layers panel is gone. A texture layer records the photo it came from (optional `preset`, checked on load), so a photo already in the world is not offered twice, and layers saved before that are matched by name and picture. Raise and Dig have no ground picker and are unchanged. The biome grounds (lava, coral and the rest) are not in this picker; the Biome brush paints them.
 
-## Next: denser stamps with size variety
+## Done: denser stamps with size variety
 
 Decided in an interview on 23 October 2026: a scatter brush inside the Stamp tool for world maps, drawing from a kind of picture (Mountains, Trees, Rocks, Undergrowth, taken from the open Library collection) or from a saved custom mix; one density slider; random size, flip, rotation and tint; an optional "follow biomes" toggle; desktop first. Steps:
 
@@ -73,10 +73,17 @@ Decided in an interview on 23 October 2026: a scatter brush inside the Stamp too
 2. **The brush and its controls.** Done: a Scatter checkbox in the Stamp tool card (world maps only) with Pictures, Radius, Density, Size variety, Colour variety, Flip and Rotate (`scatter-brush.ts`, `scatter-kinds.ts`, `editor/scatter-tool.ts`, `layout/ScatterSettings.tsx`). A stroke is one undo step and redraws only the area it sowed. Picture stamps can carry an optional `tint` (`tint.ts`). A map file may now hold up to 200,000 stamps, up from 10,000.
 3. **Follow biomes.** Done: a "Follow biomes" checkbox, on by default (`scatter-habitat.ts`). Each stamp takes its picture from those that grow on the biome under it, using the pools the map styles scatter (`style-decor.ts`), and nothing is placed on the sea or the reef. Trees and undergrowth keep to their biomes (pines on taiga, acacias on savanna, palms and stones on a beach); mountains and stones stand on any land; a picture no style scatters (a castle, a log, an imported stamp) can stand anywhere on land. Rivers and lakes drawn as paths, and roads, are not avoided.
 4. **Custom mixes.** Done: New mix in the Scatter card opens a dialog where you name a mix, pick pictures from any bundled collection and give each a weight from 1 to 10. Saved mixes are listed under Mixes in the Pictures menu, can be edited or deleted, and travel with the world (optional `Project.scatterMixes`, checked on load). Only bundled pictures can be in a mix, not My stamps or searched images. Each picture turns only as far as its own kind allows, so a mix of trees and rocks keeps the trees upright.
-5. **Large-count checks.** Partly: with about 5,000 stamps a scatter stroke at the default settings took 62 ms a pointer move against 162 ms for the old drag-to-place trail, which redraws the whole map. Not checked: phone, and maps of tens of thousands of stamps. On a phone the tool card is taller than the sheet and scrolls.
+5. **Large-count checks.** Done on desktop and with a phone-size touch test, using the production build in headless Chromium (software drawing, so only the comparison between runs means much; the dev server adds seconds of React logging and is no guide).
 
-- Large counts: copy and paste already doubles a map's stamps. Never spread a list into a call, and look ids up through `idSet` (see Performance in `CLAUDE.md`).
-- Phones: thousands of stamps must stay smooth, so measure before and after.
+   | Stamps on the map | Open file | Scatter stroke | Paste of all | Undo | Redo |
+   | ----------------- | --------- | -------------- | ------------ | ---- | ---- |
+   | 20,000            | 6.5 s     | 61 ms a move   | 0.4 s freeze | 0.2 s | 0.3 s |
+   | 60,000            | 11.5 s    | 78 ms a move   | 1.2 s freeze | 0.8 s | 1.1 s |
+   | 130,000           | 20 s      | 91 ms a move   | 2.5 s freeze | 1.9 s | 2.6 s |
+
+   Nothing throws at 130,000 stamps (the old list-spread limit is about 120,000). Zoom and pan stay smooth. A scatter stroke redraws only the ground it sowed, so its cost follows the stamps near the brush, not the whole map; the time per move is the drawing of the stamps in that area. Found and fixed: after every edit the editor redrew the whole map a second time once the pictures "finished loading", though they were already loaded (`useEditorLifecycle.ts`); undo and redo at 20,000 stamps went from 0.4 and 0.7 s to 0.2 and 0.4 s, with no change measured at 60,000. A marquee cannot start on a stamp, so on a map that is covered edge to edge it can only start from an empty margin. A file holds about 240 bytes a stamp, so the 60 MB open limit is reached near 250,000, above the 200,000 stamps a map may hold.
+
+   Phone (412 × 860, touch): a one-finger drag scatters (40 stamps for a 30-step stroke, no long task over 55 ms); two fingers landing together, or a second finger landing 60 ms after the first, place nothing. Not measured on a real phone, and not with tens of thousands of stamps.
 
 ## Next: a better world generator
 
