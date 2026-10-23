@@ -2,7 +2,8 @@ import { BIOME_KEYS } from "./biomes";
 import { BIOME_GROUNDS } from "./biome-grounds";
 import {
   DEEP_WATER,
-  GLOW_FROM,
+  GLOW,
+  mipChain,
   hexToRgb,
   patternTile,
   SHALLOW_WATER,
@@ -161,26 +162,31 @@ function patternMaterial(
   const contrast = layer.visible
       ? (layer.strength / 100) * 0.3 * groundContrast(style)
       : 0,
-    glowFrom = GLOW_FROM[pattern],
-    glow = GLOW_COLOUR[resolveStyle(style)];
-  return withMean(
-    layer,
-    detail.map((level) => {
+    glow = GLOW[pattern],
+    glowColour = GLOW_COLOUR[resolveStyle(style)][pattern],
+    colourise = (level: Float32Array) => {
       const rgb = new Float32Array(level.length * 3);
       for (let i = 0; i < level.length; i++) {
-        const offset =
-            glowFrom === undefined ? level[i] : Math.min(level[i], glowFrom),
+        const offset = glow ? Math.min(level[i], glow.from) : level[i],
           f = 1 + offset * contrast,
           molten =
-            glowFrom === undefined || !layer.visible
-              ? 0
-              : Math.min(1, Math.max(0, (level[i] - glowFrom) / 0.7));
+            glow && glowColour && layer.visible
+              ? Math.min(1, Math.max(0, (level[i] - glow.from) / glow.span))
+              : 0;
         for (let k = 0; k < 3; k++)
           rgb[i * 3 + k] =
-            (base[k] - darken) * f * (1 - molten) + glow[k] * molten;
+            (base[k] - darken) * f * (1 - molten) +
+            (glowColour?.[k] ?? 0) * molten;
       }
       return rgb;
-    }),
+    };
+  return withMean(
+    layer,
+    // A glow is laid at full size and the smaller levels are made from it, so
+    // it fades to a haze as the map is zoomed out instead of disappearing.
+    glow
+      ? mipChain(colourise(detail[0]), TILE, 3)
+      : detail.map((level) => colourise(level)),
     densityOf(layer),
   );
 }
@@ -190,7 +196,7 @@ export function buildMaterial(layer: TextureLayer, style: string): Material {
     upload = layer.image ? uploads.get(layer.image) : undefined;
   if (upload) return withMean(layer, upload, density);
   const photo = photoFor(layer, style);
-  if (photo) return withMean(layer, photo, density);
+  if (photo) return withMean(layer, photo.levels, density / photo.scale);
   const deep = layer.id === DEEP_WATER && !layer.tint;
   return patternMaterial(
     layer,
@@ -199,6 +205,21 @@ export function buildMaterial(layer: TextureLayer, style: string): Material {
     baseColour(layer, style) as Rgb,
     deep ? (resolveStyle(style) === "ink" ? 3 : 10) : 0,
   );
+}
+
+/**
+ * The coral of a reef, drawn over shallow water: heads of coral in the colour
+ * of the shallows. It takes its strength and scale from the sand layer.
+ */
+export function reefGround(style: string, sand: TextureLayer | undefined) {
+  return sand
+    ? patternMaterial(
+        sand,
+        style,
+        "coral",
+        paletteOf(style)[SHALLOW_WATER_COLOUR] as Rgb,
+      )
+    : undefined;
 }
 
 /**
@@ -218,7 +239,7 @@ export function biomeGround(
   if (!recipe || !base || !base.visible || base.image || base.tint)
     return undefined;
   const photo = groundPhoto(style, BIOME_KEYS[biome]!);
-  if (photo) return withMean(base, photo, densityOf(base));
+  if (photo) return withMean(base, photo.levels, densityOf(base) / photo.scale);
   return patternMaterial(
     base,
     style,

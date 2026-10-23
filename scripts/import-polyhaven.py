@@ -29,6 +29,14 @@ TEXTURES = [
     ("mossy-cobblestone", "mossy_cobblestone", "Mossy cobblestone", "cobble"),
     ("planks", "wood_planks", "Wood planks", "dirt"),
     ("dark-planks", "dark_wooden_planks", "Dark planks", "dirt"),
+    ("red-earth", "red_laterite_soil_stones", "Red earth", "dirt"),
+    ("burned-ground", "burned_ground_01", "Burned ground", "mud"),
+    ("cracked-mud", "mud_cracked_dry_03", "Cracked mud", "mud"),
+    ("withered-grass", "withered_grass", "Withered grass", "grass"),
+    ("sparse-grass", "sparse_grass", "Sparse grass", "grass"),
+    ("pine-needles", "forrest_ground_03", "Pine needles", "grass"),
+    ("forest-mud", "mud_forest", "Forest mud", "mud"),
+    ("trampled-snow", "snow_01", "Trampled snow", "snow"),
 ]
 TILE = 128
 HEADERS = {"User-Agent": "YDMing asset import"}

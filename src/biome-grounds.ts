@@ -15,7 +15,8 @@ export interface BiomeGround {
 /**
  * The biomes that have a ground of their own. The rest (snow, rock, beach, dirt
  * and grassland) are drawn with the built-in layer of that name, and the sea
- * with the water layers.
+ * with the water layers; the coral reef is drawn over shallow water (see
+ * `reefGround`) and on land is bare sand.
  */
 export const BIOME_GROUNDS: Partial<Record<number, BiomeGround>> = {
   [Biome.Tundra]: { base: "dirt", pattern: "dirt" },
@@ -33,5 +34,4 @@ export const BIOME_GROUNDS: Partial<Record<number, BiomeGround>> = {
   [Biome.Volcanic]: { base: "rock", pattern: "lava" },
   [Biome.Blighted]: { base: "dirt", pattern: "mud" },
   [Biome.Mangrove]: { base: "grass", pattern: "mud" },
-  [Biome.CoralReef]: { base: "sand", pattern: "sand" },
 };

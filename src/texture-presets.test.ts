@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { ru } from "./i18n";
 import { PATTERNS } from "./materials";
 import { TEXTURE_PRESETS, presetLayer } from "./texture-presets";
 
@@ -37,5 +38,26 @@ describe("photo texture presets", () => {
         visible: true,
       });
     }
+  });
+});
+
+describe("photo textures for the biomes", () => {
+  it("includes a tile for each ground the Realistic style paints with", () => {
+    const sources = new Set(TEXTURE_PRESETS.map((p) => p.src));
+    for (const name of [
+      "red-earth",
+      "burned-ground",
+      "cracked-mud",
+      "withered-grass",
+      "sparse-grass",
+      "pine-needles",
+      "forest-mud",
+      "trampled-snow",
+    ])
+      expect(sources.has(`/assets/textures/${name}.jpg`), name).toBe(true);
+  });
+
+  it("has a Russian name for every preset", () => {
+    for (const p of TEXTURE_PRESETS) expect(ru[p.name], p.name).toBeTruthy();
   });
 });

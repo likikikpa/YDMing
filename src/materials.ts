@@ -259,7 +259,7 @@ function patternAt(pattern: TexturePattern, u: number, v: number, s: number) {
     }
     case "lava": {
       // Plates of dark crust, cracked along their borders: the cracks run past
-      // 1 and are where `GLOW_FROM` lets the molten colour through.
+      // 1 and are where `GLOW` lets the molten colour through.
       const crack = Math.max(0, 1 - cellular(u, v, 5, s) / 0.3);
       return (
         crack * 1.5 -
@@ -270,8 +270,7 @@ function patternAt(pattern: TexturePattern, u: number, v: number, s: number) {
     }
     case "coral":
       return (
-        (n(u, v, 12, s) > 0.52 ? 0.55 : -0.25) +
-        (n(u, v, 36, s + 1) - 0.5) * 0.5
+        (n(u, v, 18, s) > 0.66 ? 1.2 : -0.4) + (n(u, v, 48, s + 1) - 0.5) * 0.6
       );
   }
 }
@@ -280,7 +279,13 @@ function patternAt(pattern: TexturePattern, u: number, v: number, s: number) {
  * Patterns that glow: where a texel's offset passes this, the colour turns
  * from the ground's own to the style's glow colour (molten rock in the cracks).
  */
-export const GLOW_FROM: Partial<Record<TexturePattern, number>> = { lava: 0.35 };
+export const GLOW: Partial<
+  Record<TexturePattern, { from: number; span: number }>
+> = {
+  lava: { from: 0.35, span: 0.7 },
+  // Coral heads stand out of the water around them.
+  coral: { from: 0.3, span: 0.5 },
+};
 
 /**
  * A seamless tile of brightness offsets for a pattern, followed by smaller

@@ -9,7 +9,7 @@ Two rules shape the list:
 
 ## Status
 
-Bundled in the app: #5 Mark Gosbell's dungeon assets (the Library's "Dungeon dressing" collection) and #9 Poly Haven textures (15 of them, under Photo textures in the Layers panel). Run `node scripts/import-gosbell.mjs` and `python3 scripts/import-polyhaven.py` to fetch them again.
+Bundled in the app: #5 Mark Gosbell's dungeon assets (the Library's "Dungeon dressing" collection) and #9 Poly Haven textures (23 of them, under Photo textures in the Layers panel). Run `node scripts/import-gosbell.mjs` and `python3 scripts/import-polyhaven.py` to fetch them again.
 
 Not bundled: #1 Simple Stamps could not be downloaded here (the site answers 403) and its licence is unconfirmed. #2, #3, #4, #7 and #8 do not allow redistribution; import them yourself with **Import pack** in My stamps. #6 and #10 are unconfirmed.
 

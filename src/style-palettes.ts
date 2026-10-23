@@ -1,5 +1,7 @@
 import { BIOME_NAMES } from "./biomes";
 import { resolveStyle } from "./map-styles";
+import type { LiveStyleId } from "./map-styles";
+import type { TexturePattern } from "./types";
 
 /**
  * Palette index of the colour of shallow water: the entry after the last
@@ -73,12 +75,18 @@ export const realisticPalette: number[][] = [
   [66, 158, 166], // shallow water
 ];
 
-/** The colour molten rock glows in each style: bright orange, or a dark ink line on paper. */
-export const GLOW_COLOUR = {
-  fantasy: [255, 128, 40],
-  ink: [96, 58, 40],
-  realistic: [255, 108, 28],
-} as const;
+/**
+ * The colour a glowing pattern turns to in each style: molten rock is bright
+ * orange, or a dark ink line on paper, and coral heads are pink, or ink dots.
+ */
+export const GLOW_COLOUR: Record<
+  LiveStyleId,
+  Partial<Record<TexturePattern, readonly [number, number, number]>>
+> = {
+  fantasy: { lava: [255, 128, 40], coral: [222, 140, 118] },
+  ink: { lava: [96, 58, 40], coral: [150, 112, 84] },
+  realistic: { lava: [255, 108, 28], coral: [196, 124, 92] },
+};
 
 /**
  * How strongly a style lets the ground tiles show, relative to the layer's own

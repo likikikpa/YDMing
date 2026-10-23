@@ -9,13 +9,14 @@ import {
 } from "./materials";
 import { hexBlend } from "./hex-tiling";
 import { BIOME_GROUNDS } from "./biome-grounds";
-import { FIRST_PAINTED_ONLY, MAX_BIOME } from "./biomes";
+import { Biome, FIRST_PAINTED_ONLY, MAX_BIOME } from "./biomes";
 import { decodeTile } from "./tile-decode";
 import {
   biomeGround,
   buildMaterial,
   covers,
   decodeCover,
+  reefGround,
   uploads,
 } from "./terrain-material";
 import type { Cover, Material } from "./terrain-material";
@@ -88,6 +89,8 @@ interface Entry {
    * drawn with a built-in layer.
    */
   biomeLayer: Int16Array;
+  /** Index into `layers` of the coral drawn over the shallows of a reef: `UNBUILT` until a reef cell is classified. */
+  reef: number;
   shallow: number;
   deep: number;
   base: HTMLCanvasElement;
@@ -173,6 +176,7 @@ function entryFor(map: MapData) {
       relief: reliefOf(map.settings.style),
       layers,
       biomeLayer: new Int16Array(MAX_BIOME + 1).fill(UNBUILT),
+      reef: UNBUILT,
       shallow: find(SHALLOW_WATER),
       deep: find(DEEP_WATER),
       base,
@@ -214,6 +218,13 @@ function classifyCells(
       const i = y * cols + x,
         b = biomeAt(map, x, y);
       entry.biomeGrid[i] = b;
+      if (b === Biome.CoralReef && entry.reef === UNBUILT) {
+        const coral = reefGround(
+          map.settings.style,
+          textureLayers.find((l) => l.id === "sand"),
+        );
+        entry.reef = coral ? entry.layers.push(coral) - 1 : -1;
+      }
       const painted = paintedMaterial(map, map, i);
       entry.cellMaterial[i] =
         (painted !== undefined ? index.get(painted) : undefined) ??
@@ -336,8 +347,20 @@ function paintPixels(
       if (h < sea) {
         // One water surface: shallow near every shore, deeper further out.
         const depth = Math.min(1, (sea - h) * 10);
-        sample(entry.shallow, mx, my, colour, 1 - depth);
-        sample(entry.deep, mx, my, colour, depth);
+        // A reef shows coral in the shallows, softly at its edge, and fades out in deep water.
+        let reef = 0;
+        if (entry.reef >= 0) {
+          const grid = entry.biomeGrid,
+            share =
+              (grid[i] === Biome.CoralReef ? wa : 0) +
+              (grid[i + 1] === Biome.CoralReef ? wb : 0) +
+              (grid[i + cols] === Biome.CoralReef ? wc : 0) +
+              (grid[i + cols + 1] === Biome.CoralReef ? wd : 0);
+          reef = share * 0.92 * Math.max(0, 1 - depth * 1.3);
+        }
+        sample(entry.shallow, mx, my, colour, (1 - depth) * (1 - reef));
+        sample(entry.deep, mx, my, colour, depth * (1 - reef));
+        if (reef > 0) sample(entry.reef, mx, my, colour, reef);
         shade = 0;
       } else {
         const a = mats[i],
