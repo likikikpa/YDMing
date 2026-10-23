@@ -446,6 +446,7 @@ Object.assign(ru, toolDescriptionsRu, {
   Flip: "Отражать",
   Rotate: "Поворачивать",
   "Follow biomes": "По биомам",
+  "Keep off paths": "Не на дорогах и реках",
   Mixes: "Наборы",
   Mix: "Набор",
   "New mix": "Новый набор",

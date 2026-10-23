@@ -2,6 +2,7 @@ import { random } from "../random";
 import { scatterObjects, scatterStroke } from "../scatter";
 import { scatterOptions } from "../scatter-brush";
 import { poolAtMap } from "../scatter-habitat";
+import { pathBlocker } from "../scatter-paths";
 import { extent } from "../extent";
 import { uid } from "../types";
 import type { MapData, Point } from "../types";
@@ -47,8 +48,17 @@ export function createScatterTool(deps: EditorCore) {
       d.rand,
       b.scatter.biomes ? poolAtMap(m, pool) : undefined,
     );
+    // Paths do not change while the stroke runs, so the grid is built once.
+    if (b.scatter.avoidPaths && d.avoid === undefined)
+      d.avoid = pathBlocker(m.paths, b.size * 0.25) ?? null;
+    const avoid = b.scatter.avoidPaths ? d.avoid : null;
     const inside = placed.filter(
-      (s) => s.x >= 0 && s.y >= 0 && s.x <= m.width && s.y <= m.height,
+      (s) =>
+        s.x >= 0 &&
+        s.y >= 0 &&
+        s.x <= m.width &&
+        s.y <= m.height &&
+        !avoid?.(s),
     );
     if (!inside.length) return undefined;
     const added = scatterObjects(inside, b.size, {

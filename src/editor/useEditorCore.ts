@@ -44,6 +44,8 @@ export function useEditorCore(props: EditorProps) {
       fogged?: boolean;
       /** The scatter brush's random numbers for this stroke. */
       rand?: () => number;
+      /** The scatter brush's test for ground under a river, road or wall; null when none. */
+      avoid?: ((at: Point) => boolean) | null;
     } | null>(null),
     [ready, setReady] = useState(false),
     [renderError, setRenderError] = useState("");

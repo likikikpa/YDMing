@@ -117,6 +117,14 @@ export function ScatterSettings({ app }: { app: ReadyApp }) {
             />
             {t("Follow biomes")}
           </label>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={s.avoidPaths}
+              onChange={(e) => set({ avoidPaths: e.target.checked })}
+            />
+            {t("Keep off paths")}
+          </label>
         </>
       )}
     </>

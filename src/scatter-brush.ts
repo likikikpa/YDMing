@@ -24,6 +24,8 @@ export interface ScatterSettings {
   tint: number;
   /** Place only what grows on the biome under each stamp, and nothing on water. */
   biomes: boolean;
+  /** Keep stamps off rivers, roads and walls. */
+  avoidPaths: boolean;
 }
 
 export const DEFAULT_SCATTER: ScatterSettings = {
@@ -36,6 +38,7 @@ export const DEFAULT_SCATTER: ScatterSettings = {
   turn: true,
   tint: 30,
   biomes: true,
+  avoidPaths: true,
 };
 
 /** The scatter brush works on world maps only. */
