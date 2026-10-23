@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { BIOME_DECOR } from "./biome-decor";
 import { inClump, isWooded } from "./canopy";
 import { decorSetFor } from "./style-decor";
 import { DECOR_SPRITES } from "./symbols";
@@ -26,10 +27,20 @@ describe("canopy", () => {
     expect(decorSetFor("ink").pools).toBe(DECOR_SPRITES);
   });
 
-  it("grows in taiga, forest and jungle and nowhere else", () => {
-    expect([4, 6, 10].every(isWooded)).toBe(true);
-    // Snow, rock, tundra, grassland, swamp, desert, savanna, beach, sea, dirt.
-    expect([1, 2, 3, 5, 7, 8, 9, 11, 12, 13].some(isWooded)).toBe(false);
+  it("grows in taiga, forest, jungle, autumn woods and mangrove and nowhere else", () => {
+    expect([4, 6, 10, 18, 21].every(isWooded)).toBe(true);
+    // Snow, rock, tundra, grassland, swamp, desert, savanna, beach, sea, dirt,
+    // badlands, glacier, steppe, moorland, volcanic, blighted, coral reef.
+    expect(
+      [1, 2, 3, 5, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 19, 20, 22].some(
+        isWooded,
+      ),
+    ).toBe(false);
+  });
+
+  it("is drawn as a tree of its own kind in each wooded biome", () => {
+    for (const b of [4, 6, 10, 18, 21])
+      expect(BIOME_DECOR[b], String(b)).toBeDefined();
   });
 
   it("gives the same answer for the same spot and seed", () => {

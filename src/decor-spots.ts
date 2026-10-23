@@ -2,12 +2,29 @@ import type { DecorKind } from "./style-decor";
 import type { MapData, MapObject } from "./types";
 
 /**
- * Which picture of a pool a spot gets. Desert and savanna spots are only
- * those whose `n` is a multiple of 9, so dividing by 3 would give a pool of
- * three pictures just its first one every time.
+ * How sparse a kind is: only the spots whose `n` is a multiple of this carry
+ * one. Every kind starts from the multiples of 3; sparser ones keep fewer.
+ */
+const STEP: Partial<Record<DecorKind, number>> = {
+  desert: 9,
+  savanna: 9,
+  moor: 9,
+  volcanic: 9,
+  swamp: 6,
+  glacier: 6,
+  blight: 6,
+  badlands: 12,
+  steppe: 12,
+};
+export const decorStep = (kind: DecorKind) => STEP[kind] ?? 3;
+
+/**
+ * Which picture of a pool a spot gets. A sparse kind's spots are only the
+ * multiples of its step, so dividing by 3 would give a pool of three pictures
+ * just its first one every time.
  */
 export const poolIndex = (n: number, kind: DecorKind, length: number) =>
-  ((n / (kind === "desert" || kind === "savanna" ? 9 : 3)) | 0) % length;
+  ((n / decorStep(kind)) | 0) % length;
 
 const SETTLEMENTS = new Set(["city", "village", "castle", "dungeon"]);
 /** Painted decoration keeps this far from a settlement's symbol, in map pixels. */

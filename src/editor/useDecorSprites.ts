@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { resolveStyle } from "../map-styles";
+import { onSpritesLoaded } from "../decor-sprites";
 import { preloadDecor } from "../style-decor";
 import { invalidateDecor } from "../terrain-render";
 import type { EditorCore } from "./useEditorCore";
@@ -29,4 +30,12 @@ export function useDecorSprites({
       active = false;
     };
   }, [style, world, mapId, ready]);
+  // Pictures of kinds the map needed but had not loaded arrive later: draw again.
+  useEffect(() => {
+    if (!ready || !world) return;
+    return onSpritesLoaded(() => {
+      invalidateDecor(mapId);
+      refresh();
+    });
+  }, [world, mapId, ready]);
 }

@@ -38,6 +38,15 @@ export const DECOR_SPRITES = {
   jungle: [file("palm"), file("palmLarge"), file("treeTall")],
   desert: [file("cactus"), file("cactusLarge"), file("rocksB")],
   savanna: [file("bush"), file("treeTall"), file("bush")],
+  swamp: [file("bush"), file("treeTall"), file("bush")],
+  badlands: [file("rocksTall"), file("pyramid"), file("rocksB")],
+  glacier: [file("rocksMountain"), file("rocksTall"), file("treePinesSmall")],
+  steppe: [file("bush"), file("rocks"), file("bush")],
+  moor: [file("rocksB"), file("bush"), file("rocksA")],
+  autumn: [file("treeTall"), file("treePine"), file("treeTall"), file("treePines")],
+  volcanic: [file("vulcano"), file("rocksA"), file("rocksB")],
+  blight: [file("treePineTallLow"), file("rocksTall"), file("skull")],
+  mangrove: [file("palm"), file("bush"), file("palmLarge")],
 } as const;
 
 /** Every bundled sprite the renderer needs, so the first frame already shows them. */

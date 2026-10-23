@@ -1,4 +1,4 @@
-import { imageCache } from "./render";
+import { imageCache, loadImage } from "./render";
 
 /** A decoration picture ready to draw, with its size in pixels. */
 export interface DecorSprite {
@@ -48,6 +48,44 @@ function reduced(image: HTMLImageElement): DecorSprite {
     height = nextHeight;
   }
   return { source, width, height };
+}
+
+const wanted = new Set<string>(),
+  inflight = new Set<string>(),
+  failed = new Set<string>(),
+  loadedListeners = new Set<() => void>();
+let scheduled = false;
+
+/**
+ * Asks for a picture that was needed before it had loaded. Requests made
+ * during one draw are loaded together, a picture is asked for once however
+ * often it is drawn meanwhile or fails to load, and listeners are told when
+ * any arrive, so the map can draw again with them.
+ */
+export function wantSprite(src: string) {
+  if (imageCache.get(src) || inflight.has(src) || failed.has(src)) return;
+  wanted.add(src);
+  if (scheduled) return;
+  scheduled = true;
+  void Promise.resolve().then(async () => {
+    const urls = [...wanted];
+    wanted.clear();
+    scheduled = false;
+    for (const url of urls) inflight.add(url);
+    const results = await Promise.allSettled(urls.map((url) => loadImage(url)));
+    results.forEach((result, i) => {
+      inflight.delete(urls[i]);
+      if (result.status === "rejected") failed.add(urls[i]);
+    });
+    if (results.some((r) => r.status === "fulfilled"))
+      for (const listener of loadedListeners) listener();
+  });
+}
+
+/** Calls `listener` whenever pictures asked for with `wantSprite` have loaded; returns the way to stop. */
+export function onSpritesLoaded(listener: () => void) {
+  loadedListeners.add(listener);
+  return () => void loadedListeners.delete(listener);
 }
 
 /** A picture cut to its drawing: base on the spot, equal visual area for any proportions, soft shadow. */

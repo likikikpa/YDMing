@@ -26,6 +26,26 @@ export interface DecorSet {
 const AI = "/assets/ai-gen/";
 const ai = (...names: string[]) => names.map((n) => `${AI}${n}.webp`);
 
+/** One value for every kind of decoration. */
+const perKind = <T>(value: T): Record<DecorKind, T> => ({
+  mountain: value,
+  peak: value,
+  pine: value,
+  forest: value,
+  jungle: value,
+  desert: value,
+  savanna: value,
+  swamp: value,
+  badlands: value,
+  glacier: value,
+  steppe: value,
+  moor: value,
+  autumn: value,
+  volcanic: value,
+  blight: value,
+  mangrove: value,
+});
+
 /**
  * Old ink: the hand-inked Kenney symbols, with woods drawn as thinned clumps
  * of them. Built on first use: this file and `symbols.ts` sit in an import
@@ -36,15 +56,7 @@ const inkSet = (): DecorSet =>
   (ink ??= {
     pools: DECOR_SPRITES,
     trimmed: false,
-    scale: {
-      mountain: 1,
-      peak: 1,
-      pine: 1,
-      forest: 1,
-      jungle: 1,
-      desert: 1,
-      savanna: 1,
-    },
+    scale: perKind(1),
     canopy: { clump: 70, open: 0.42, every: 2 },
   });
 
@@ -71,6 +83,36 @@ const PAINTED: DecorSet = {
     jungle: ai("tree-palm", "tree-broadleaf", "tree-willow", "tree-palm"),
     desert: ai("rocks", "boulders", "tree-dead", "butte", "range-desert"),
     savanna: ai("tree-acacia", "forest-bush", "tree-acacia"),
+    swamp: ai(
+      "tree-willow",
+      "forest-bramble",
+      "forest-bush",
+      "tree-willow-bent",
+    ),
+    badlands: ai("butte", "mesa", "range-desert", "rocks", "boulders"),
+    glacier: ai("range-snow", "peak-snow", "tree-snowy-fir", "tree-snowy-pine"),
+    steppe: ai("forest-bush", "tree-acacia", "rocks", "forest-bush"),
+    moor: ai("boulders", "forest-bramble", "hills", "rocks", "forest-bush"),
+    autumn: ai(
+      "tree-autumn",
+      "tree-autumn-oak",
+      "tree-autumn",
+      "tree-birch-tall",
+    ),
+    volcanic: ai("crater", "rocks", "boulders", "volcano", "rocks"),
+    blight: ai(
+      "tree-dead",
+      "tree-dead-old",
+      "forest-dead",
+      "tree-dead",
+      "forest-roots",
+    ),
+    mangrove: ai(
+      "tree-willow",
+      "forest-roots",
+      "tree-willow-bent",
+      "tree-palm",
+    ),
   },
   trimmed: true,
   scale: {
@@ -81,19 +123,19 @@ const PAINTED: DecorSet = {
     jungle: 1.3,
     desert: 1.2,
     savanna: 1.2,
+    swamp: 1.2,
+    badlands: 1.3,
+    glacier: 1.1,
+    steppe: 1.1,
+    moor: 1.1,
+    autumn: 1.25,
+    volcanic: 1.4,
+    blight: 1.25,
+    mangrove: 1.25,
   },
   canopy: { clump: 70, open: 0.38 },
 };
 
-const perKind = <T>(value: T): Record<DecorKind, T> => ({
-  mountain: value,
-  peak: value,
-  pine: value,
-  forest: value,
-  jungle: value,
-  desert: value,
-  savanna: value,
-});
 /** Realistic scatters nothing: woods and mountains come from the ground and its relief. */
 const BARE: DecorSet = {
   pools: perKind([]),
@@ -109,15 +151,30 @@ export const decorSetFor = (style: string): DecorSet => {
 };
 
 /**
- * Loads the pictures a style needs. Resolves true when some were not loaded
- * yet, which means anything already drawn is missing them.
+ * The kinds every map is likely to show, whose pictures are loaded up front.
+ * The others (the biomes that are painted by hand) load when first drawn: see
+ * `wantSprite`, so a map without them does not download their pictures.
+ */
+const COMMON_KINDS: DecorKind[] = [
+  "mountain",
+  "peak",
+  "pine",
+  "forest",
+  "jungle",
+  "desert",
+  "savanna",
+];
+
+/**
+ * Loads the pictures a style's common kinds need. Resolves true when some were
+ * not loaded yet, which means anything already drawn is missing them.
  */
 export async function preloadDecor(style: string) {
   const set = decorSetFor(style);
   if (!set.trimmed) return false;
-  const missing = [...new Set(Object.values(set.pools).flat())].filter(
-    (url) => !imageCache.get(url)?.complete,
-  );
+  const missing = [
+    ...new Set(COMMON_KINDS.flatMap((kind) => set.pools[kind])),
+  ].filter((url) => !imageCache.get(url)?.complete);
   if (!missing.length) return false;
   const results = await Promise.allSettled(
     missing.map((url) => loadImage(url)),

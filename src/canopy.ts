@@ -10,8 +10,8 @@ export interface Canopy {
   every?: number;
 }
 
-/** Biomes that grow woods: taiga, forest and jungle. */
-const WOODED = [4, 6, 10];
+/** Biomes that grow woods: taiga, forest, jungle, autumn woods and mangrove. */
+const WOODED = [4, 6, 10, 18, 21];
 export const isWooded = (biome: number) => WOODED.includes(biome);
 
 /** Whether a tree stands at this spot: woods thicken in clumps with clearings between them. */

@@ -2,8 +2,9 @@ import { biomeAt } from "./generator";
 import { hash, random } from "./random";
 import { imageCache } from "./render";
 import { inClump, isWooded } from "./canopy";
-import { decorSprite, drawPainted } from "./decor-sprites";
-import { nearTown, poolIndex, settlements } from "./decor-spots";
+import { decorSprite, drawPainted, wantSprite } from "./decor-sprites";
+import { BIOME_DECOR } from "./biome-decor";
+import { decorStep, nearTown, poolIndex, settlements } from "./decor-spots";
 import { decorSetFor } from "./style-decor";
 import type { DecorKind } from "./style-decor";
 import type { CellRect } from "./terrain-render";
@@ -160,7 +161,7 @@ export function drawDecor(
       // Every spot may grow a tree, but only inside a clump.
       if (canopy.every && spot.n % canopy.every) continue;
       if (!inClump(canopy, spot.x, spot.y, seed)) continue;
-      kind = b === 4 ? "pine" : b === 6 ? "forest" : "jungle";
+      kind = BIOME_DECOR[b] ?? "forest";
       size = spot.tw * 2.8;
     } else if (spot.n % 3 === 0) {
       if (h > 0.71) {
@@ -170,18 +171,8 @@ export function drawDecor(
         kind = h > 0.85 && spot.n % 18 === 0 ? "peak" : "mountain";
         size = spot.mw * 1.55;
       } else {
-        kind =
-          b === 4
-            ? "pine"
-            : b === 6
-              ? "forest"
-              : b === 10
-                ? "jungle"
-                : b === 8 && spot.n % 9 === 0
-                  ? "desert"
-                  : b === 9 && spot.n % 9 === 0
-                    ? "savanna"
-                    : null;
+        const grown = BIOME_DECOR[b];
+        kind = grown && spot.n % decorStep(grown) === 0 ? grown : null;
         size = spot.tw * 2.8;
       }
     }
@@ -192,6 +183,7 @@ export function drawDecor(
     if (set.trimmed) {
       const sprite = decorSprite(src);
       if (sprite) drawPainted(ctx, sprite, spot, size * set.scale[kind]);
+      else wantSprite(src);
       continue;
     }
     const img = imageCache.get(src);

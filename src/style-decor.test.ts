@@ -1,9 +1,11 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { poolIndex } from "./decor-spots";
+import { BIOME_DECOR } from "./biome-decor";
+import { decorStep, poolIndex } from "./decor-spots";
 import { coastLines } from "./style-coast";
 import { decorSetFor } from "./style-decor";
+import type { DecorKind } from "./style-decor";
 import { fantasyPalette, SHALLOW_WATER_COLOUR } from "./style-palettes";
 import { BIOMES } from "./generator";
 
@@ -69,13 +71,12 @@ describe("Painted fantasy palette", () => {
 });
 
 describe("choosing a picture for a decoration spot", () => {
-  const reached = (kind: "forest" | "savanna" | "desert", length: number) => {
+  const reached = (kind: DecorKind, length: number) => {
     const picks = new Set<number>();
-    // Candidates are the spots whose index is a multiple of 3; desert and
-    // savanna keep only those that are also a multiple of 9.
-    for (let n = 0; n < 900; n += 3)
-      if (kind === "forest" || n % 9 === 0)
-        picks.add(poolIndex(n, kind, length));
+    // Candidates are the spots whose index is a multiple of 3; a sparser kind
+    // keeps only those that are also a multiple of its step.
+    for (let n = 0; n < 1800; n += 3)
+      if (n % decorStep(kind) === 0) picks.add(poolIndex(n, kind, length));
     return picks;
   };
 
@@ -88,9 +89,50 @@ describe("choosing a picture for a decoration spot", () => {
     expect(reached("forest", 6).size).toBe(6);
   });
 
+  it("reaches every picture of every kind's pool, in each style that draws pictures", () => {
+    for (const style of ["fantasy", "ink"]) {
+      const set = decorSetFor(style);
+      for (const [kind, pool] of Object.entries(set.pools))
+        expect(
+          reached(kind as DecorKind, pool.length).size,
+          `${style} ${kind}`,
+        ).toBe(new Set(pool.map((_, i) => i)).size);
+    }
+  });
+
   it("never picks outside the pool", () => {
     for (let n = 0; n < 5000; n++)
       expect(poolIndex(n, "savanna", 3)).toBeLessThan(3);
+  });
+
+  it("keeps sparse kinds to the multiples of their step, which are multiples of 3", () => {
+    for (const kind of Object.keys(decorSetFor("fantasy").pools))
+      expect(decorStep(kind as DecorKind) % 3, kind).toBe(0);
+  });
+});
+
+describe("what each biome grows", () => {
+  it("is a kind that every style with pictures can draw", () => {
+    for (const style of ["fantasy", "ink"]) {
+      const set = decorSetFor(style);
+      for (const [biome, kind] of Object.entries(BIOME_DECOR)) {
+        expect(set.pools[kind!].length, `${style} ${biome}`).toBeGreaterThan(0);
+        expect(set.scale[kind!], `${style} ${biome}`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("covers the painted-only biomes except the reef, which is water", () => {
+    for (const b of [14, 15, 16, 17, 18, 19, 20, 21])
+      expect(BIOME_DECOR[b], String(b)).toBeDefined();
+    expect(BIOME_DECOR[22]).toBeUndefined();
+  });
+
+  it("names Old ink pictures that ship with the app", () => {
+    const pools = decorSetFor("ink").pools;
+    for (const pool of Object.values(pools))
+      for (const url of pool)
+        expect(existsSync(join("public", url)), url).toBe(true);
   });
 });
 
