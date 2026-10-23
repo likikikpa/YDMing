@@ -61,70 +61,76 @@ export function ScatterSettings({ app }: { app: ReadyApp }) {
               </button>
             )}
           </div>
-          <Slider
-            label={t("Radius")}
-            value={s.radius}
-            onChange={(radius) => set({ radius })}
-            min={20}
-            max={300}
-            suffix=" px"
-          />
-          <Slider
-            label={t("Density")}
-            value={s.density}
-            onChange={(density) => set({ density })}
-            min={5}
-            max={100}
-            suffix="%"
-          />
-          <Slider
-            label={t("Size variety")}
-            value={s.variety}
-            onChange={(variety) => set({ variety })}
-            min={0}
-            max={100}
-            suffix="%"
-          />
-          <Slider
-            label={t("Colour variety")}
-            value={s.tint}
-            onChange={(tint) => set({ tint })}
-            min={0}
-            max={100}
-            suffix="%"
-          />
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={s.flip}
-              onChange={(e) => set({ flip: e.target.checked })}
+          <div className="scatter-pair">
+            <Slider
+              label={t("Radius")}
+              value={s.radius}
+              onChange={(radius) => set({ radius })}
+              min={20}
+              max={300}
+              suffix=" px"
             />
-            {t("Flip")}
-          </label>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={s.turn}
-              onChange={(e) => set({ turn: e.target.checked })}
+            <Slider
+              label={t("Density")}
+              value={s.density}
+              onChange={(density) => set({ density })}
+              min={5}
+              max={100}
+              suffix="%"
             />
-            {t("Rotate")}
-          </label>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={s.biomes}
-              onChange={(e) => set({ biomes: e.target.checked })}
+          </div>
+          <div className="scatter-pair">
+            <Slider
+              label={t("Size variety")}
+              value={s.variety}
+              onChange={(variety) => set({ variety })}
+              min={0}
+              max={100}
+              suffix="%"
             />
-            {t("Follow biomes")}
-          </label>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={s.avoidPaths}
-              onChange={(e) => set({ avoidPaths: e.target.checked })}
+            <Slider
+              label={t("Colour variety")}
+              value={s.tint}
+              onChange={(tint) => set({ tint })}
+              min={0}
+              max={100}
+              suffix="%"
             />
-            {t("Keep off paths")}
-          </label>
+          </div>
+          <div className="scatter-toggles">
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={s.flip}
+                onChange={(e) => set({ flip: e.target.checked })}
+              />
+              {t("Flip")}
+            </label>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={s.turn}
+                onChange={(e) => set({ turn: e.target.checked })}
+              />
+              {t("Rotate")}
+            </label>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={s.biomes}
+                onChange={(e) => set({ biomes: e.target.checked })}
+              />
+              {t("Follow biomes")}
+            </label>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={s.avoidPaths}
+                onChange={(e) => set({ avoidPaths: e.target.checked })}
+              />
+              {t("Keep off paths")}
+            </label>
+          </div>
         </>
       )}
     </>

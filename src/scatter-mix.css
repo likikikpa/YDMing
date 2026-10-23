@@ -99,3 +99,21 @@
 .mix-items .mix-biomes .mix-biomes-reset {
   border-style: dashed;
 }
+.scatter-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.scatter-pair .slider-field {
+  margin-bottom: 14px;
+  min-width: 0;
+}
+.scatter-toggles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 10px;
+  margin-bottom: 6px;
+}
+.scatter-toggles .checkbox {
+  margin: 6px 0;
+}
