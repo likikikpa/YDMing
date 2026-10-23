@@ -89,6 +89,18 @@ Decided in an interview on 23 October 2026: a scatter brush inside the Stamp too
 
 ## Next: a better world generator
 
+Decided in an interview on 24 October 2026. The work goes in this order, one step at a time, each its own commit, checked in the real app and in the preview:
+
+1. **Town names.** A new `names.ts` with far more parts and shapes (two-word forms such as "Raven's Rest" and "Port Alder"), names that fit the ground under the town (ports and havens on the coast, dry names in desert, rocky names in the mountains), and a naming culture per kingdom (for example elvish, dwarven, human, northern), so neighbours sound alike and rivals differ. Names stay the same for the same seed. Not chosen: Russian-sounding names.
+2. **A slider for each special biome.** Volcanic activity, blight, coral reefs, mangroves, badlands, glaciers, steppe, moorland and autumn woods, each from none to a lot, in the generator's Climate section. The generator places them from height, climate and coasts (rules under "Place the nine painted-only biomes" below). Worlds already made keep their biomes; generating again from the same seed gives a different world.
+3. **Better coasts and beaches.**
+4. **Climate-based biomes with soft transitions.**
+5. **Rivers from hills to sea.**
+6. **Roads between towns, kingdom borders, and region names** (mountain ranges, forests, seas) as labels.
+7. **Population:** settlements, forests, hills and mountain ranges placed from the terrain with the active style's stamp set, using the scatter brush's rules.
+
+The list below is the detail for each.
+
 - Coasts: smooth, varied shorelines; bays, capes, small islands near large ones.
 - Biomes that follow height, latitude and rainfall: snow only on high ground or far north, grassland between, desert in rain shadows. Today snow patches sit on flat lowland.
 - Place the nine painted-only biomes: volcanic land around volcano peaks, badlands in rain shadows and on high dry ground, glaciers in the far north and on the highest peaks, steppe between grassland and desert, moorland on cool highland, mangrove and coral reef on warm shores, autumn woods at the edge of the cold. A slider per special biome (volcanic activity, blight) would set how much of each appears.
