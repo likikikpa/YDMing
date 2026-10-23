@@ -41,6 +41,12 @@ export async function loadProject(): Promise<Project | undefined> {
   const project = await getWithLegacy<Project>(key);
   return project && unpackProject(project);
 }
+/**
+ * Most stamps one map may hold when a file is opened. Copy and paste doubles a
+ * map's stamps and the scatter brush adds hundreds a stroke, so ten thousand
+ * (the old limit) made a saved world fail to open from its own export.
+ */
+export const MAX_OBJECTS = 200000;
 export function validateProject(value: unknown): Project {
   const p = value as Project;
   if (
@@ -76,7 +82,7 @@ export function validateProject(value: unknown): Project {
       !Array.isArray(m.biomes) ||
       m.biomes.length !== m.heights.length ||
       !Array.isArray(m.objects) ||
-      m.objects.length > 10000 ||
+      m.objects.length > MAX_OBJECTS ||
       !Array.isArray(m.layers) ||
       !m.settings ||
       !Array.isArray(m.paths) ||

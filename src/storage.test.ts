@@ -118,3 +118,32 @@ it("keeps bundled sprites from every pack as paths and rejects other paths", () 
   ])
     expect(() => validateProject(withImage(bad))).toThrow();
 });
+it("loads a map with tens of thousands of stamps from a file", () => {
+  const map = generateMap("world", defaultSettings);
+  map.objects = Array.from({ length: 40000 }, (_, i) => ({
+    id: `s${i}`,
+    kind: "image" as const,
+    name: "Oak tree",
+    image: "/assets/ai-gen/tree-oak.webp",
+    x: i % 500,
+    y: Math.floor(i / 500),
+    width: 20,
+    height: 20,
+    rotation: 0,
+    layer: "Objects",
+    color: "#000000",
+  }));
+  const project: Project = {
+    version: 1,
+    id: "big",
+    name: "Big",
+    maps: [map],
+    activeMapId: map.id,
+    credits: [],
+    commercial: false,
+    updatedAt: "",
+  };
+  expect(
+    validateProject(JSON.parse(JSON.stringify(project))).maps[0].objects,
+  ).toHaveLength(40000);
+});
