@@ -484,6 +484,8 @@ Sheet A2-3: ornaments, no writing.
 
 ## Textures
 
+Stand-alone, ready-to-paste prompts for every texture below are in [AI-TEXTURE-PROMPTS.md](AI-TEXTURE-PROMPTS.md).
+
 Make them one per image, not sheets. These are the rules for every texture:
 
 ```text
