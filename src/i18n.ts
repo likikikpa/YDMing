@@ -291,7 +291,6 @@ export const ru: Record<string, string> = {
   "Treasure vault": "Сокровищница",
   Shrine: "Святилище",
   Entrance: "Вход",
-  "Photo textures": "Фототекстуры",
   "Add…": "Добавить…",
   "That texture could not be loaded. Check your connection.":
     "Не удалось загрузить текстуру. Проверьте соединение.",

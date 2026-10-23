@@ -202,6 +202,8 @@ export interface TextureLayer {
   tiling?: TextureTiling;
   /** A map-wide image (JPEG data URL) that painting this layer unveils. */
   cover?: string;
+  /** The bundled photo texture this layer was made from (see `texture-presets.ts`). */
+  preset?: string;
 }
 export type TextureTiling = "tiled" | "blended" | "unveil";
 /**

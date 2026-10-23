@@ -1,4 +1,5 @@
 import { texturePreview } from "../terrain-render";
+import { unusedPresets } from "../texture-presets";
 import { Slider } from "../ui/Field";
 import { ImagePlus, Plus } from "lucide-react";
 import type { ReadyApp } from "../app/useAppModel";
@@ -6,6 +7,7 @@ import type { ReadyApp } from "../app/useAppModel";
 export function TerrainPaintSettings({ app }: { app: ReadyApp }) {
   const {
     addTexture,
+    addTexturePreset,
     brush,
     map,
     setActiveTexture,
@@ -55,6 +57,20 @@ export function TerrainPaintSettings({ app }: { app: ReadyApp }) {
           </span>
           <span>{t("New")}</span>
         </button>
+      </div>
+      <div className="material-swatches photos">
+        {unusedPresets(textures).map((p) => (
+          <button
+            key={p.id}
+            role="radio"
+            aria-checked={false}
+            title={t(p.name)}
+            onClick={() => void addTexturePreset(p.id)}
+          >
+            <img alt="" src={p.src} />
+            <span>{t(p.name)}</span>
+          </button>
+        ))}
       </div>
       {(() => {
         const l = textures.find((l) => l.id === brush.material);

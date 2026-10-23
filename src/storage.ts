@@ -180,7 +180,8 @@ export function validateProject(value: unknown): Project {
           (t.tiling === undefined ||
             ["tiled", "blended", "unveil"].includes(t.tiling)) &&
           (t.cover === undefined ||
-            /^data:image\/(png|jpeg|webp);base64,/.test(t.cover)),
+            /^data:image\/(png|jpeg|webp);base64,/.test(t.cover)) &&
+          (t.preset === undefined || /^[\w-]{1,64}$/.test(t.preset)),
       ) ||
       !BUILTIN_MATERIALS.every((id) => p.textures!.some((t) => t.id === id)))
   )

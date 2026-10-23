@@ -36,4 +36,17 @@ export const presetLayer = (
   scale: 100,
   strength: 60,
   visible: true,
+  preset: preset.id,
 });
+
+/**
+ * Whether a texture layer was made from this preset: by the id it records, or,
+ * for a layer made before that was recorded, by its name and a picture.
+ */
+export const madeFrom = (layer: TextureLayer, preset: TexturePreset) =>
+  layer.preset === preset.id ||
+  (layer.preset === undefined && !!layer.image && layer.name === preset.name);
+
+/** The photo textures that are not a layer of the project yet: the terrain paint tool offers them. */
+export const unusedPresets = (layers: TextureLayer[]) =>
+  TEXTURE_PRESETS.filter((p) => !layers.some((l) => madeFrom(l, p)));

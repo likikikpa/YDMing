@@ -2583,6 +2583,9 @@ input[type="range"]::-webkit-slider-thumb {
   gap: 6px;
   margin: 16px 0 14px;
 }
+.material-swatches.photos {
+  margin-top: 0;
+}
 .material-swatches button {
   display: flex;
   flex-direction: column;

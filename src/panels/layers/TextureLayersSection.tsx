@@ -1,8 +1,6 @@
 import { moveLayer, placeLayer } from "../../layers";
 import { TextureSettings } from "./TextureSettings";
 import { texturePreview } from "../../terrain-render";
-import { TEXTURE_PRESETS } from "../../texture-presets";
-import { Field } from "../../ui/Field";
 import { IconButton } from "../../ui/IconButton";
 import { ChevronDown, ChevronUp, Eye, EyeOff, Plus } from "lucide-react";
 import type { ReadyApp } from "../../app/useAppModel";
@@ -11,7 +9,6 @@ export function TextureLayersSection({ app }: { app: ReadyApp }) {
   const {
     activeTexture,
     addTexture,
-    addTexturePreset,
     changeTextures,
     dragTexture,
     map,
@@ -102,21 +99,6 @@ export function TextureLayersSection({ app }: { app: ReadyApp }) {
         <Plus size={15} />
         {t("Add texture layer")}
       </button>
-      <Field label={t("Photo textures")}>
-        <select
-          value=""
-          onChange={(e) => {
-            if (e.target.value) void addTexturePreset(e.target.value);
-          }}
-        >
-          <option value="">{t("Add…")}</option>
-          {TEXTURE_PRESETS.map((p) => (
-            <option key={p.id} value={p.id}>
-              {t(p.name)}
-            </option>
-          ))}
-        </select>
-      </Field>
     </>
   );
 }

@@ -48,7 +48,7 @@ The 68 pictures in the Library's "AI_GEN" collection were generated with an AI i
 
 ## Poly Haven, photo textures
 
-The 23 ground tiles offered under "Photo textures" in the Layers panel, which the Realistic style paints its biomes with, are shrunk to 128 px from textures on Poly Haven, released under CC0 1.0 Universal. Each one's page and author are listed in `public/assets/textures/License.txt` and `src/data/textures.json`.
+The 23 ground tiles offered by the Terrain paint tool, which the Realistic style paints its biomes with, are shrunk to 128 px from textures on Poly Haven, released under CC0 1.0 Universal. Each one's page and author are listed in `public/assets/textures/License.txt` and `src/data/textures.json`.
 
 - https://polyhaven.com/license
 
