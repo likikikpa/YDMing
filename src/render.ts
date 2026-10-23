@@ -465,12 +465,13 @@ function drawMapLayers(
           map.height,
         );
     }
+    const base = ctx.getTransform();
     map.objects
       .filter((o) => o.layer === l.id)
       .forEach(
         (o, i) =>
           objectInClip(o) &&
-          drawObject(ctx, o, i, options.images, map.settings.style),
+          drawObject(ctx, o, i, options.images, map.settings.style, base),
       );
     ctx.restore();
   }
