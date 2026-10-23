@@ -12,9 +12,14 @@ import {
 import { BIOMES } from "./generator";
 
 describe("style decoration sets", () => {
-  it("draws the inked symbols in the styles that have no pictures of their own", () => {
+  it("draws the inked symbols in Old ink and maps saved as Parchment", () => {
+    for (const style of ["ink", "parchment"])
+      expect(decorSetFor(style).trimmed).toBe(false);
+  });
+
+  it("draws Atlas maps, and unknown or missing styles, with the painted set", () => {
     for (const style of ["atlas", "nonsense", undefined])
-      expect(decorSetFor(style as string).trimmed).toBe(false);
+      expect(decorSetFor(style as string)).toBe(decorSetFor("fantasy"));
   });
 
   it("draws Painted fantasy, and maps saved as Painted, with the painted set", () => {
@@ -96,9 +101,9 @@ describe("coast lines", () => {
     }
   });
 
-  it("keeps the thin dark shore of Atlas", () => {
-    expect(coastLines("atlas")).toHaveLength(3);
-    expect(coastLines("fantasy").length).toBeGreaterThan(3);
+  it("give retired styles the lines of their replacement", () => {
+    expect(coastLines("atlas")).toBe(coastLines("fantasy"));
+    expect(coastLines("painted")).toBe(coastLines("fantasy"));
     expect(coastLines("parchment")).toBe(coastLines("ink"));
   });
 

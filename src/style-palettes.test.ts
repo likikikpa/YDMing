@@ -52,7 +52,7 @@ describe("ground contrast", () => {
   it("is calmer on paper and untouched everywhere else", () => {
     expect(groundContrast("ink")).toBeLessThan(1);
     expect(groundContrast("parchment")).toBe(groundContrast("ink"));
-    for (const style of ["fantasy", "painted", "atlas"])
+    for (const style of ["fantasy", "painted", "atlas", "nonsense"])
       expect(groundContrast(style)).toBe(1);
   });
 });

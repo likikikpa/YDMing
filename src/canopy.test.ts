@@ -1,16 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { inClump, isWooded } from "./canopy";
 import { decorSetFor } from "./style-decor";
+import { DECOR_SPRITES } from "./symbols";
 
 const canopy = decorSetFor("fantasy").canopy!;
 
 describe("canopy", () => {
-  it("is part of Painted fantasy and Old ink only", () => {
+  it("is part of every style", () => {
     expect(canopy).toBeDefined();
     expect(decorSetFor("painted").canopy).toBe(canopy);
     expect(decorSetFor("ink").canopy).toBeDefined();
     expect(decorSetFor("parchment").canopy).toBe(decorSetFor("ink").canopy);
-    expect(decorSetFor("atlas").canopy).toBeUndefined();
+    expect(decorSetFor("atlas").canopy).toBe(canopy);
   });
 
   it("thins Old ink's woods, drawn with small glyphs, and leaves Painted fantasy's full", () => {
@@ -20,7 +21,7 @@ describe("canopy", () => {
 
   it("draws Old ink with the inked glyphs, not the painted pictures", () => {
     expect(decorSetFor("ink").trimmed).toBe(false);
-    expect(decorSetFor("ink").pools).toBe(decorSetFor("atlas").pools);
+    expect(decorSetFor("ink").pools).toBe(DECOR_SPRITES);
   });
 
   it("grows in taiga, forest and jungle and nowhere else", () => {

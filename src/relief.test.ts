@@ -12,12 +12,11 @@ const grid = (
   );
 
 describe("relief", () => {
-  it("shades only the styles that ask for it", () => {
-    expect(reliefOf("fantasy")).not.toBeNull();
+  it("gives every style a relief, retired ones that of their replacement", () => {
     expect(reliefOf("painted")).toBe(reliefOf("fantasy"));
-    expect(reliefOf("ink")).not.toBeNull();
+    expect(reliefOf("atlas")).toBe(reliefOf("fantasy"));
     expect(reliefOf("parchment")).toBe(reliefOf("ink"));
-    expect(reliefOf("atlas")).toBeNull();
+    expect(reliefOf("ink")).not.toBe(reliefOf("fantasy"));
   });
 
   it("turns the shade of Old ink brown, and keeps it gentler than Painted fantasy", () => {

@@ -65,11 +65,10 @@ const sheet = (style: string, kind: MapData["kind"] = "world") =>
   }) as unknown as MapData;
 
 describe("place-name labels", () => {
-  it("are plain text in the inked styles", () => {
-    for (const style of ["atlas"]) {
-      const { ctx, calls, state } = recorder();
+  it("are upright in Painted fantasy, and in maps saved as Atlas", () => {
+    for (const style of ["fantasy", "atlas"]) {
+      const { ctx, state } = recorder();
       drawLabel(ctx, label, style);
-      expect(calls.map((c) => c.call)).toEqual(["fillText"]);
       expect(state.font).toBe("13px Georgia, serif");
       expect(state.fillStyle).toBe("#606348");
     }
@@ -101,19 +100,13 @@ describe("frame, compass and scale bar", () => {
     return calls.filter((c) => c.call === "strokeRect");
   };
 
-  it("keep the thin olive frame in Atlas", () => {
-    for (const style of ["atlas"]) {
+  it("draw a heavier cream frame in Painted fantasy, and in maps saved as Atlas", () => {
+    for (const style of ["fantasy", "atlas"]) {
       const [outer, inner] = frame(style);
-      expect(outer).toMatchObject({ strokeStyle: "#5e624b66", lineWidth: 1 });
-      expect(inner).toMatchObject({ strokeStyle: "#5e624b66", lineWidth: 0.5 });
+      expect(outer.strokeStyle).toBe("#f0e6c8c0");
+      expect(outer.lineWidth).toBeGreaterThan(1);
+      expect(inner.lineWidth).toBeGreaterThan(0.5);
     }
-  });
-
-  it("draw a heavier cream frame in Painted fantasy", () => {
-    const [outer, inner] = frame("fantasy");
-    expect(outer.strokeStyle).toBe("#f0e6c8c0");
-    expect(outer.lineWidth).toBeGreaterThan(1);
-    expect(inner.lineWidth).toBeGreaterThan(0.5);
   });
 
   it("draw Old ink's heavier brown frame", () => {
@@ -152,7 +145,7 @@ describe("frame, compass and scale bar", () => {
 
   it("put the unit of the map on its scale bar", () => {
     const { ctx, calls } = recorder();
-    ornaments(ctx, sheet("atlas", "city"));
+    ornaments(ctx, sheet("fantasy", "city"));
     expect(calls.some((c) => c.call === "fillText" && c.arg === "feet")).toBe(
       true,
     );

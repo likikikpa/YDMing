@@ -31,11 +31,9 @@ const INK: Relief = {
   reach: 3,
 };
 
-/** The relief a style draws, or null for the faint diagonal shade Atlas uses. */
-export const reliefOf = (style: string): Relief | null => {
-  const id = resolveStyle(style);
-  return id === "fantasy" ? FANTASY : id === "ink" ? INK : null;
-};
+/** The relief a style draws. */
+export const reliefOf = (style: string): Relief =>
+  resolveStyle(style) === "ink" ? INK : FANTASY;
 
 /** Light or shade, in colour levels, of the land in cell `x, y`: positive where the ground faces the light. */
 export function shadeAt(

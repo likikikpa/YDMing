@@ -25,13 +25,13 @@ const AI = "/assets/ai-gen/";
 const ai = (...names: string[]) => names.map((n) => `${AI}${n}.webp`);
 
 /**
- * The hand-inked Kenney symbols that every style drew before styles had their
- * own. Built on first use: this file and `symbols.ts` sit in an import cycle
- * through `render.ts`, so `DECOR_SPRITES` may not exist while this loads.
+ * Old ink: the hand-inked Kenney symbols, with woods drawn as thinned clumps
+ * of them. Built on first use: this file and `symbols.ts` sit in an import
+ * cycle through `render.ts`, so `DECOR_SPRITES` may not exist while this loads.
  */
-let inked: DecorSet | undefined;
-const inkedSet = (): DecorSet =>
-  (inked ??= {
+let ink: DecorSet | undefined;
+const inkSet = (): DecorSet =>
+  (ink ??= {
     pools: DECOR_SPRITES,
     trimmed: false,
     scale: {
@@ -43,12 +43,8 @@ const inkedSet = (): DecorSet =>
       desert: 1,
       savanna: 1,
     },
+    canopy: { clump: 70, open: 0.42, every: 2 },
   });
-
-/** Old ink: the same glyphs, with woods drawn as thinned clumps of them. */
-let ink: DecorSet | undefined;
-const inkSet = (): DecorSet =>
-  (ink ??= { ...inkedSet(), canopy: { clump: 70, open: 0.42, every: 2 } });
 
 const PAINTED: DecorSet = {
   pools: {
@@ -88,10 +84,8 @@ const PAINTED: DecorSet = {
 };
 
 /** The decoration set a map style draws with. */
-export const decorSetFor = (style: string): DecorSet => {
-  const id = resolveStyle(style);
-  return id === "fantasy" ? PAINTED : id === "ink" ? inkSet() : inkedSet();
-};
+export const decorSetFor = (style: string): DecorSet =>
+  resolveStyle(style) === "ink" ? inkSet() : PAINTED;
 
 /**
  * Loads the pictures a style needs. Resolves true when some were not loaded

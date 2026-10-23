@@ -14,27 +14,12 @@ interface Ornaments {
   compassLineWidth: number;
   compassDark: string;
   compassLight: string;
-  /** Drawn behind the letters so they read on any ground; none for the inked styles. */
+  /** Drawn behind the letters so they read on any ground; none for Old ink. */
   halo?: string;
   /** Red, green, blue and strongest alpha of a tint that darkens the sheet towards its edges, like old paper. */
   edge?: [number, number, number, number];
   scale: { text: string; line: string; lineWidth: number };
 }
-
-/** Ink on paper: thin olive lines, as every style drew before styles had their own. */
-const INKED: Ornaments = {
-  frame: "#5e624b66",
-  outerWidth: 1,
-  innerWidth: 0.5,
-  dot: "#707054",
-  dotRadius: 3,
-  compassText: "#5b654f",
-  compassLine: "#5b654f",
-  compassLineWidth: 0.5,
-  compassDark: "#6e7458",
-  compassLight: "#dad5b8",
-  scale: { text: "#59614b", line: "#5e624b66", lineWidth: 0.5 },
-};
 
 /** Sepia ink on aged paper: a heavier frame, brown-black lines, darker edges. */
 const INK: Ornaments = {
@@ -91,8 +76,7 @@ function agedEdge(
 
 /** The frame, compass and scale bar drawn on a map's sheet. */
 export function ornaments(ctx: CanvasRenderingContext2D, map: MapData) {
-  const id = resolveStyle(map.settings.style),
-    o = id === "fantasy" ? PAINTED : id === "ink" ? INK : INKED;
+  const o = resolveStyle(map.settings.style) === "ink" ? INK : PAINTED;
   ctx.save();
   // A dungeon is stone, not paper.
   if (o.edge && map.kind !== "dungeon")

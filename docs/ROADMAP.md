@@ -15,7 +15,7 @@ Maps made in YDMing look plain next to Inkarnate:
 
 - A map style is a **ground look plus a matching stamp set**. Choosing a style makes its set the default in the Library; other sets stay usable and are marked as not matching.
 - Switching a map's style changes only the ground. Stamps already placed stay as they are.
-- The old styles Parchment and Painted are replaced and have left the picker. Saved worlds and `.ydming` files that name one still load and are mapped to the replacement (Old ink and Painted fantasy), so they look different afterwards. Atlas stays in the picker: the Watercolour atlas that was to replace it is dropped.
+- The old styles Parchment, Painted and Atlas are gone from the picker. Saved worlds and `.ydming` files that name one still load and are drawn in a replacement (Old ink for Parchment, Painted fantasy for Painted and Atlas), so they look different afterwards. A style name nothing knows also draws as Painted fantasy. There is no vector-drawn style: the Watercolour atlas that was planned for Atlas is dropped.
 - New style code goes in new files; `terrain-render.ts` and `render.ts` are already too large.
 - Preview builds are published as a Claude artifact named YDMing (see "Hosting the preview").
 
@@ -38,8 +38,6 @@ Steps 1 to 6 are done (Painted fantasy and Old ink). Each style owns a decoratio
 5. **Frame, borders and labels.** Done, except fonts: a cream frame, a gold compass, a readable scale bar, and place names with a halo. Place names still use Georgia; a bundled open-licence display face is the next step here.
 6. **Old ink.** Done. Pale paper ground with calmer texture, a heavy ink shore with water lines fading out to sea, a sepia relief wash, woods drawn as thinned clumps of the Kenney tree glyphs, a brown ink frame, compass and scale bar, italic place names, and paper that darkens towards its edges (not on dungeons). Parchment is retired and draws as Old ink. Not done: hatched slopes. A fine line pattern on the ground would need testing for shimmer when the map is shown smaller than its pixels. The Kenney glyphs are still black, not sepia; tinting them would need a tinted copy for the settlement symbols too.
 7. **Realistic.** Photo ground and relief; no symbols.
-
-Watercolour atlas (procedural vector sprites and a washed ground) was dropped by the owner. New art that is code, not image files, still helps with the preview limit below.
 
 ## Found in the review
 

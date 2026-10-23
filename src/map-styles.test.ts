@@ -10,7 +10,7 @@ import { STAMP_PACKS } from "./packs";
 
 describe("map styles", () => {
   it("keeps every current style as it is", () => {
-    for (const id of ["ink", "atlas", "fantasy"] as const)
+    for (const id of ["ink", "fantasy"] as const)
       expect(resolveStyle(id)).toBe(id);
   });
 
@@ -19,16 +19,23 @@ describe("map styles", () => {
     expect(styleOf({ style: "parchment" }).label).toBe("Old ink");
     expect(styleOf({ style: "parchment" }).stampPack).toBe("cartography");
     expect(PICKER_STYLES).not.toContain("parchment");
-    expect(PICKER_STYLES).toEqual(["fantasy", "ink", "atlas"]);
+    expect(PICKER_STYLES).toEqual(["fantasy", "ink"]);
   });
 
-  it("draws unknown or missing ids as Atlas, never throwing", () => {
-    expect(resolveStyle(undefined)).toBe("atlas");
-    expect(resolveStyle("")).toBe("atlas");
-    expect(resolveStyle("watercolour")).toBe("atlas");
+  it("draws maps saved in the retired Atlas style as Painted fantasy", () => {
+    expect(resolveStyle("atlas")).toBe("fantasy");
+    expect(styleOf({ style: "atlas" }).label).toBe("Painted fantasy");
+    expect(PICKER_STYLES).not.toContain("atlas");
+  });
+
+  it("draws unknown or missing ids as Painted fantasy, never throwing", () => {
+    expect(resolveStyle(undefined)).toBe("fantasy");
+    expect(resolveStyle("")).toBe("fantasy");
+    expect(resolveStyle("watercolour")).toBe("fantasy");
     // Names on Object.prototype are not styles.
-    expect(resolveStyle("toString")).toBe("atlas");
-    expect(resolveStyle("__proto__")).toBe("atlas");
+    expect(resolveStyle("toString")).toBe("fantasy");
+    expect(resolveStyle("__proto__")).toBe("fantasy");
+    expect(resolveStyle("hasOwnProperty")).toBe("fantasy");
   });
 
   it("draws maps saved in the retired Painted style as Painted fantasy", () => {
@@ -60,7 +67,7 @@ describe("map styles", () => {
   });
 
   it("reads the style out of a map's settings", () => {
-    expect(styleOf({ style: "atlas" }).label).toBe("Atlas");
-    expect(styleOf({ style: "nonsense" }).id).toBe("atlas");
+    expect(styleOf({ style: "ink" }).label).toBe("Old ink");
+    expect(styleOf({ style: "nonsense" }).id).toBe("fantasy");
   });
 });

@@ -82,7 +82,7 @@ describe("tidying a generated coast", () => {
         ...block(21, 21, side - 2, side - 2, SEA - 0.001),
       ]);
     // Each style draws lines at its own depths; at least one passes the bank today.
-    const levels = ["fantasy", "ink", "atlas"].flatMap((style) =>
+    const levels = ["fantasy", "ink"].flatMap((style) =>
       coastLines(style).map((l) => SEA + l.offset),
     );
     expect(levels.some((level) => crossings(map, level) > 0)).toBe(true);

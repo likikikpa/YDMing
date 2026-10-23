@@ -20,7 +20,6 @@ import type { Relief } from "./relief";
 import { coastLines } from "./style-coast";
 import {
   fantasyPalette,
-  GREEN_BIOMES,
   groundContrast,
   inkPalette,
   SHALLOW_WATER_COLOUR,
@@ -35,27 +34,6 @@ export interface CellRect {
   x1: number;
   y1: number;
 }
-
-const atlas = [
-  [241, 244, 236],
-  [192, 188, 168],
-  [142, 146, 123],
-  [160, 176, 146],
-  [111, 146, 117],
-  [164, 184, 127],
-  [99, 146, 106],
-  [99, 152, 134],
-  [217, 196, 140],
-  [180, 187, 119],
-  [78, 138, 103],
-  [218, 214, 175],
-  [94, 149, 164],
-  [160, 128, 92],
-];
-
-// Every green biome shares one ground colour, the dark forest grass (index 6).
-// Biomes still differ in what grows on them: pines, broadleaf trees, palms.
-for (const b of GREEN_BIOMES) atlas[b] = atlas[6];
 
 /** Open-water colour of a map style, so rivers can match the sea exactly. */
 export function seaColor(style: string) {
@@ -73,14 +51,8 @@ const STYLE_COLOURS: Record<string, number> = {
   [SHALLOW_WATER]: 12,
   [DEEP_WATER]: 12,
 };
-const paletteOf = (style: string) => {
-  const id = resolveStyle(style);
-  return id === "fantasy"
-    ? fantasyPalette
-    : id === "ink"
-      ? inkPalette
-      : atlas;
-};
+const paletteOf = (style: string) =>
+  resolveStyle(style) === "ink" ? inkPalette : fantasyPalette;
 
 let textureLayers: TextureLayer[] = defaultTextures(),
   textureVersion = 0;
@@ -255,7 +227,7 @@ interface Entry {
   cellMaterial: Uint8Array;
   slope: Float32Array;
   /** How the style shades the land, or null for the faint diagonal shade. */
-  relief: Relief | null;
+  relief: Relief;
   layers: Material[];
   shallow: number;
   deep: number;
@@ -362,11 +334,7 @@ function classifyCells(
         (painted !== undefined ? index.get(painted) : undefined) ??
         index.get(biomeMaterial(b)) ??
         0;
-      entry.slope[i] = entry.relief
-        ? shadeAt(heights, cols, rows, x, y, entry.relief)
-        : (heights[Math.max(0, i - cols - 1)] -
-            heights[Math.min(heights.length - 1, i + cols + 1)]) *
-          65;
+      entry.slope[i] = shadeAt(heights, cols, rows, x, y, entry.relief);
     }
 }
 
@@ -411,7 +379,7 @@ function paintPixels(
     sy = map.height / rows,
     mats = entry.cellMaterial,
     slope = entry.slope,
-    [tintR, tintG, tintB] = entry.relief?.tint ?? [1, 1, 1],
+    [tintR, tintG, tintB] = entry.relief.tint,
     // Pick the mip level whose texels are about one output pixel each.
     pick = (m: Material) => {
       const level = Math.max(
@@ -576,7 +544,7 @@ function updateTexture(
   } else if (dirty) {
     // Biome rules look eight cells upwind, so a height edit can recolour a
     // horizontal margin around the brush.
-    const reach = entry.relief?.reach ?? 1,
+    const reach = entry.relief.reach,
       bx0 = Math.max(0, dirty.x0 - 9),
       bx1 = Math.min(map.cols - 1, dirty.x1 + 9),
       by0 = Math.max(0, dirty.y0 - reach),

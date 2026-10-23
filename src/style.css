@@ -900,7 +900,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 .style-picker {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 5px;
 }
 .style-picker button {
@@ -921,10 +921,6 @@ input[type="range"]::-webkit-slider-thumb {
   margin-bottom: 7px;
   border-radius: 3px;
   color: #69734d;
-}
-.style-sample.atlas {
-  background: #789c9a;
-  color: #dfdbb4;
 }
 .style-sample.ink {
   background: #e6d9b4;

@@ -8,13 +8,6 @@ export interface CoastLine {
   width: number;
 }
 
-/** A thin dark shore line with two faint rings of shallows, as every style drew before. */
-const INKED: CoastLine[] = [
-  { offset: 0, colour: "#657c69", width: 1.1 },
-  { offset: -0.015, colour: "#93aaa1", width: 0.65 },
-  { offset: -0.035, colour: "#aabbb0", width: 0.6 },
-];
-
 /** A strong ink shore and water lining that fades out to sea, as drawn on old charts. */
 const INK: CoastLine[] = [
   { offset: 0, colour: "#3f2f1fe0", width: 1.5 },
@@ -34,12 +27,10 @@ const PAINTED: CoastLine[] = [
 ];
 
 /** The lines a style draws along its coasts, from the shore outwards. */
-export const coastLines = (style: string): CoastLine[] => {
-  const id = resolveStyle(style);
-  return id === "fantasy" ? PAINTED : id === "ink" ? INK : INKED;
-};
+export const coastLines = (style: string): CoastLine[] =>
+  resolveStyle(style) === "ink" ? INK : PAINTED;
 
 /** How far below the sea level the deepest line of any style is drawn. */
 export const DEEPEST_COAST_LINE = Math.max(
-  ...[INKED, INK, PAINTED].flatMap((lines) => lines.map((l) => -l.offset)),
+  ...[INK, PAINTED].flatMap((lines) => lines.map((l) => -l.offset)),
 );
