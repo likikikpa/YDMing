@@ -1,5 +1,6 @@
 import { kindOf, kindPictures } from "./scatter-kinds";
 import { mixIdOf, mixPictures } from "./scatter-mixes";
+import type { MixContext } from "./scatter-mixes";
 import type { ScatterOptions, ScatterPicture } from "./scatter";
 import { spriteAssets } from "./stamp-brush";
 import type { StampAssets, StampSprite } from "./stamp-brush";
@@ -49,12 +50,14 @@ export function scatterPool(
   sprite: StampSprite | undefined,
   pack: string,
   mixes: readonly ScatterMix[] = [],
+  world: MixContext = {},
 ): ScatterPicture[] {
   if (!settings?.on) return [];
   const mixId = mixIdOf(settings.kind),
     chosen = mixId
       ? mixPictures(
           mixes.find((m) => m.id === mixId) ?? { id: "", name: "", items: [] },
+          world,
         )
       : settings.kind
         ? kindPictures(pack, settings.kind)

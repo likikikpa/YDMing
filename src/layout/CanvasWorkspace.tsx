@@ -60,8 +60,24 @@ export function CanvasWorkspace({ app }: { app: ReadyApp }) {
   );
   const pool = useMemo(
     () =>
-      scatterPool(brush.scatter, brush.sprite, assetPack, project.scatterMixes),
-    [brush.scatter, brush.sprite, assetPack, project.scatterMixes],
+      scatterPool(
+        brush.scatter,
+        brush.sprite,
+        assetPack,
+        project.scatterMixes,
+        {
+          images: project.images,
+          credits: project.credits,
+        },
+      ),
+    [
+      brush.scatter,
+      brush.sprite,
+      assetPack,
+      project.scatterMixes,
+      project.images,
+      project.credits,
+    ],
   );
   return (
     <section className="canvas-workspace wood" aria-label="Map workspace">

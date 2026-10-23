@@ -196,6 +196,12 @@ it("checks the scatter mixes of an imported project", () => {
   });
   expect(validateProject(withMixes([mix])).scatterMixes).toEqual([mix]);
   const grown = { ...mix, items: [{ ...mix.items[0], biomes: [5, 6] }] };
+  const mine = {
+    ...mix,
+    id: "m3",
+    items: [{ src: "image:i1abc-x", name: "Banner", aspect: 2, weight: 1 }],
+  };
+  expect(validateProject(withMixes([mine])).scatterMixes).toEqual([mine]);
   expect(validateProject(withMixes([grown])).scatterMixes).toEqual([grown]);
   expect(
     validateProject({ ...withMixes([]), scatterMixes: undefined }),

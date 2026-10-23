@@ -11,6 +11,10 @@ export type ImageTable = Record<string, string>;
 export const isEmbedded = (src: string | undefined): src is string =>
   !!src && src.startsWith("data:");
 
+/** The table key of an imported picture in a scatter mix, whose `src` is `image:` and the key. */
+export const mixImageId = (src: string) =>
+  /^image:[\w-]{1,64}$/.test(src) ? src.slice(6) : undefined;
+
 /** cyrb53: a fast 53-bit string hash. */
 function hash(text: string) {
   let h1 = 0xdeadbeef,
@@ -88,6 +92,12 @@ export function pruneImages(project: Project): Project {
   const used = new Set<string>();
   for (const m of project.maps)
     for (const o of m.objects) if (o.imageId) used.add(o.imageId);
+  // Scatter mixes keep their imported pictures even before any is placed.
+  for (const mix of project.scatterMixes ?? [])
+    for (const i of mix.items) {
+      const id = mixImageId(i.src);
+      if (id) used.add(id);
+    }
   const keys = Object.keys(images);
   if (keys.every((k) => used.has(k))) return project;
   const { images: _all, ...rest } = project;

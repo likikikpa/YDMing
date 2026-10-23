@@ -173,3 +173,72 @@ describe("biomes of a picture in a mix", () => {
     });
   });
 });
+
+describe("imported pictures in a mix", () => {
+  const data = "data:image/png;base64,AAAA";
+  const credit = {
+    id: "c1",
+    name: "Banner",
+    author: "A",
+    license: "CC0",
+    url: "https://x.test",
+  };
+  const mine = {
+    id: "m2",
+    name: "Mine",
+    items: [
+      {
+        src: "image:i1abc-x",
+        name: "Red banner",
+        aspect: 2,
+        creditId: "c1",
+        weight: 2,
+      },
+    ],
+  };
+  it("are valid with a name, shape and credit", () => {
+    expect(validMix(mine)).toBe(true);
+    expect(
+      validMix({ ...mine, items: [{ src: "image:i1abc-x", weight: 1 }] }),
+    ).toBe(true);
+  });
+  it.each([
+    ["an empty key", { src: "image:", weight: 1 }],
+    ["a key with a slash", { src: "image:a/b", weight: 1 }],
+    ["a long name", { src: "image:a", name: "x".repeat(81), weight: 1 }],
+    ["no shape", { src: "image:a", aspect: 0, weight: 1 }],
+    ["a text shape", { src: "image:a", aspect: "wide", weight: 1 }],
+    ["a number credit", { src: "image:a", creditId: 4, weight: 1 }],
+  ])("are rejected with %s", (_, item) => {
+    expect(validMix({ ...mine, items: [item] })).toBe(false);
+  });
+  it("become pictures from the world's table, with their credit", () => {
+    const [p] = mixPictures(mine, {
+      images: { "i1abc-x": data },
+      credits: [credit],
+    });
+    expect(p.sprite).toMatchObject({
+      src: data,
+      name: "Red banner",
+      aspect: 2,
+      imageId: "i1abc-x",
+      credit,
+    });
+    expect(p.weight).toBe(2);
+    expect(p.turn).toBe(0);
+  });
+  it("are dropped when the world has lost the picture", () => {
+    expect(mixPictures(mine, { images: {} })).toEqual([]);
+    expect(mixPictures(mine)).toEqual([]);
+  });
+  it("are added with the name and shape they came with", () => {
+    const added = withWeight([], "image:i2", 1, { name: "Flag", aspect: 0.5 });
+    expect(added).toEqual([
+      { name: "Flag", aspect: 0.5, src: "image:i2", weight: 1 },
+    ]);
+    expect(withWeight(added, "image:i2", 3)[0]).toMatchObject({
+      name: "Flag",
+      weight: 3,
+    });
+  });
+});

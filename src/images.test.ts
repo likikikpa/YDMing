@@ -3,6 +3,7 @@ import { createEmptyMap } from "./generator";
 import {
   imageId,
   imageSources,
+  mixImageId,
   migrateImages,
   notLoaded,
   objectImage,
@@ -207,5 +208,57 @@ describe("notLoaded", () => {
   it("is empty when every picture is ready, so no second draw", () => {
     expect(notLoaded(new Set(["/done.webp"]), cache)).toEqual([]);
     expect(notLoaded([], cache)).toEqual([]);
+  });
+});
+
+describe("scatter mixes and the picture table", () => {
+  const project = (images: Record<string, string>, mixes?: unknown) =>
+    ({
+      ...createProjectLike(),
+      images,
+      scatterMixes: mixes,
+    }) as unknown as Parameters<typeof pruneImages>[0];
+  function createProjectLike() {
+    const map = createEmptyMap("world", defaultSettings);
+    map.objects = [
+      {
+        id: "s1",
+        kind: "image",
+        name: "S",
+        imageId: "used",
+        x: 1,
+        y: 1,
+        width: 5,
+        height: 5,
+        rotation: 0,
+        layer: "Objects",
+        color: "#000",
+      },
+    ];
+    return {
+      version: 1,
+      id: "p",
+      name: "P",
+      maps: [map],
+      activeMapId: map.id,
+      credits: [],
+      commercial: false,
+      updatedAt: "",
+    };
+  }
+  const data = "data:image/png;base64,AAAA";
+  it("keep a picture only a mix uses", () => {
+    const kept = pruneImages(
+      project({ used: data, inMix: data, stray: data }, [
+        { id: "m", name: "M", items: [{ src: "image:inMix", weight: 1 }] },
+      ]),
+    );
+    expect(Object.keys(kept.images!).sort()).toEqual(["inMix", "used"]);
+  });
+  it("read the key of a mix picture", () => {
+    expect(mixImageId("image:i1abc-x")).toBe("i1abc-x");
+    expect(mixImageId("/assets/ai-gen/tree-oak.webp")).toBeUndefined();
+    expect(mixImageId("image:a/b")).toBeUndefined();
+    expect(mixImageId("image:")).toBeUndefined();
   });
 });

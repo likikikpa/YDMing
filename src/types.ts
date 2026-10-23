@@ -288,7 +288,12 @@ export interface Project {
 }
 /** One bundled picture in a scatter mix; a larger weight is picked more often. */
 export interface ScatterMixItem {
+  /** A bundled picture's path, or `image:` and the key of an imported picture in `Project.images`. */
   src: string;
+  /** For an imported picture: its name, shape and credit. */
+  name?: string;
+  aspect?: number;
+  creditId?: string;
   weight: number;
   /** The biome ids it may grow on with Follow biomes; the built-in rules decide when unset. */
   biomes?: number[];

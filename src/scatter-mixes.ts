@@ -1,9 +1,11 @@
 import { MAX_BIOME } from "./biomes";
 import { isBundledSprite } from "./bundled-assets";
+import { mixImageId } from "./images";
 import { PACK_STAMPS } from "./packs";
 import { kindOf, packSprite } from "./scatter-kinds";
 import type { ScatterPicture } from "./scatter";
-import type { ScatterMix, ScatterMixItem } from "./types";
+import type { ImageTable } from "./images";
+import type { Credit, ScatterMix, ScatterMixItem } from "./types";
 
 /** The most mixes a world keeps, pictures a mix holds, and weight one picture has. */
 export const MAX_MIXES = 50;
@@ -21,17 +23,39 @@ export const mixIdOf = (kind: string) =>
 
 let bySrc: Map<string, (typeof PACK_STAMPS)[number]> | undefined;
 
-/** The pictures of a mix that are still in the Library, weighted. */
-export function mixPictures(mix: ScatterMix): ScatterPicture[] {
+/** What an imported picture in a mix needs from the world: its pictures and credits. */
+export interface MixContext {
+  images?: ImageTable;
+  credits?: readonly Credit[];
+}
+
+/** The pictures of a mix that are still in the Library or the world, weighted. */
+export function mixPictures(
+  mix: ScatterMix,
+  { images, credits }: MixContext = {},
+): ScatterPicture[] {
   bySrc ??= new Map(PACK_STAMPS.map((a) => [a.src, a]));
   const out: ScatterPicture[] = [];
   for (const item of mix.items) {
-    const stamp = bySrc.get(item.src);
-    if (stamp)
+    const id = mixImageId(item.src),
+      stamp = id ? undefined : bySrc.get(item.src),
+      data = id ? images?.[id] : undefined;
+    const sprite = stamp
+      ? packSprite(stamp)
+      : id && data
+        ? {
+            src: data,
+            name: item.name || "Imported stamp",
+            aspect: item.aspect,
+            imageId: id,
+            credit: credits?.find((c) => c.id === item.creditId),
+          }
+        : undefined;
+    if (sprite)
       out.push({
-        sprite: packSprite(stamp),
+        sprite,
         weight: item.weight,
-        turn: kindOf(stamp.src)?.turn ?? 0,
+        turn: kindOf(item.src)?.turn ?? 0,
         ...(item.biomes && { biomes: item.biomes }),
       });
   }
@@ -63,7 +87,13 @@ export function validMix(v: unknown): v is ScatterMix {
       (i) =>
         !!i &&
         typeof i.src === "string" &&
-        isBundledSprite(i.src) &&
+        (isBundledSprite(i.src) || mixImageId(i.src) !== undefined) &&
+        (i.name === undefined ||
+          (typeof i.name === "string" && i.name.length <= 80)) &&
+        (i.aspect === undefined ||
+          (Number.isFinite(i.aspect) && i.aspect >= 0.05 && i.aspect <= 20)) &&
+        (i.creditId === undefined ||
+          (typeof i.creditId === "string" && i.creditId.length <= 120)) &&
         Number.isInteger(i.weight) &&
         i.weight >= 1 &&
         i.weight <= MAX_MIX_WEIGHT &&
@@ -77,6 +107,8 @@ export function withWeight(
   items: readonly ScatterMixItem[],
   src: string,
   weight: number,
+  /** What a new picture carries besides its path: the name and shape of an imported one. */
+  extra: Partial<ScatterMixItem> = {},
 ): ScatterMixItem[] {
   const w = Math.min(MAX_MIX_WEIGHT, Math.max(0, Math.round(weight)));
   const rest = items.filter((i) => i.src !== src);
@@ -85,7 +117,7 @@ export function withWeight(
     ? items.map((i) => (i.src === src ? { ...i, weight: w } : i))
     : items.length >= MAX_MIX_ITEMS
       ? [...items]
-      : [...rest, { src, weight: w }];
+      : [...rest, { ...extra, src, weight: w }];
 }
 
 /** The items with the biomes one picture grows on set; `undefined` hands it back to the built-in rules. */

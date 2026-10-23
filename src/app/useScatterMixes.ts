@@ -2,7 +2,8 @@ import { useState } from "react";
 import type { BrushSettings } from "../editor/types";
 import { DEFAULT_SCATTER } from "../scatter-brush";
 import { mixKey, withMix } from "../scatter-mixes";
-import type { Project, ScatterMix } from "../types";
+import type { ImageTable } from "../images";
+import type { Credit, Project, ScatterMix } from "../types";
 import type { ModalName } from "./constants";
 
 /** The world's saved scatter mixes, and the dialog that makes and changes them. */
@@ -25,11 +26,25 @@ export function useScatterMixes({
     setMixEdit(id);
     setModal("mix");
   }
-  /** Saves the mix and scatters with it. */
-  function saveMix(mix: ScatterMix) {
+  /**
+   * Saves the mix and scatters with it. `extra` holds the imported pictures
+   * and credits the mix uses that the world does not have yet.
+   */
+  function saveMix(
+    mix: ScatterMix,
+    extra: { images?: ImageTable; credits?: Credit[] } = {},
+  ) {
     if (!project) return;
+    const credits = (extra.credits ?? []).filter(
+      (c) => !project.credits.some((k) => k.id === c.id),
+    );
     commit(
-      { ...project, scatterMixes: withMix(mixes, mix) },
+      {
+        ...project,
+        scatterMixes: withMix(mixes, mix),
+        ...(extra.images && { images: { ...project.images, ...extra.images } }),
+        ...(credits.length && { credits: [...project.credits, ...credits] }),
+      },
       "Save scatter mix",
     );
     setBrush((b) => ({
