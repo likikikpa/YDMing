@@ -4,7 +4,6 @@ import {
   DEEP_WATER,
   defaultTextures,
   hexToRgb,
-  mipChain,
   paintedMaterial,
   patternTile,
   SHALLOW_WATER,
@@ -12,6 +11,7 @@ import {
   WORLD_TILE,
 } from "./materials";
 import { hexBlend, turnsFor } from "./hex-tiling";
+import { decodeTile } from "./tile-decode";
 import { hash, noise } from "./random";
 import { decorRegion, drawDecor } from "./decor";
 import { resolveStyle } from "./map-styles";
@@ -91,21 +91,6 @@ export async function setTextureLayers(layers: TextureLayer[]) {
   textureLayers = layers;
   textureVersion++;
   entries.clear();
-}
-
-async function decodeTile(src: string) {
-  const img = new Image();
-  img.src = src;
-  await img.decode();
-  const c = document.createElement("canvas");
-  c.width = c.height = TILE;
-  const ctx = c.getContext("2d")!;
-  ctx.drawImage(img, 0, 0, TILE, TILE);
-  const data = ctx.getImageData(0, 0, TILE, TILE).data,
-    rgb = new Float32Array(TILE * TILE * 3);
-  for (let i = 0; i < TILE * TILE; i++)
-    for (let k = 0; k < 3; k++) rgb[i * 3 + k] = data[i * 4 + k];
-  return mipChain(rgb, TILE, 3);
 }
 
 /** A map-wide image, RGB bytes. */
