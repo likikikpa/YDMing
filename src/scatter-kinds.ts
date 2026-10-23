@@ -56,7 +56,7 @@ export const packSprite = (a: PackStamp): StampSprite => ({
 /** Every picture of the kind in one collection. */
 export const kindPictures = (pack: string, kind: string): ScatterPicture[] =>
   PACK_STAMPS.filter((a) => a.pack === pack && kindOf(a.src)?.key === kind).map(
-    (a) => ({ sprite: packSprite(a) }),
+    (a) => ({ sprite: packSprite(a), turn: kindOf(a.src)?.turn }),
   );
 
 /** The kinds a collection has pictures for. */

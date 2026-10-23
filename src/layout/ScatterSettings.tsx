@@ -1,17 +1,20 @@
 import { DEFAULT_SCATTER } from "../scatter-brush";
 import type { ScatterSettings as Settings } from "../scatter-brush";
 import { packKinds } from "../scatter-kinds";
+import { mixIdOf, mixKey } from "../scatter-mixes";
 import { Field, Slider } from "../ui/Field";
 import type { ReadyApp } from "../app/useAppModel";
 
 /** The stamp tool's scatter brush: what it sows and how thickly. */
 export function ScatterSettings({ app }: { app: ReadyApp }) {
-  const { assetPack, brush, map, setBrush, t, tool } = app;
+  const { assetPack, brush, map, mixes, openMix, setBrush, t, tool } = app;
   if (tool !== "stamp" || map.kind !== "world") return null;
   const s = brush.scatter ?? DEFAULT_SCATTER,
     set = (change: Partial<Settings>) =>
       setBrush((b) => ({ ...b, scatter: { ...s, ...change } })),
-    kinds = packKinds(assetPack);
+    kinds = packKinds(assetPack),
+    mixId = mixIdOf(s.kind),
+    chosen = mixes.some((m) => m.id === mixId);
   return (
     <>
       <label className="checkbox">
@@ -26,7 +29,9 @@ export function ScatterSettings({ app }: { app: ReadyApp }) {
         <>
           <Field label={t("Pictures")}>
             <select
-              value={kinds.some((k) => k.key === s.kind) ? s.kind : ""}
+              value={
+                chosen || kinds.some((k) => k.key === s.kind) ? s.kind : ""
+              }
               onChange={(e) => set({ kind: e.target.value })}
             >
               <option value="">{t("Selected picture")}</option>
@@ -35,8 +40,27 @@ export function ScatterSettings({ app }: { app: ReadyApp }) {
                   {t(k.label)}
                 </option>
               ))}
+              {mixes.length > 0 && (
+                <optgroup label={t("Mixes")}>
+                  {mixes.map((m) => (
+                    <option key={m.id} value={mixKey(m.id)}>
+                      {m.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </Field>
+          <div className="scatter-mix-buttons">
+            <button className="button subtle" onClick={() => openMix()}>
+              {t("New mix")}
+            </button>
+            {chosen && (
+              <button className="button subtle" onClick={() => openMix(mixId)}>
+                {t("Edit mix")}
+              </button>
+            )}
+          </div>
           <Slider
             label={t("Radius")}
             value={s.radius}

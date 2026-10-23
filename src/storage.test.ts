@@ -176,3 +176,33 @@ it("rejects a stamp tint outside -1 to 1", () => {
   expect(() => validateProject(withTint(2))).toThrow("tint");
   expect(() => validateProject(withTint("dark"))).toThrow("tint");
 });
+it("checks the scatter mixes of an imported project", () => {
+  const map = generateMap("world", defaultSettings),
+    mix = {
+      id: "m1",
+      name: "Wild edge",
+      items: [{ src: "/assets/ai-gen/tree-oak.webp", weight: 3 }],
+    };
+  const withMixes = (scatterMixes: unknown) => ({
+    version: 1,
+    id: "p",
+    name: "P",
+    maps: [map],
+    activeMapId: map.id,
+    credits: [],
+    scatterMixes,
+    commercial: false,
+    updatedAt: "",
+  });
+  expect(validateProject(withMixes([mix])).scatterMixes).toEqual([mix]);
+  expect(
+    validateProject({ ...withMixes([]), scatterMixes: undefined }),
+  ).toBeTruthy();
+  for (const bad of [
+    "mix",
+    [{ ...mix, items: [{ src: "https://x.test/a.png", weight: 1 }] }],
+    [{ ...mix, name: "" }],
+    [mix, mix],
+  ])
+    expect(() => validateProject(withMixes(bad))).toThrow("scatter mix");
+});

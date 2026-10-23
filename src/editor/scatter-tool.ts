@@ -43,7 +43,7 @@ export function createScatterTool(deps: EditorCore) {
       from,
       to,
       pool,
-      scatterOptions(b.scatter, b.size, pool),
+      scatterOptions(b.scatter, b.size),
       d.rand,
       b.scatter.biomes ? poolAtMap(m, pool) : undefined,
     );

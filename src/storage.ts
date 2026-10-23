@@ -3,6 +3,7 @@ import { isBundledSprite } from "./bundled-assets";
 import { getWithLegacy } from "./legacy-keys";
 import { migrateImages, pruneImages } from "./images";
 import { MAX_BIOME } from "./biomes";
+import { MAX_MIXES, validMix } from "./scatter-mixes";
 import { BUILTIN_MATERIALS, PATTERNS } from "./materials";
 import { isNoteUrl } from "./note-link";
 import { CELL, MAX_CELLS } from "./mapsize";
@@ -174,6 +175,14 @@ export function validateProject(value: unknown): Project {
       ))
   )
     throw new Error("The project contains an invalid image.");
+  if (
+    p.scatterMixes !== undefined &&
+    (!Array.isArray(p.scatterMixes) ||
+      p.scatterMixes.length > MAX_MIXES ||
+      !p.scatterMixes.every(validMix) ||
+      new Set(p.scatterMixes.map((m) => m.id)).size !== p.scatterMixes.length)
+  )
+    throw new Error("The project contains an invalid scatter mix.");
   if (
     p.textures !== undefined &&
     (!Array.isArray(p.textures) ||

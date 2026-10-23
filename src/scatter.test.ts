@@ -316,3 +316,27 @@ describe("scatterStroke with a pool by place", () => {
     ).toEqual([]);
   });
 });
+
+describe("a picture's own turn", () => {
+  it("caps the turn the options allow", () => {
+    const upright = { sprite: sprite("upright"), turn: 0 },
+      loose = { sprite: sprite("loose"), turn: 180 },
+      placed = scatterStroke(
+        undefined,
+        origin,
+        [upright, loose],
+        { ...options, density: 4, turn: 90 },
+        random("caps"),
+      );
+    expect(placed.length).toBeGreaterThan(30);
+    for (const p of placed) {
+      if (p.sprite.name === "upright") expect(p.rotation).toBe(0);
+      else expect(Math.abs(p.rotation)).toBeLessThanOrEqual(90);
+    }
+    expect(
+      placed.some(
+        (p) => p.sprite.name === "loose" && Math.abs(p.rotation) > 30,
+      ),
+    ).toBe(true);
+  });
+});

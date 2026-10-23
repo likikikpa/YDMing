@@ -7,6 +7,8 @@ import type { MapObject, Point } from "./types";
 export interface ScatterPicture {
   sprite: StampSprite;
   weight?: number;
+  /** The most this picture may be turned, in degrees; the options' turn caps it. */
+  turn?: number;
 }
 
 export interface ScatterOptions {
@@ -116,7 +118,7 @@ function vary(
   rand: () => number,
 ): ScatterPlacement {
   const scale = lerp(o.scale[0], o.scale[1], rand()),
-    turn = (rand() * 2 - 1) * o.turn + 0,
+    turn = (rand() * 2 - 1) * Math.min(o.turn, picture.turn ?? o.turn) + 0,
     flipX = rand() < 0.5,
     tint = (rand() * 2 - 1) * clamp(o.tint) + 0;
   return {

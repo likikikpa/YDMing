@@ -121,4 +121,5 @@ export type ModalName =
   | "credits"
   | "help"
   | "fit"
-  | "resize";
+  | "resize"
+  | "mix";

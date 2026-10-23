@@ -11,6 +11,7 @@ import { useObjectActions } from "./useObjectActions";
 import { usePackImport } from "./usePackImport";
 import { useProjectFiles } from "./useProjectFiles";
 import { useProjectStore } from "./useProjectStore";
+import { useScatterMixes } from "./useScatterMixes";
 import { useScenes } from "./useScenes";
 import { useTextureLayers } from "./useTextureLayers";
 import { useToast } from "./useToast";
@@ -123,6 +124,12 @@ export function useAppModel() {
     notify,
     t: view.t,
   });
+  const scatterMixes = useScatterMixes({
+    project: store.project,
+    commit: store.commit,
+    setBrush: tools.setBrush,
+    setModal: view.setModal,
+  });
   // Switching to another map resets what belonged to the previous one.
   const { setSettings } = generator,
     { setGroup, setRoomDetail, setSelected } = view;
@@ -176,6 +183,7 @@ export function useAppModel() {
     ...library,
     ...packs,
     ...scenes,
+    ...scatterMixes,
     ...worlds,
     ...links,
     ...clipboard,

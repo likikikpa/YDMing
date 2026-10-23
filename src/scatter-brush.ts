@@ -1,8 +1,9 @@
 import { kindOf, kindPictures } from "./scatter-kinds";
+import { mixIdOf, mixPictures } from "./scatter-mixes";
 import type { ScatterOptions, ScatterPicture } from "./scatter";
 import { spriteAssets } from "./stamp-brush";
 import type { StampAssets, StampSprite } from "./stamp-brush";
-import type { MapKind } from "./types";
+import type { MapKind, ScatterMix } from "./types";
 
 /** The scatter brush's controls, as the stamp tool's card sets them. */
 export interface ScatterSettings {
@@ -39,32 +40,42 @@ export const DEFAULT_SCATTER: ScatterSettings = {
 /** The scatter brush works on world maps only. */
 export const scatterMaps: MapKind[] = ["world"];
 
-/** The pictures the brush draws from: the kind's, or else the picked picture. */
+/**
+ * The pictures the brush draws from: a saved mix, a kind of the open
+ * collection, or else the picked picture.
+ */
 export function scatterPool(
   settings: ScatterSettings | undefined,
   sprite: StampSprite | undefined,
   pack: string,
+  mixes: readonly ScatterMix[] = [],
 ): ScatterPicture[] {
   if (!settings?.on) return [];
-  const kind = settings.kind ? kindPictures(pack, settings.kind) : [];
-  return kind.length ? kind : sprite ? [{ sprite }] : [];
+  const mixId = mixIdOf(settings.kind),
+    chosen = mixId
+      ? mixPictures(
+          mixes.find((m) => m.id === mixId) ?? { id: "", name: "", items: [] },
+        )
+      : settings.kind
+        ? kindPictures(pack, settings.kind)
+        : [];
+  if (chosen.length) return chosen;
+  return sprite ? [{ sprite, turn: kindOf(sprite.src)?.turn ?? 0 }] : [];
 }
 
-/** The placement options for the settings, with the turn the pool's kind allows. */
+/** The placement options for the settings; each picture's own turn caps `turn`. */
 export function scatterOptions(
   s: ScatterSettings,
   size: number,
-  pool: readonly ScatterPicture[],
 ): ScatterOptions {
-  const spread = (s.variety / 100) * 0.6,
-    allowed = pool.length ? (kindOf(pool[0].sprite.src)?.turn ?? 0) : 0;
+  const spread = (s.variety / 100) * 0.6;
   return {
     radius: s.radius,
     size,
     density: s.density / 100,
     scale: [1 - spread, 1 + spread],
     flip: s.flip,
-    turn: s.turn ? allowed : 0,
+    turn: s.turn ? 180 : 0,
     tint: s.tint / 100,
   };
 }

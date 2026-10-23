@@ -281,8 +281,20 @@ export interface Project {
   textures?: TextureLayer[];
   /** Imported pictures (data URLs) by id; stamps refer to them with `imageId`. */
   images?: Record<string, string>;
+  /** Saved scatter brushes: weighted pictures the Stamp tool's scatter mode draws from. */
+  scatterMixes?: ScatterMix[];
   commercial: boolean;
   updatedAt: string;
+}
+/** One bundled picture in a scatter mix; a larger weight is picked more often. */
+export interface ScatterMixItem {
+  src: string;
+  weight: number;
+}
+export interface ScatterMix {
+  id: string;
+  name: string;
+  items: ScatterMixItem[];
 }
 export interface SrdEntry {
   key: string;

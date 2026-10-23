@@ -4,6 +4,7 @@ import { FitImageModal } from "./FitImageModal";
 import { HelpModal } from "./HelpModal";
 import { NewMapModal } from "./NewMapModal";
 import { ResizeModal } from "./ResizeModal";
+import { ScatterMixModal } from "./ScatterMixModal";
 import { WorldsModal } from "./WorldsModal";
 import { X } from "lucide-react";
 import type { ReadyApp } from "../app/useAppModel";
@@ -46,7 +47,9 @@ export function ModalHost({ app }: { app: ReadyApp }) {
                       ? "Keyboard shortcuts"
                       : modal === "resize"
                         ? "Map size"
-                        : "Library",
+                        : modal === "mix"
+                          ? "Scatter"
+                          : "Library",
           )}
         </span>
         <h2 id="modal-title">
@@ -63,7 +66,9 @@ export function ModalHost({ app }: { app: ReadyApp }) {
                       ? "Keyboard shortcuts"
                       : modal === "resize"
                         ? "Resize map"
-                        : "Make it fit",
+                        : modal === "mix"
+                          ? "Scatter mix"
+                          : "Make it fit",
           )}
         </h2>
         {modal === "new" && <NewMapModal app={app} />}
@@ -73,6 +78,7 @@ export function ModalHost({ app }: { app: ReadyApp }) {
         {modal === "credits" && <CreditsModal app={app} />}
         {modal === "help" && <HelpModal app={app} />}
         {modal === "fit" && <FitImageModal app={app} />}
+        {modal === "mix" && <ScatterMixModal app={app} />}
       </section>
     </div>
   );
