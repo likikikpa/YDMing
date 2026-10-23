@@ -230,12 +230,13 @@ describe("scatterObjects", () => {
       height: 80,
       rotation: 12,
       flipX: true,
+      tint: 0.3,
       layer: "Objects",
       color: "#112233",
     });
     expect(a).not.toHaveProperty("imageId");
   });
-  it("leaves out flipX when not mirrored", () => {
+  it("leaves out flipX and tint when there are none", () => {
     const [a] = scatterObjects(
       [
         {
@@ -252,6 +253,7 @@ describe("scatterObjects", () => {
       target,
     );
     expect(a).not.toHaveProperty("flipX");
+    expect(a).not.toHaveProperty("tint");
   });
   it("refers to an imported picture by id, never by data", () => {
     const [a] = scatterObjects(

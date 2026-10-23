@@ -147,3 +147,32 @@ it("loads a map with tens of thousands of stamps from a file", () => {
     validateProject(JSON.parse(JSON.stringify(project))).maps[0].objects,
   ).toHaveLength(40000);
 });
+it("rejects a stamp tint outside -1 to 1", () => {
+  const map = generateMap("world", defaultSettings),
+    stamp = {
+      id: "s",
+      kind: "image" as const,
+      name: "Oak tree",
+      image: "/assets/ai-gen/tree-oak.webp",
+      x: 1,
+      y: 1,
+      width: 20,
+      height: 20,
+      rotation: 0,
+      layer: "Objects",
+      color: "#000000",
+    };
+  const withTint = (tint: unknown) => ({
+    version: 1,
+    id: "p",
+    name: "P",
+    maps: [{ ...map, objects: [{ ...stamp, tint }] }],
+    activeMapId: map.id,
+    credits: [],
+    commercial: false,
+    updatedAt: "",
+  });
+  expect(validateProject(withTint(0.4)).maps[0].objects[0].tint).toBe(0.4);
+  expect(() => validateProject(withTint(2))).toThrow("tint");
+  expect(() => validateProject(withTint("dark"))).toThrow("tint");
+});

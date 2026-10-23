@@ -184,6 +184,7 @@ export function scatterObjects(
       ...spriteSize(p.sprite, size * p.scale, target.cell),
       rotation: p.rotation,
       ...(p.flipX && { flipX: true }),
+      ...(p.tint && { tint: Math.round(p.tint * 100) / 100 }),
       layer: target.layer,
       color: target.color,
       ...(p.sprite.credit && { creditId: p.sprite.credit.id }),

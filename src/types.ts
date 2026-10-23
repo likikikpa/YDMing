@@ -63,6 +63,8 @@ export interface MapObject extends Point {
   color: string;
   flipX?: boolean;
   flipY?: boolean;
+  /** Lighter and warmer (up to 1) or darker and cooler (down to -1) than the picture; scattered stamps vary. */
+  tint?: number;
   group?: string;
   linkedMap?: string;
   owner?: string;

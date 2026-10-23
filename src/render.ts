@@ -14,6 +14,7 @@ import { hash } from "./random";
 import { drawLabel } from "./labels";
 import { ornaments } from "./ornaments";
 import { drawStamp, path } from "./stamps";
+import { tinted } from "./tint";
 import { SYMBOL_SCALE, SYMBOL_SPRITES } from "./symbols";
 import type { MapData, MapObject, MapPath, Point, Stroke } from "./types";
 export { drawStamp, stampSvg } from "./stamps";
@@ -322,7 +323,13 @@ function drawObject(
   } else if (picture) {
     const img = imageCache.get(picture);
     if (img?.complete)
-      ctx.drawImage(img, -o.width / 2, -o.height / 2, o.width, o.height);
+      ctx.drawImage(
+        tinted(img, o.tint),
+        -o.width / 2,
+        -o.height / 2,
+        o.width,
+        o.height,
+      );
     else void loadImage(picture).catch(() => undefined);
   } else {
     const src = SYMBOL_SPRITES[o.kind as keyof typeof SYMBOL_SPRITES],

@@ -141,6 +141,11 @@ export function validateProject(value: unknown): Project {
       throw new Error("Note links must be obsidian:// or web links.");
     for (const o of m.objects) {
       if (
+        o.tint !== undefined &&
+        !(Number.isFinite(o.tint) && o.tint >= -1 && o.tint <= 1)
+      )
+        throw new Error("The project contains an invalid stamp tint.");
+      if (
         o.imageId !== undefined &&
         (typeof o.imageId !== "string" || !p.images?.[o.imageId])
       )
