@@ -27,6 +27,7 @@
 }
 .mix-items li {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 4px 0;
@@ -69,4 +70,32 @@
 }
 .scatter-mix-buttons .button {
   flex: 1;
+}
+.mix-items button.mix-chosen,
+.mix-items button[aria-pressed="true"] {
+  border-color: #d6ae6888;
+  background: #b1914e1a;
+  color: #e1c28a;
+}
+.mix-items .mix-biomes {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 0 6px;
+}
+.mix-items .mix-biomes button {
+  width: auto;
+  height: auto;
+  padding: 3px 7px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.mix-items .mix-biomes button.active {
+  border-color: #d6ae6888;
+  background: #b1914e1a;
+  color: #e1c28a;
+}
+.mix-items .mix-biomes .mix-biomes-reset {
+  border-style: dashed;
 }

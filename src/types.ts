@@ -290,6 +290,8 @@ export interface Project {
 export interface ScatterMixItem {
   src: string;
   weight: number;
+  /** The biome ids it may grow on with Follow biomes; the built-in rules decide when unset. */
+  biomes?: number[];
 }
 export interface ScatterMix {
   id: string;

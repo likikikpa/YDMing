@@ -9,6 +9,8 @@ export interface ScatterPicture {
   weight?: number;
   /** The most this picture may be turned, in degrees; the options' turn caps it. */
   turn?: number;
+  /** The biomes it grows on, when chosen; otherwise the built-in rules decide. */
+  biomes?: readonly number[];
 }
 
 export interface ScatterOptions {

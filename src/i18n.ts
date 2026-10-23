@@ -449,6 +449,8 @@ Object.assign(ru, toolDescriptionsRu, {
   Mixes: "Наборы",
   Mix: "Набор",
   "New mix": "Новый набор",
+  "Grows on": "Растёт на",
+  Default: "По умолчанию",
   "Edit mix": "Изменить набор",
   "Scatter mix": "Набор для рассыпания",
   Save: "Сохранить",

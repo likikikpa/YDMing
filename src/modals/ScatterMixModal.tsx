@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Minus, Plus, Search, X } from "lucide-react";
+import { Leaf, Minus, Plus, Search, X } from "lucide-react";
 import { PACK_STAMPS, STAMP_PACKS } from "../packs";
-import { MAX_MIX_WEIGHT, withWeight } from "../scatter-mixes";
+import { MAX_MIX_WEIGHT, withBiomes, withWeight } from "../scatter-mixes";
+import { MixBiomes } from "./MixBiomes";
 import { Field } from "../ui/Field";
 import { uid } from "../types";
 import type { ScatterMixItem } from "../types";
@@ -17,8 +18,11 @@ export function ScatterMixModal({ app }: { app: ReadyApp }) {
   const [items, setItems] = useState<ScatterMixItem[]>(existing?.items ?? []);
   const [pack, setPack] = useState(assetPack);
   const [search, setSearch] = useState("");
+  /** The picture whose biomes are showing. */
+  const [biomesOf, setBiomesOf] = useState("");
   const weight = (src: string) => items.find((i) => i.src === src)?.weight ?? 0;
-  const set = (src: string, w: number) => setItems(withWeight(items, src, w));
+  const set = (src: string, w: number) =>
+    setItems((now) => withWeight(now, src, w));
   return (
     <>
       <Field label={t("Name")}>
@@ -82,9 +86,26 @@ export function ScatterMixModal({ app }: { app: ReadyApp }) {
             >
               <Plus size={13} />
             </button>
+            <button
+              aria-label={t("Grows on")}
+              aria-pressed={biomesOf === i.src}
+              className={i.biomes ? "mix-chosen" : ""}
+              onClick={() => setBiomesOf(biomesOf === i.src ? "" : i.src)}
+            >
+              <Leaf size={13} />
+            </button>
             <button aria-label={t("Remove")} onClick={() => set(i.src, 0)}>
               <X size={13} />
             </button>
+            {biomesOf === i.src && (
+              <MixBiomes
+                item={i}
+                t={t}
+                onChange={(biomes) =>
+                  setItems((now) => withBiomes(now, i.src, biomes))
+                }
+              />
+            )}
           </li>
         ))}
       </ul>

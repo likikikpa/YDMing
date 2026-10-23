@@ -7,6 +7,7 @@ import {
   mixKey,
   mixPictures,
   validMix,
+  withBiomes,
   withMix,
   withWeight,
 } from "./scatter-mixes";
@@ -130,5 +131,45 @@ describe("withMix", () => {
       id: `m${i}`,
     }));
     expect(withMix(many, { ...mix, id: "new" })).toHaveLength(MAX_MIXES);
+  });
+});
+
+describe("biomes of a picture in a mix", () => {
+  it("are valid when they are different biome ids", () => {
+    const item = (biomes: unknown) => ({
+      ...mix,
+      items: [{ src: oak, weight: 1, biomes }],
+    });
+    expect(validMix(item([5, 6]))).toBe(true);
+    expect(validMix(item(undefined))).toBe(true);
+    for (const bad of [[], [0], [99], [5, 5], [1.5], ["5"], "5", [null]])
+      expect(validMix(item(bad))).toBe(false);
+  });
+  it("go to the pool, and are left out of it when unset", () => {
+    const withB = {
+      ...mix,
+      items: [
+        { src: oak, weight: 1, biomes: [8] },
+        { src: rock, weight: 1 },
+      ],
+    };
+    const [a, b] = mixPictures(withB);
+    expect(a.biomes).toEqual([8]);
+    expect(b).not.toHaveProperty("biomes");
+  });
+  it("are set, cleared and kept apart per picture", () => {
+    const set = withBiomes(mix.items, oak, [8, 9]);
+    expect(set[0]).toEqual({ src: oak, weight: 3, biomes: [8, 9] });
+    expect(set[1]).toEqual(mix.items[1]);
+    expect(withBiomes(set, oak, undefined)[0]).toEqual(mix.items[0]);
+    expect(withBiomes(set, oak, [])[0]).toEqual(mix.items[0]);
+  });
+  it("stay when the weight changes", () => {
+    const set = withBiomes(mix.items, oak, [8]);
+    expect(withWeight(set, oak, 5)[0]).toEqual({
+      src: oak,
+      weight: 5,
+      biomes: [8],
+    });
   });
 });

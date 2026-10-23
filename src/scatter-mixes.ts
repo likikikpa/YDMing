@@ -1,3 +1,4 @@
+import { MAX_BIOME } from "./biomes";
 import { isBundledSprite } from "./bundled-assets";
 import { PACK_STAMPS } from "./packs";
 import { kindOf, packSprite } from "./scatter-kinds";
@@ -31,10 +32,19 @@ export function mixPictures(mix: ScatterMix): ScatterPicture[] {
         sprite: packSprite(stamp),
         weight: item.weight,
         turn: kindOf(stamp.src)?.turn ?? 0,
+        ...(item.biomes && { biomes: item.biomes }),
       });
   }
   return out;
 }
+
+/** A non-empty list of different biome ids that exist. */
+const validBiomes = (list: unknown) =>
+  Array.isArray(list) &&
+  list.length > 0 &&
+  list.length <= MAX_BIOME &&
+  new Set(list).size === list.length &&
+  list.every((b) => Number.isInteger(b) && b >= 1 && b <= MAX_BIOME);
 
 /** Whether a stored value is a mix this version can use; saved files are checked with it. */
 export function validMix(v: unknown): v is ScatterMix {
@@ -56,7 +66,8 @@ export function validMix(v: unknown): v is ScatterMix {
         isBundledSprite(i.src) &&
         Number.isInteger(i.weight) &&
         i.weight >= 1 &&
-        i.weight <= MAX_MIX_WEIGHT,
+        i.weight <= MAX_MIX_WEIGHT &&
+        (i.biomes === undefined || validBiomes(i.biomes)),
     )
   );
 }
@@ -71,11 +82,23 @@ export function withWeight(
   const rest = items.filter((i) => i.src !== src);
   if (!w) return rest;
   return items.some((i) => i.src === src)
-    ? items.map((i) => (i.src === src ? { src, weight: w } : i))
+    ? items.map((i) => (i.src === src ? { ...i, weight: w } : i))
     : items.length >= MAX_MIX_ITEMS
       ? [...items]
       : [...rest, { src, weight: w }];
 }
+
+/** The items with the biomes one picture grows on set; `undefined` hands it back to the built-in rules. */
+export const withBiomes = (
+  items: readonly ScatterMixItem[],
+  src: string,
+  biomes: readonly number[] | undefined,
+): ScatterMixItem[] =>
+  items.map((i) => {
+    if (i.src !== src) return i;
+    const { biomes: _old, ...rest } = i;
+    return biomes?.length ? { ...rest, biomes: [...biomes] } : rest;
+  });
 
 /** The mixes with `mix` added, or replacing the one with its id. */
 export const withMix = (mixes: readonly ScatterMix[], mix: ScatterMix) =>

@@ -195,6 +195,8 @@ it("checks the scatter mixes of an imported project", () => {
     updatedAt: "",
   });
   expect(validateProject(withMixes([mix])).scatterMixes).toEqual([mix]);
+  const grown = { ...mix, items: [{ ...mix.items[0], biomes: [5, 6] }] };
+  expect(validateProject(withMixes([grown])).scatterMixes).toEqual([grown]);
   expect(
     validateProject({ ...withMixes([]), scatterMixes: undefined }),
   ).toBeTruthy();
@@ -203,6 +205,7 @@ it("checks the scatter mixes of an imported project", () => {
     [{ ...mix, items: [{ src: "https://x.test/a.png", weight: 1 }] }],
     [{ ...mix, name: "" }],
     [mix, mix],
+    [{ ...mix, items: [{ ...mix.items[0], biomes: [99] }] }],
   ])
     expect(() => validateProject(withMixes(bad))).toThrow("scatter mix");
 });

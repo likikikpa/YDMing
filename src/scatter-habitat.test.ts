@@ -3,7 +3,14 @@ import { Biome } from "./biomes";
 import { biomeAt, generateMap } from "./generator";
 import { random } from "./random";
 import { scatterStroke } from "./scatter";
-import { growsOn, picturesFor, poolAtMap } from "./scatter-habitat";
+import {
+  LAND_BIOMES,
+  defaultBiomes,
+  growsOn,
+  pictureGrowsOn,
+  picturesFor,
+  poolAtMap,
+} from "./scatter-habitat";
 import { kindPictures } from "./scatter-kinds";
 import { defaultSettings } from "./types";
 
@@ -34,16 +41,41 @@ describe("growsOn", () => {
     expect(growsOn(ai("boulders"), Biome.Beach)).toBe(true);
     expect(growsOn(ai("tree-oak"), Biome.Beach)).toBe(false);
   });
-  it("lets mountains and stones stand on any land", () => {
+  it("lets stones stand on any land", () => {
     for (const biome of [
       Biome.Grassland,
       Biome.Desert,
       Biome.Snow,
       Biome.Swamp,
-    ]) {
-      expect(growsOn(ai("peak-rocky"), biome)).toBe(true);
+    ])
       expect(growsOn(ai("boulders"), biome)).toBe(true);
-    }
+  });
+  it("keeps mountains to their biomes", () => {
+    expect(growsOn(ai("peak-snow"), Biome.Snow)).toBe(true);
+    expect(growsOn(ai("peak-snow"), Biome.Rock)).toBe(true);
+    expect(growsOn(ai("peak-snow"), Biome.Savanna)).toBe(false);
+    expect(growsOn(ai("peak-snow"), Biome.Desert)).toBe(false);
+    expect(growsOn(ai("range-snow"), Biome.Glacier)).toBe(true);
+    expect(growsOn(ai("range-snow"), Biome.Grassland)).toBe(false);
+    expect(growsOn(ai("peak-rocky"), Biome.Grassland)).toBe(true);
+    expect(growsOn(ai("peak-rocky"), Biome.Forest)).toBe(true);
+    expect(growsOn(ai("peak-rocky"), Biome.Desert)).toBe(false);
+    expect(growsOn(ai("range-desert"), Biome.Desert)).toBe(true);
+    expect(growsOn(ai("range-desert"), Biome.Forest)).toBe(false);
+    expect(growsOn(ai("mesa"), Biome.Badlands)).toBe(true);
+    expect(growsOn(ai("mesa"), Biome.Snow)).toBe(false);
+    expect(growsOn(ai("volcano"), Biome.Volcanic)).toBe(true);
+    expect(growsOn(ai("volcano"), Biome.Rock)).toBe(true);
+    expect(growsOn(ai("volcano"), Biome.Beach)).toBe(false);
+    expect(growsOn(ai("hills"), Biome.Moorland)).toBe(true);
+    expect(growsOn(ai("hills"), Biome.Desert)).toBe(false);
+    expect(
+      growsOn("/assets/cartography/rocksMountain.png", Biome.Grassland),
+    ).toBe(true);
+  });
+  it("keeps snowy trees to the cold", () => {
+    expect(growsOn(ai("tree-snowy-fir"), Biome.Taiga)).toBe(true);
+    expect(growsOn(ai("tree-snowy-fir"), Biome.Jungle)).toBe(false);
   });
   it("lets a picture no style scatters stand on any land", () => {
     expect(growsOn("/assets/cartography/castle.png", Biome.Forest)).toBe(true);
@@ -72,6 +104,69 @@ describe("picturesFor", () => {
     // Only the pictures no pool uses may be left out.
     const unused = trees.filter((p) => !all.has(p.sprite.src));
     expect(unused.map((p) => p.sprite.src)).toEqual([]);
+  });
+});
+
+describe("mountains by biome", () => {
+  const mountains = kindPictures("ai-gen", "mountains");
+  const names = (biome: number) =>
+    picturesFor(mountains, biome).map((p) => p.sprite.src.split("/").pop());
+  it("gives snow its snowy peaks and the desert its ranges", () => {
+    expect(names(Biome.Snow)).toContain("peak-snow.webp");
+    expect(names(Biome.Snow)).not.toContain("range-desert.webp");
+    expect(names(Biome.Desert)).toContain("range-desert.webp");
+    expect(names(Biome.Desert)).not.toContain("peak-snow.webp");
+  });
+  it("gives grassland rocky peaks and ridges but no snow", () => {
+    expect(names(Biome.Grassland)).toEqual(
+      expect.arrayContaining(["peak-rocky.webp", "ridge.webp"]),
+    );
+    expect(names(Biome.Grassland)).not.toContain("peak-snow.webp");
+  });
+  it("gives the sea nothing", () => {
+    expect(names(Biome.Sea)).toEqual([]);
+  });
+});
+
+describe("pictures with their own biomes", () => {
+  const oak = { sprite: { src: ai("tree-oak"), name: "Oak" } };
+  it("grow only where chosen, whatever the rules say", () => {
+    const chosen = { ...oak, biomes: [Biome.Desert, Biome.Snow] };
+    expect(pictureGrowsOn(chosen, Biome.Desert)).toBe(true);
+    expect(pictureGrowsOn(chosen, Biome.Snow)).toBe(true);
+    expect(pictureGrowsOn(chosen, Biome.Forest)).toBe(false);
+    expect(pictureGrowsOn(oak, Biome.Forest)).toBe(true);
+    expect(pictureGrowsOn(oak, Biome.Desert)).toBe(false);
+  });
+  it("never grow on water, even when listed", () => {
+    const chosen = { ...oak, biomes: [Biome.Sea, Biome.CoralReef] };
+    expect(pictureGrowsOn(chosen, Biome.Sea)).toBe(false);
+    expect(pictureGrowsOn(chosen, Biome.CoralReef)).toBe(false);
+  });
+  it("narrow a pool per biome", () => {
+    const pool = [
+      { ...oak, biomes: [Biome.Desert] },
+      { sprite: { src: ai("tree-pine"), name: "Pine" } },
+    ];
+    expect(picturesFor(pool, Biome.Desert)).toHaveLength(1);
+    expect(picturesFor(pool, Biome.Taiga)).toHaveLength(1);
+    expect(picturesFor(pool, Biome.Taiga)[0].sprite.name).toBe("Pine");
+  });
+});
+
+describe("the biome lists", () => {
+  it("leave out Auto, the sea and the reef", () => {
+    expect(LAND_BIOMES).not.toContain(0);
+    expect(LAND_BIOMES).not.toContain(Biome.Sea);
+    expect(LAND_BIOMES).not.toContain(Biome.CoralReef);
+    expect(LAND_BIOMES).toContain(Biome.Mangrove);
+  });
+  it("show where a picture grows by default", () => {
+    expect(defaultBiomes(ai("tree-oak"))).toEqual(
+      expect.arrayContaining([Biome.Forest, Biome.Grassland]),
+    );
+    expect(defaultBiomes(ai("tree-oak"))).not.toContain(Biome.Desert);
+    expect(defaultBiomes(ai("boulders"))).toHaveLength(LAND_BIOMES.length);
   });
 });
 

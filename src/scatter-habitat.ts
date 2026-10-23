@@ -1,4 +1,4 @@
-import { Biome } from "./biomes";
+import { Biome, MAX_BIOME } from "./biomes";
 import { biomeAt } from "./generator";
 import { clamp } from "./random";
 import { kindOf } from "./scatter-kinds";
@@ -14,26 +14,36 @@ import type { MapData, Point } from "./types";
  * sea and the reef, grows none of the restricted pictures.
  */
 const GROWS: Partial<Record<number, readonly DecorKind[]>> = {
-  [Biome.Snow]: ["glacier"],
-  [Biome.Rock]: ["moor"],
-  [Biome.Tundra]: ["pine", "moor"],
-  [Biome.Taiga]: ["pine"],
-  [Biome.Grassland]: ["forest", "steppe"],
-  [Biome.Forest]: ["forest", "pine"],
+  [Biome.Snow]: ["glacier", "mountain"],
+  [Biome.Rock]: ["moor", "mountain", "peak"],
+  [Biome.Tundra]: ["pine", "moor", "mountain"],
+  [Biome.Taiga]: ["pine", "mountain"],
+  [Biome.Grassland]: ["forest", "steppe", "mountain"],
+  [Biome.Forest]: ["forest", "pine", "mountain"],
   [Biome.Swamp]: ["swamp"],
   [Biome.Desert]: ["desert"],
-  [Biome.Savanna]: ["savanna"],
+  [Biome.Savanna]: ["savanna", "mountain"],
   [Biome.Jungle]: ["jungle"],
-  [Biome.Dirt]: ["steppe", "moor"],
+  [Biome.Dirt]: ["steppe", "moor", "mountain"],
   [Biome.Badlands]: ["badlands"],
-  [Biome.Glacier]: ["glacier"],
-  [Biome.Steppe]: ["steppe"],
-  [Biome.Moorland]: ["moor"],
-  [Biome.AutumnWoods]: ["autumn"],
-  [Biome.Volcanic]: ["volcanic"],
+  [Biome.Glacier]: ["glacier", "mountain"],
+  [Biome.Steppe]: ["steppe", "mountain"],
+  [Biome.Moorland]: ["moor", "mountain"],
+  [Biome.AutumnWoods]: ["autumn", "mountain"],
+  [Biome.Volcanic]: ["volcanic", "mountain"],
   [Biome.Blighted]: ["blight"],
   [Biome.Mangrove]: ["mangrove"],
 };
+
+/** Snowy pictures (peaks, ranges, firs) keep to the cold and the high ground. */
+const SNOWY = /snow/i;
+const COLD: readonly number[] = [
+  Biome.Snow,
+  Biome.Glacier,
+  Biome.Tundra,
+  Biome.Taiga,
+  Biome.Rock,
+];
 
 /** On a beach only palms and stones grow, whatever else the style's pools hold. */
 const BEACH = /(palm|rocks|boulders)/i;
@@ -62,19 +72,35 @@ const isWater = (biome: number) =>
 /** Whether a picture grows on a biome. Water grows nothing. */
 export function growsOn(src: string, biome: number) {
   if (isWater(biome)) return false;
-  const kind = kindOf(src)?.key;
-  // Mountains and stones stand on any land; only plants keep to their biomes.
-  if (kind === "mountains" || kind === "rocks") return true;
-  if (biome === Biome.Beach) return BEACH.test(src.slice(src.lastIndexOf("/")));
+  const name = src.slice(src.lastIndexOf("/"));
+  // Stones stand on any land; plants and mountains keep to their biomes.
+  if (kindOf(src)?.key === "rocks") return true;
+  if (SNOWY.test(name)) return COLD.includes(biome);
+  if (biome === Biome.Beach) return BEACH.test(name);
   const home = habitatsOf(src);
   // A picture no style scatters (a castle, a log) can stand on any land.
   if (!home) return true;
   return !!GROWS[biome]?.some((k) => home.has(k));
 }
 
+/** The biomes with land to grow on: every id but Auto, the sea and the reef. */
+export const LAND_BIOMES: readonly number[] = Array.from(
+  { length: MAX_BIOME },
+  (_, i) => i + 1,
+).filter((b) => !isWater(b));
+
+/** The biomes a picture grows on when nobody has chosen them. */
+export const defaultBiomes = (src: string) =>
+  LAND_BIOMES.filter((b) => growsOn(src, b));
+
+/** Whether a pool picture grows on a biome: its own list if it has one, else the rules. */
+export const pictureGrowsOn = (p: ScatterPicture, biome: number) =>
+  !isWater(biome) &&
+  (p.biomes ? p.biomes.includes(biome) : growsOn(p.sprite.src, biome));
+
 /** The pictures of the pool that grow on a biome. */
 export const picturesFor = (pool: readonly ScatterPicture[], biome: number) =>
-  pool.filter((p) => growsOn(p.sprite.src, biome));
+  pool.filter((p) => pictureGrowsOn(p, biome));
 
 /**
  * What the pool may place at a point of the map: the pictures that grow on
