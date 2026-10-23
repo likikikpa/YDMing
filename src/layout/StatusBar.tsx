@@ -11,7 +11,7 @@ export function StatusBar({ app }: { app: ReadyApp }) {
         <span className="status-tool">{t(toolInfo[tool][0])}</span>
       </div>
       <div className="cursor-status">
-        <CursorReadout world={map.kind === "world"} />
+        <CursorReadout world={map.kind === "world"} t={t} />
         <span className="status-separator" />
         {map.kind === "dungeon" ? (
           <span>

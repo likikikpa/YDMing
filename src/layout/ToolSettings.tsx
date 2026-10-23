@@ -56,7 +56,7 @@ export function ToolSettings({ app }: { app: ReadyApp }) {
               // Sea (12) is decided by height, so it is not paintable.
               i === 12 ? null : (
                 <option key={name} value={i}>
-                  {name}
+                  {t(name)}
                 </option>
               ),
             )}

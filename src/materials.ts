@@ -104,7 +104,16 @@ export function biomeMaterial(biome: number) {
     case 8:
     case 11:
     case 12:
+    case 22:
       return "sand";
+    case 14:
+    case 20:
+    case 21:
+      return "dirt";
+    case 15:
+      return "snow";
+    case 19:
+      return "rock";
     default:
       return "grass";
   }

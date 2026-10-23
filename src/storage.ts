@@ -2,6 +2,7 @@ import { validFog } from "./fog";
 import { isBundledSprite } from "./bundled-assets";
 import { getWithLegacy } from "./legacy-keys";
 import { migrateImages, pruneImages } from "./images";
+import { MAX_BIOME } from "./biomes";
 import { BUILTIN_MATERIALS, PATTERNS } from "./materials";
 import { isNoteUrl } from "./note-link";
 import { CELL, MAX_CELLS } from "./mapsize";
@@ -91,7 +92,9 @@ export function validateProject(value: unknown): Project {
         !m.terrain.heights.every((v) => Number.isFinite(v) && v >= 0 && v <= 1) ||
         !Array.isArray(m.terrain.biomes) ||
         m.terrain.biomes.length !== m.cols * m.rows ||
-        !m.terrain.biomes.every((v) => Number.isInteger(v) && v >= 0 && v <= 13))
+        !m.terrain.biomes.every(
+          (v) => Number.isInteger(v) && v >= 0 && v <= MAX_BIOME,
+        ))
     )
       throw new Error("The project contains invalid landscape data.");
     for (const t of [m, m.terrain])

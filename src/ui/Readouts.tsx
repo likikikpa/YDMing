@@ -4,7 +4,13 @@ import { useCursorStatus } from "../status";
 export function ZoomReadout() {
   return <>{Math.round(useCursorStatus().zoom)}</>;
 }
-export function CursorReadout({ world }: { world: boolean }) {
+export function CursorReadout({
+  world,
+  t,
+}: {
+  world: boolean;
+  t: (s: string) => string;
+}) {
   const status = useCursorStatus();
   return (
     <>
@@ -19,7 +25,7 @@ export function CursorReadout({ world }: { world: boolean }) {
           ↟ <b>{status.height} m</b>
         </span>
       )}
-      <span>{BIOMES[status.biome] || "Auto"}</span>
+      <span>{t(BIOMES[status.biome] || "Auto")}</span>
     </>
   );
 }

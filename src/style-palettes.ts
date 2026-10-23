@@ -1,57 +1,76 @@
+import { BIOME_NAMES } from "./biomes";
 import { resolveStyle } from "./map-styles";
 
-/** Biomes whose ground is the one shared grass colour; they differ in what grows on them. */
-export const GREEN_BIOMES = [4, 5, 7, 9, 10];
-
 /**
- * Palette index of the colour of shallow water. Palettes that stop at the
- * biomes use the sea colour for it, so their shallows are as dark as the deep.
+ * Palette index of the colour of shallow water: the entry after the last
+ * biome. Palettes that stop at the biomes use the sea colour for it, so their
+ * shallows are as dark as the deep.
  */
-export const SHALLOW_WATER_COLOUR = 14;
+export const SHALLOW_WATER_COLOUR = BIOME_NAMES.length;
 
 /**
- * Old ink: ground colour per biome. Everything is paper: land a little lighter
- * than the sea, with warmer desert and dirt; the drawing does the rest.
+ * Old ink: ground colour per biome (the index is the biome id, see `BIOMES`).
+ * Everything is paper: land a little lighter than the sea, with warmer desert,
+ * dirt and badlands, greyer blight and volcanic ground; the drawing does the
+ * rest.
  */
 export const inkPalette: number[][] = [
-  [238, 226, 196],
-  [247, 242, 226],
-  [208, 195, 162],
-  [227, 217, 184],
-  [233, 222, 188],
-  [233, 222, 188],
-  [233, 222, 188],
-  [233, 222, 188],
-  [236, 216, 162],
-  [233, 222, 188],
-  [233, 222, 188],
-  [241, 231, 202],
-  [216, 202, 167],
-  [214, 196, 154],
-  [227, 215, 181],
+  [238, 226, 196], // auto
+  [247, 242, 226], // snow
+  [208, 195, 162], // rock
+  [227, 217, 184], // tundra
+  [226, 221, 189], // taiga
+  [233, 222, 188], // grassland
+  [233, 222, 188], // forest
+  [224, 218, 186], // swamp
+  [236, 216, 162], // desert
+  [238, 222, 176], // savanna
+  [226, 222, 184], // jungle
+  [241, 231, 202], // beach
+  [216, 202, 167], // sea
+  [214, 196, 154], // dirt
+  [232, 206, 168], // badlands
+  [241, 240, 232], // glacier
+  [236, 224, 180], // steppe
+  [226, 214, 186], // moorland
+  [237, 216, 168], // autumn woods
+  [200, 182, 156], // volcanic
+  [214, 204, 186], // blighted
+  [223, 219, 184], // mangrove
+  [234, 212, 178], // coral reef
+  [227, 215, 181], // shallow water
 ];
 
 /**
  * Realistic: natural ground colours per biome, a deep blue sea and pale turquoise
- * shallows. Photo tiles cover the built-in grounds; these colours are for water
- * and for any layer without a photo, such as one still loading.
+ * shallows. Photo tiles cover the grounds; these colours are for water and for
+ * any layer without a photo, such as one still loading.
  */
 export const realisticPalette: number[][] = [
-  [124, 140, 84],
-  [238, 243, 247],
-  [124, 118, 108],
-  [148, 150, 122],
-  [64, 92, 62],
-  [104, 134, 70],
-  [58, 86, 48],
-  [84, 100, 72],
-  [208, 180, 130],
-  [168, 160, 94],
-  [44, 94, 54],
-  [216, 202, 162],
-  [30, 82, 124],
-  [134, 106, 78],
-  [66, 158, 166],
+  [124, 140, 84], // auto
+  [238, 243, 247], // snow
+  [124, 118, 108], // rock
+  [140, 146, 118], // tundra
+  [52, 84, 66], // taiga
+  [104, 134, 70], // grassland
+  [58, 86, 48], // forest
+  [74, 88, 56], // swamp
+  [222, 190, 126], // desert
+  [172, 156, 88], // savanna
+  [40, 104, 52], // jungle
+  [216, 202, 162], // beach
+  [30, 82, 124], // sea
+  [134, 106, 78], // dirt
+  [170, 90, 58], // badlands
+  [196, 222, 238], // glacier
+  [182, 170, 110], // steppe
+  [118, 100, 84], // moorland
+  [150, 86, 38], // autumn woods
+  [40, 32, 30], // volcanic
+  [88, 74, 96], // blighted
+  [50, 70, 58], // mangrove
+  [226, 130, 120], // coral reef
+  [66, 158, 166], // shallow water
 ];
 
 /**
@@ -63,22 +82,32 @@ export const groundContrast = (style: string) =>
 
 /**
  * Painted fantasy: ground colour per biome (the index is the biome id, see
- * `BIOMES`). Bright yellow-green grass, warm sand and a clear teal sea.
+ * `BIOMES`). Bright yellow-green grass, warm sand and a clear teal sea; each
+ * green is its own: blue-green taiga, murky swamp, golden savanna, deep jungle.
  */
 export const fantasyPalette: number[][] = [
-  [240, 240, 228],
-  [244, 247, 246],
-  [142, 138, 124],
-  [178, 190, 152],
-  [108, 150, 80],
-  [108, 150, 80],
-  [108, 150, 80],
-  [108, 150, 80],
-  [219, 189, 118],
-  [108, 150, 80],
-  [108, 150, 80],
-  [234, 220, 168],
-  [58, 124, 152],
-  [178, 138, 92],
-  [112, 192, 194],
+  [240, 240, 228], // auto
+  [244, 247, 246], // snow
+  [142, 138, 124], // rock
+  [178, 190, 152], // tundra
+  [74, 120, 92], // taiga
+  [108, 150, 80], // grassland
+  [108, 150, 80], // forest
+  [92, 118, 80], // swamp
+  [219, 189, 118], // desert
+  [188, 172, 98], // savanna
+  [58, 140, 72], // jungle
+  [234, 220, 168], // beach
+  [58, 124, 152], // sea
+  [178, 138, 92], // dirt
+  [196, 108, 70], // badlands
+  [200, 226, 240], // glacier
+  [176, 176, 108], // steppe
+  [124, 108, 112], // moorland
+  [196, 128, 56], // autumn woods
+  [70, 48, 44], // volcanic
+  [112, 96, 124], // blighted
+  [78, 104, 78], // mangrove
+  [232, 140, 128], // coral reef
+  [112, 192, 194], // shallow water
 ];

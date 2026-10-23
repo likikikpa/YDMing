@@ -16,22 +16,7 @@ import type {
 } from "./types";
 import srdData from "./data/srd.json";
 export const SRD = srdData as SrdEntry[];
-export const BIOMES = [
-  "Auto",
-  "Snow",
-  "Rock",
-  "Tundra",
-  "Taiga",
-  "Grassland",
-  "Forest",
-  "Swamp",
-  "Desert",
-  "Savanna",
-  "Jungle",
-  "Beach",
-  "Sea",
-  "Dirt",
-];
+export { BIOME_NAMES as BIOMES } from "./biomes";
 const syllables = [
   "Ash",
   "Elder",

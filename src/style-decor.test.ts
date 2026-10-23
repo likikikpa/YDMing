@@ -4,11 +4,7 @@ import { describe, expect, it } from "vitest";
 import { poolIndex } from "./decor-spots";
 import { coastLines } from "./style-coast";
 import { decorSetFor } from "./style-decor";
-import {
-  fantasyPalette,
-  GREEN_BIOMES,
-  SHALLOW_WATER_COLOUR,
-} from "./style-palettes";
+import { fantasyPalette, SHALLOW_WATER_COLOUR } from "./style-palettes";
 import { BIOMES } from "./generator";
 
 describe("style decoration sets", () => {
@@ -50,8 +46,9 @@ describe("style decoration sets", () => {
 });
 
 describe("Painted fantasy palette", () => {
-  it("has a colour for every biome", () => {
-    expect(fantasyPalette.length).toBeGreaterThanOrEqual(BIOMES.length);
+  it("has a colour for every biome and for shallow water", () => {
+    expect(fantasyPalette).toHaveLength(BIOMES.length + 1);
+    expect(SHALLOW_WATER_COLOUR).toBe(BIOMES.length);
     for (const rgb of fantasyPalette) {
       expect(rgb).toHaveLength(3);
       for (const c of rgb) expect(c >= 0 && c <= 255).toBe(true);
@@ -65,9 +62,9 @@ describe("Painted fantasy palette", () => {
     );
   });
 
-  it("gives every green biome the same grass", () => {
-    for (const b of GREEN_BIOMES)
-      expect(fantasyPalette[b]).toEqual(fantasyPalette[6]);
+  it("gives each green biome a green of its own", () => {
+    const greens = [4, 5, 7, 9, 10, 16].map((b) => fantasyPalette[b].join());
+    expect(new Set(greens).size).toBe(greens.length);
   });
 });
 
