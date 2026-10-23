@@ -19,6 +19,15 @@ describe("relief", () => {
     expect(reliefOf("ink")).not.toBe(reliefOf("fantasy"));
   });
 
+  it("shades Realistic harder than the other styles, with cool shadows", () => {
+    const real = reliefOf("realistic");
+    expect(real.fine).toBeGreaterThan(reliefOf("fantasy").fine);
+    expect(real.broad).toBeGreaterThan(reliefOf("fantasy").broad);
+    // Shadow takes more from red than from blue, so it cools; light warms.
+    expect(real.tint[0]).toBeGreaterThan(real.tint[2]);
+    expect(real.reach).toBeGreaterThanOrEqual(3);
+  });
+
   it("turns the shade of Old ink brown, and keeps it gentler than Painted fantasy", () => {
     const ink = reliefOf("ink")!;
     // Less of the blue and green channel moves than the red one.

@@ -99,12 +99,31 @@ describe("choosing a picture for a decoration spot", () => {
 
 describe("coast lines", () => {
   it("draw the shore first and ripples further out, in every style", () => {
-    for (const style of ["ink", "parchment", "atlas", "fantasy", "painted"]) {
+    for (const style of [
+      "ink",
+      "parchment",
+      "atlas",
+      "fantasy",
+      "painted",
+      "realistic",
+    ]) {
       const lines = coastLines(style);
       expect(lines[0].offset).toBe(0);
       for (let i = 1; i < lines.length; i++)
         expect(lines[i].offset).toBeLessThan(lines[i - 1].offset);
     }
+  });
+
+  it("give Realistic a thin pale surf line and one soft band, not rings of contours", () => {
+    const lines = coastLines("realistic");
+    expect(lines).toHaveLength(2);
+    // Pale: every colour channel of the surf line is high.
+    const rgb = lines[0].colour
+      .slice(1, 7)
+      .match(/../g)!
+      .map((h) => parseInt(h, 16));
+    for (const c of rgb) expect(c).toBeGreaterThan(0xe0);
+    expect(lines[0].width).toBeLessThan(lines[1].width);
   });
 
   it("give retired styles the lines of their replacement", () => {

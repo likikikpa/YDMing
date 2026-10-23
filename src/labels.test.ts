@@ -109,6 +109,13 @@ describe("frame, compass and scale bar", () => {
     }
   });
 
+  it("draw Realistic's thin pale frame, quieter than the other styles", () => {
+    const [outer, inner] = frame("realistic");
+    expect(outer).toMatchObject({ strokeStyle: "#ffffff90", lineWidth: 1 });
+    expect(inner.lineWidth).toBeLessThan(outer.lineWidth);
+    expect(outer.lineWidth).toBeLessThan(frame("fantasy")[0].lineWidth);
+  });
+
   it("draw Old ink's heavier brown frame", () => {
     const [outer, inner] = frame("ink");
     expect(outer).toMatchObject({ strokeStyle: "#4a3826c8", lineWidth: 1.5 });

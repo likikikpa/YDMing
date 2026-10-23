@@ -26,11 +26,19 @@ const PAINTED: CoastLine[] = [
   { offset: -0.075, colour: "#e3f6f644", width: 0.8 },
 ];
 
+/** A thin line of surf at the shore and one soft band of foam just beyond it: the depth shows in the water's colour, not in lines. */
+const REALISTIC: CoastLine[] = [
+  { offset: 0, colour: "#f6faf5b0", width: 1.1 },
+  { offset: -0.018, colour: "#f6faf530", width: 3 },
+];
+
+const COASTS = { fantasy: PAINTED, ink: INK, realistic: REALISTIC };
+
 /** The lines a style draws along its coasts, from the shore outwards. */
 export const coastLines = (style: string): CoastLine[] =>
-  resolveStyle(style) === "ink" ? INK : PAINTED;
+  COASTS[resolveStyle(style)];
 
 /** How far below the sea level the deepest line of any style is drawn. */
 export const DEEPEST_COAST_LINE = Math.max(
-  ...[INK, PAINTED].flatMap((lines) => lines.map((l) => -l.offset)),
+  ...[INK, PAINTED, REALISTIC].flatMap((lines) => lines.map((l) => -l.offset)),
 );

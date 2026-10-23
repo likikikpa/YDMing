@@ -31,9 +31,19 @@ const INK: Relief = {
   reach: 3,
 };
 
+/** Strong, neutral shade with cool shadows, so ranges and valleys read as on an aerial photo. */
+const REALISTIC: Relief = {
+  fine: 360,
+  broad: 230,
+  highland: 1.5,
+  tint: [1, 0.97, 0.9],
+  reach: 3,
+};
+
+const RELIEFS = { fantasy: FANTASY, ink: INK, realistic: REALISTIC };
+
 /** The relief a style draws. */
-export const reliefOf = (style: string): Relief =>
-  resolveStyle(style) === "ink" ? INK : FANTASY;
+export const reliefOf = (style: string): Relief => RELIEFS[resolveStyle(style)];
 
 /** Light or shade, in colour levels, of the land in cell `x, y`: positive where the ground faces the light. */
 export function shadeAt(

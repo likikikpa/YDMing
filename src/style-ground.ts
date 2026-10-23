@@ -99,6 +99,9 @@ export const groundPhoto = (style: string, ground: string) => {
   return photo ? loaded.get(photo.src) : undefined;
 };
 
+/** Tiles being decoded now, so two callers asking for one load it once. */
+const pending = new Map<string, Promise<void>>();
+
 /**
  * Loads the photo tiles a style needs. Resolves true when some were not loaded
  * yet, which means anything already drawn used generated ground instead.
@@ -109,10 +112,22 @@ export async function preloadGround(style: string) {
   );
   if (!missing.length) return false;
   const results = await Promise.allSettled(
-    missing.map(async (p) => {
-      const levels = await decodeTile(p.src);
-      loaded.set(p.src, recoloured(levels, p.colour, p.keep));
+    missing.map((p) => {
+      let job = pending.get(p.src);
+      if (!job) {
+        job = decodeTile(p.src)
+          .then((levels) => {
+            loaded.set(p.src, recoloured(levels, p.colour, p.keep));
+          })
+          .finally(() => pending.delete(p.src));
+        pending.set(p.src, job);
+      }
+      return job;
     }),
   );
   return results.some((r) => r.status === "fulfilled");
 }
+
+/** Loads the photos of every style that has them, so switching to one paints once. */
+export const preloadAllGround = () =>
+  Promise.all(Object.keys(PHOTOS).map(preloadGround));

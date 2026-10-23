@@ -284,10 +284,14 @@ function entryFor(map: MapData) {
     const layers = textureLayers.map((l) =>
         buildMaterial(l, map.settings.style),
       ),
-      wood = forestMaterial(
-        map.settings.style,
-        textureLayers.find((l) => l.id === "grass"),
-      ),
+      // A town or dungeon sits at one latitude, whose biome is woods: keep its ground open.
+      wood =
+        map.kind === "world"
+          ? forestMaterial(
+              map.settings.style,
+              textureLayers.find((l) => l.id === "grass"),
+            )
+          : undefined,
       forest = wood ? layers.push(wood) - 1 : -1,
       find = (id: string) =>
         Math.max(

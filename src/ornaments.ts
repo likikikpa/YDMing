@@ -53,6 +53,24 @@ const PAINTED: Ornaments = {
   scale: { text: "#f6efd8", line: "#f0e6c8cc", lineWidth: 1 },
 };
 
+/** White and slate, like the margin of an aerial survey: quiet beside the ground. */
+const REALISTIC: Ornaments = {
+  frame: "#ffffff90",
+  outerWidth: 1,
+  innerWidth: 0.5,
+  dot: "#ffffffc0",
+  dotRadius: 2.5,
+  compassText: "#f4f6f4",
+  compassLine: "#1c2e3a",
+  compassLineWidth: 0.8,
+  compassDark: "#33444f",
+  compassLight: "#eef2ee",
+  halo: "#10202c99",
+  scale: { text: "#f4f6f4", line: "#ffffffc0", lineWidth: 0.9 },
+};
+
+const SHEETS = { fantasy: PAINTED, ink: INK, realistic: REALISTIC };
+
 /** Darkens the sheet towards its corners and edges. */
 function agedEdge(
   ctx: CanvasRenderingContext2D,
@@ -76,7 +94,7 @@ function agedEdge(
 
 /** The frame, compass and scale bar drawn on a map's sheet. */
 export function ornaments(ctx: CanvasRenderingContext2D, map: MapData) {
-  const o = resolveStyle(map.settings.style) === "ink" ? INK : PAINTED;
+  const o = SHEETS[resolveStyle(map.settings.style)];
   ctx.save();
   // A dungeon is stone, not paper.
   if (o.edge && map.kind !== "dungeon")

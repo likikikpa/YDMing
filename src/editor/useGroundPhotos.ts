@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { resolveStyle } from "../map-styles";
-import { preloadGround } from "../style-ground";
+import { preloadAllGround, preloadGround } from "../style-ground";
 import { invalidateTerrain } from "../terrain-render";
 import type { EditorCore } from "./useEditorCore";
 import type { EditorRendering } from "./rendering";
@@ -27,4 +27,10 @@ export function useGroundPhotos({
       active = false;
     };
   }, [style, ready]);
+  // Once the map is up, load the other styles' photos too: switching to one
+  // then paints the map once instead of twice.
+  useEffect(() => {
+    const timer = setTimeout(() => void preloadAllGround(), 2000);
+    return () => clearTimeout(timer);
+  }, []);
 }
