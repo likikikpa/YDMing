@@ -61,6 +61,10 @@ Nine biomes join the fourteen the generator knew: Badlands, Glacier, Steppe, Moo
 
 Not done: the generator places none of the nine (see "A better world generator"); no slider sets how much of each appears; blighted and volcanic land have no sprites of their own beyond dead trees and craters; Realistic scatters nothing, so its biomes are told apart by ground alone.
 
+## Done: photo textures in Terrain paint
+
+The Terrain paint tool lists all 23 bundled Poly Haven photo textures under the project's own grounds. Picking one adds it to the world as a texture layer and selects it, so a world carries only the photos it uses; the "Photo textures" menu in the Layers panel is gone. A texture layer records the photo it came from (optional `preset`, checked on load), so a photo already in the world is not offered twice, and layers saved before that are matched by name and picture. Raise and Dig have no ground picker and are unchanged. The biome grounds (lava, coral and the rest) are not in this picker; the Biome brush paints them.
+
 ## Next: denser stamps with size variety
 
 - A scatter tool: paint an area, choose a kind and a density, and it fills the area with stamps.
