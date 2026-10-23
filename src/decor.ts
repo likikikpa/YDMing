@@ -138,6 +138,7 @@ export function drawDecor(
     canopy = set.canopy,
     seed = hash(map.settings.seed),
     towns = set.trimmed || set.canopy ? settlements(map) : [];
+  if (set.none) return;
   for (const spot of decorFor(map, area)) {
     // Sprites reach up to ~60 px beyond their centre.
     if (

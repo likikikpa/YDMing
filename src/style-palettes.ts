@@ -32,6 +32,29 @@ export const inkPalette: number[][] = [
 ];
 
 /**
+ * Realistic: natural ground colours per biome, a deep blue sea and pale turquoise
+ * shallows. Photo tiles cover the built-in grounds; these colours are for water
+ * and for any layer without a photo, such as one still loading.
+ */
+export const realisticPalette: number[][] = [
+  [124, 140, 84],
+  [238, 243, 247],
+  [124, 118, 108],
+  [148, 150, 122],
+  [64, 92, 62],
+  [104, 134, 70],
+  [58, 86, 48],
+  [84, 100, 72],
+  [208, 180, 130],
+  [168, 160, 94],
+  [44, 94, 54],
+  [216, 202, 162],
+  [30, 82, 124],
+  [134, 106, 78],
+  [66, 158, 166],
+];
+
+/**
  * How strongly a style lets the ground tiles show, relative to the layer's own
  * strength. Old ink keeps the paper calm so the line work reads.
  */

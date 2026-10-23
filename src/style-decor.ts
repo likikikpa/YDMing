@@ -19,6 +19,8 @@ export interface DecorSet {
   scale: Record<DecorKind, number>;
   /** Woods as dense clumps; without it a wooded biome gets a lone tree now and then. */
   canopy?: Canopy;
+  /** Nothing is scattered: the ground and relief carry the map. */
+  none?: true;
 }
 
 const AI = "/assets/ai-gen/";
@@ -83,9 +85,28 @@ const PAINTED: DecorSet = {
   canopy: { clump: 70, open: 0.38 },
 };
 
+const perKind = <T>(value: T): Record<DecorKind, T> => ({
+  mountain: value,
+  peak: value,
+  pine: value,
+  forest: value,
+  jungle: value,
+  desert: value,
+  savanna: value,
+});
+/** Realistic scatters nothing: woods and mountains come from the ground and its relief. */
+const BARE: DecorSet = {
+  pools: perKind([]),
+  trimmed: false,
+  scale: perKind(1),
+  none: true,
+};
+
 /** The decoration set a map style draws with. */
-export const decorSetFor = (style: string): DecorSet =>
-  resolveStyle(style) === "ink" ? inkSet() : PAINTED;
+export const decorSetFor = (style: string): DecorSet => {
+  const id = resolveStyle(style);
+  return id === "ink" ? inkSet() : id === "realistic" ? BARE : PAINTED;
+};
 
 /**
  * Loads the pictures a style needs. Resolves true when some were not loaded

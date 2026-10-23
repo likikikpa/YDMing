@@ -11,6 +11,8 @@ import {
   WORLD_TILE,
 } from "./materials";
 import { hexBlend, turnsFor } from "./hex-tiling";
+import { isWooded } from "./canopy";
+import { groundPhoto } from "./style-ground";
 import { decodeTile } from "./tile-decode";
 import { hash, noise } from "./random";
 import { decorRegion, drawDecor } from "./decor";
@@ -22,6 +24,7 @@ import {
   fantasyPalette,
   groundContrast,
   inkPalette,
+  realisticPalette,
   SHALLOW_WATER_COLOUR,
 } from "./style-palettes";
 import type { Erased, Rect } from "./decor";
@@ -51,8 +54,12 @@ const STYLE_COLOURS: Record<string, number> = {
   [SHALLOW_WATER]: 12,
   [DEEP_WATER]: 12,
 };
-const paletteOf = (style: string) =>
-  resolveStyle(style) === "ink" ? inkPalette : fantasyPalette;
+const PALETTES = {
+  fantasy: fantasyPalette,
+  ink: inkPalette,
+  realistic: realisticPalette,
+};
+const paletteOf = (style: string) => PALETTES[resolveStyle(style)];
 
 let textureLayers: TextureLayer[] = defaultTextures(),
   textureVersion = 0;
@@ -173,10 +180,30 @@ export const textureColour = (layer: TextureLayer, style: string) =>
     .map((c) => Math.round(c).toString(16).padStart(2, "0"))
     .join("");
 
+const densityOf = (layer: TextureLayer) =>
+  TILE / ((WORLD_TILE * layer.scale) / 100);
+
+/**
+ * The style's own photo for a layer, unless the layer has a picture or a tint
+ * of its own, or is switched off (a hidden texture is a flat colour).
+ */
+const photoFor = (layer: TextureLayer, style: string, ground = layer.id) =>
+  layer.visible && !layer.image && !layer.tint
+    ? groundPhoto(style, ground)
+    : undefined;
+
+/** The ground of woods in styles with photos: a material beside the project's layers, shaped like its grass. */
+function forestMaterial(style: string, grass?: TextureLayer) {
+  const photo = grass && photoFor(grass, style, "forest");
+  return grass && photo ? withMean(grass, photo, densityOf(grass)) : undefined;
+}
+
 function buildMaterial(layer: TextureLayer, style: string): Material {
-  const density = TILE / ((WORLD_TILE * layer.scale) / 100),
+  const density = densityOf(layer),
     upload = layer.image ? uploads.get(layer.image) : undefined;
   if (upload) return withMean(layer, upload, density);
+  const photo = photoFor(layer, style);
+  if (photo) return withMean(layer, photo, density);
   let detail = patterns.get(layer.pattern);
   if (!detail)
     patterns.set(layer.pattern, (detail = patternTile(layer.pattern)));
@@ -214,6 +241,8 @@ interface Entry {
   /** How the style shades the land, or null for the faint diagonal shade. */
   relief: Relief;
   layers: Material[];
+  /** Index into `layers` of the ground of woods, or -1 where the style has none. */
+  forest: number;
   shallow: number;
   deep: number;
   base: HTMLCanvasElement;
@@ -255,6 +284,11 @@ function entryFor(map: MapData) {
     const layers = textureLayers.map((l) =>
         buildMaterial(l, map.settings.style),
       ),
+      wood = forestMaterial(
+        map.settings.style,
+        textureLayers.find((l) => l.id === "grass"),
+      ),
+      forest = wood ? layers.push(wood) - 1 : -1,
       find = (id: string) =>
         Math.max(
           0,
@@ -273,6 +307,7 @@ function entryFor(map: MapData) {
       slope: new Float32Array(map.cols * map.rows),
       relief: reliefOf(map.settings.style),
       layers,
+      forest,
       shallow: find(SHALLOW_WATER),
       deep: find(DEEP_WATER),
       base,
@@ -317,6 +352,7 @@ function classifyCells(
       const painted = paintedMaterial(map, map, i);
       entry.cellMaterial[i] =
         (painted !== undefined ? index.get(painted) : undefined) ??
+        (entry.forest >= 0 && isWooded(b) ? entry.forest : undefined) ??
         index.get(biomeMaterial(b)) ??
         0;
       entry.slope[i] = shadeAt(heights, cols, rows, x, y, entry.relief);

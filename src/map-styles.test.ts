@@ -19,7 +19,13 @@ describe("map styles", () => {
     expect(styleOf({ style: "parchment" }).label).toBe("Old ink");
     expect(styleOf({ style: "parchment" }).stampPack).toBe("cartography");
     expect(PICKER_STYLES).not.toContain("parchment");
-    expect(PICKER_STYLES).toEqual(["fantasy", "ink"]);
+    expect(PICKER_STYLES).toEqual(["fantasy", "ink", "realistic"]);
+  });
+
+  it("offers Realistic with no stamp collection, since its ground carries the map", () => {
+    expect(resolveStyle("realistic")).toBe("realistic");
+    expect(styleOf({ style: "realistic" }).label).toBe("Realistic");
+    expect(styleOf({ style: "realistic" }).stampPack).toBeUndefined();
   });
 
   it("draws maps saved in the retired Atlas style as Painted fantasy", () => {

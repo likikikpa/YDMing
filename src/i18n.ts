@@ -141,6 +141,7 @@ export const ru: Record<string, string> = {
   Style: "Стиль",
   "Painted fantasy": "Живописное фэнтези",
   "Old ink": "Старые чернила",
+  Realistic: "Реалистичный",
   "Matches the style": "Подходит к стилю",
   "Other collections": "Другие наборы",
   "Generate map": "Создать карту",

@@ -32,7 +32,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,json,png,txt,ttf}"],
+        globPatterns: ["**/*.{js,css,html,svg,json,png,txt,ttf,jpg}"],
         maximumFileSizeToCacheInBytes: 6000000,
         // The AI_GEN pictures are 5 MB: kept out of the first-load download,
         // cached for offline use the first time each one is shown.

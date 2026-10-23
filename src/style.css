@@ -900,7 +900,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 .style-picker {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 5px;
 }
 .style-picker button {
@@ -925,6 +925,10 @@ input[type="range"]::-webkit-slider-thumb {
 .style-sample.ink {
   background: #e6d9b4;
   color: #4a3826;
+}
+.style-sample.realistic {
+  background: linear-gradient(135deg, #5f7440 0 38%, #a39a70 38% 60%, #24598a 60%);
+  color: #f3ecd8;
 }
 .style-sample.fantasy {
   background: linear-gradient(135deg, #6c9650 0 56%, #38789a 56%);

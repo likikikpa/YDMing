@@ -22,6 +22,12 @@ describe("style decoration sets", () => {
       expect(decorSetFor(style as string)).toBe(decorSetFor("fantasy"));
   });
 
+  it("scatters nothing in Realistic, which draws woods and mountains as ground", () => {
+    const set = decorSetFor("realistic");
+    expect(set.none).toBe(true);
+    for (const pool of Object.values(set.pools)) expect(pool).toHaveLength(0);
+  });
+
   it("draws Painted fantasy, and maps saved as Painted, with the painted set", () => {
     expect(decorSetFor("fantasy").trimmed).toBe(true);
     expect(decorSetFor("painted")).toBe(decorSetFor("fantasy"));

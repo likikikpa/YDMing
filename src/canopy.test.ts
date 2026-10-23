@@ -6,12 +6,14 @@ import { DECOR_SPRITES } from "./symbols";
 const canopy = decorSetFor("fantasy").canopy!;
 
 describe("canopy", () => {
-  it("is part of every style", () => {
+  it("is part of Painted fantasy, Old ink and the styles they replace", () => {
     expect(canopy).toBeDefined();
     expect(decorSetFor("painted").canopy).toBe(canopy);
     expect(decorSetFor("ink").canopy).toBeDefined();
     expect(decorSetFor("parchment").canopy).toBe(decorSetFor("ink").canopy);
     expect(decorSetFor("atlas").canopy).toBe(canopy);
+    // Realistic draws its woods as ground, not as trees.
+    expect(decorSetFor("realistic").canopy).toBeUndefined();
   });
 
   it("thins Old ink's woods, drawn with small glyphs, and leaves Painted fantasy's full", () => {
