@@ -1,6 +1,7 @@
 import { random } from "../random";
 import { scatterObjects, scatterStroke } from "../scatter";
 import { scatterOptions } from "../scatter-brush";
+import { poolAtMap } from "../scatter-habitat";
 import { extent } from "../extent";
 import { uid } from "../types";
 import type { MapData, Point } from "../types";
@@ -44,6 +45,7 @@ export function createScatterTool(deps: EditorCore) {
       pool,
       scatterOptions(b.scatter, b.size, pool),
       d.rand,
+      b.scatter.biomes ? poolAtMap(m, pool) : undefined,
     );
     const inside = placed.filter(
       (s) => s.x >= 0 && s.y >= 0 && s.x <= m.width && s.y <= m.height,

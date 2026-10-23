@@ -445,6 +445,7 @@ Object.assign(ru, toolDescriptionsRu, {
   "Colour variety": "Разброс цвета",
   Flip: "Отражать",
   Rotate: "Поворачивать",
+  "Follow biomes": "По биомам",
   Trees: "Деревья",
   Rocks: "Камни",
   Undergrowth: "Подлесок",

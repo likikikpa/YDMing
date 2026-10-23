@@ -291,3 +291,28 @@ describe("scatterObjects", () => {
     expect(scatterObjects(placements, 40, target)).toHaveLength(200_000);
   });
 });
+
+describe("scatterStroke with a pool by place", () => {
+  it("places only where the pool has pictures, and from that pool", () => {
+    const poolAt = (at: { x: number; y: number }) =>
+      at.x < 500 ? [] : at.y < 500 ? [oak] : [fir];
+    const placed = scatterStroke(
+      undefined,
+      origin,
+      pool,
+      { ...options, density: 4 },
+      random("place"),
+      poolAt,
+    );
+    expect(placed.length).toBeGreaterThan(20);
+    for (const p of placed) {
+      expect(p.x).toBeGreaterThanOrEqual(500);
+      expect(p.sprite.name).toBe(p.y < 500 ? "oak" : "fir");
+    }
+  });
+  it("places nothing where no picture grows", () => {
+    expect(
+      scatterStroke(undefined, origin, pool, options, random("none"), () => []),
+    ).toEqual([]);
+  });
+});

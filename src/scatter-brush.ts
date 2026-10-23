@@ -20,6 +20,8 @@ export interface ScatterSettings {
   turn: boolean;
   /** How far colours stray, in percent. */
   tint: number;
+  /** Place only what grows on the biome under each stamp, and nothing on water. */
+  biomes: boolean;
 }
 
 export const DEFAULT_SCATTER: ScatterSettings = {
@@ -31,6 +33,7 @@ export const DEFAULT_SCATTER: ScatterSettings = {
   flip: true,
   turn: true,
   tint: 30,
+  biomes: true,
 };
 
 /** The scatter brush works on world maps only. */

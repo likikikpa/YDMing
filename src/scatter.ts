@@ -133,6 +133,8 @@ function vary(
  * The stamps one brush move adds. With no `from` (the first touch) the whole
  * disc under the brush is filled; after that only the ground the brush swept
  * since `from` is, so a slow drag and a fast one leave the same density.
+ * `poolAt` narrows the pool by place (what grows on that ground); a spot it
+ * gives no pictures for stays empty.
  */
 export function scatterStroke(
   from: Point | undefined,
@@ -140,19 +142,20 @@ export function scatterStroke(
   pool: readonly ScatterPicture[],
   o: ScatterOptions,
   rand: () => number,
+  poolAt?: (at: Point) => readonly ScatterPicture[],
 ): ScatterPlacement[] {
   const swept = from ? Math.hypot(to.x - from.x, to.y - from.y) : 0,
     area = from ? 2 * o.radius * swept : Math.PI * o.radius * o.radius,
     count = wholeCount(expectedCount(area, pool, o), rand),
     out: ScatterPlacement[] = [];
   for (let i = 0; i < count; i++) {
-    const picture = pickPicture(pool, rand);
-    if (!picture) break;
     const t = rand(),
       centre = from
         ? { x: lerp(from.x, to.x, t), y: lerp(from.y, to.y, t) }
-        : to;
-    out.push(vary(inDisc(centre, o.radius, rand), picture, o, rand));
+        : to,
+      at = inDisc(centre, o.radius, rand),
+      picture = pickPicture(poolAt ? poolAt(at) : pool, rand);
+    if (picture) out.push(vary(at, picture, o, rand));
   }
   return out;
 }

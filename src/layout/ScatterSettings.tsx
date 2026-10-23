@@ -85,6 +85,14 @@ export function ScatterSettings({ app }: { app: ReadyApp }) {
             />
             {t("Rotate")}
           </label>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={s.biomes}
+              onChange={(e) => set({ biomes: e.target.checked })}
+            />
+            {t("Follow biomes")}
+          </label>
         </>
       )}
     </>

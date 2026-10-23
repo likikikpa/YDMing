@@ -71,11 +71,10 @@ Decided in an interview on 23 October 2026: a scatter brush inside the Stamp too
 
 1. **Placement logic.** Done: `scatter.ts`.
 2. **The brush and its controls.** Done: a Scatter checkbox in the Stamp tool card (world maps only) with Pictures, Radius, Density, Size variety, Colour variety, Flip and Rotate (`scatter-brush.ts`, `scatter-kinds.ts`, `editor/scatter-tool.ts`, `layout/ScatterSettings.tsx`). A stroke is one undo step and redraws only the area it sowed. Picture stamps can carry an optional `tint` (`tint.ts`). A map file may now hold up to 200,000 stamps, up from 10,000.
-3. **Follow biomes.** Not done. Today a Trees stroke over water or tundra places autumn trees, palms and dead trees alike, and puts stamps on the sea.
+3. **Follow biomes.** Done: a "Follow biomes" checkbox, on by default (`scatter-habitat.ts`). Each stamp takes its picture from those that grow on the biome under it, using the pools the map styles scatter (`style-decor.ts`), and nothing is placed on the sea or the reef. Trees and undergrowth keep to their biomes (pines on taiga, acacias on savanna, palms and stones on a beach); mountains and stones stand on any land; a picture no style scatters (a castle, a log, an imported stamp) can stand anywhere on land. Rivers and lakes drawn as paths, and roads, are not avoided.
 4. **Custom mixes.** Not done.
 5. **Large-count checks.** Partly: with about 5,000 stamps a scatter stroke at the default settings took 62 ms a pointer move against 162 ms for the old drag-to-place trail, which redraws the whole map. Not checked: phone, and maps of tens of thousands of stamps. On a phone the tool card is taller than the sheet and scrolls.
 
-- Biome-aware placement: pines on taiga and snow, palms on beach and jungle, none on water. The biomes and the kind of picture each grows are in `biome-decor.ts`.
 - Large counts: copy and paste already doubles a map's stamps. Never spread a list into a call, and look ids up through `idSet` (see Performance in `CLAUDE.md`).
 - Phones: thousands of stamps must stay smooth, so measure before and after.
 
