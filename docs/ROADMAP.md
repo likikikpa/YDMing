@@ -65,7 +65,7 @@ Not done: the generator places none of the nine (see "A better world generator")
 
 The Terrain paint tool lists all 23 bundled Poly Haven photo textures under the project's own grounds. Picking one adds it to the world as a texture layer and selects it, so a world carries only the photos it uses; the "Photo textures" menu in the Layers panel is gone. A texture layer records the photo it came from (optional `preset`, checked on load), so a photo already in the world is not offered twice, and layers saved before that are matched by name and picture. Raise and Dig have no ground picker and are unchanged. The biome grounds (lava, coral and the rest) are not in this picker; the Biome brush paints them.
 
-## Done: denser stamps with size variety
+## Done: denser stamps with size variety (scatter brush)
 
 Decided in an interview on 23 October 2026: a scatter brush inside the Stamp tool for world maps, drawing from a kind of picture (Mountains, Trees, Rocks, Undergrowth, taken from the open Library collection) or from a saved custom mix; one density slider; random size, flip, rotation and tint; an optional "follow biomes" toggle; desktop first. Steps:
 
@@ -85,7 +85,7 @@ Decided in an interview on 23 October 2026: a scatter brush inside the Stamp too
 
    Phone (412 × 860, touch): a one-finger drag scatters (40 stamps for a 30-step stroke, no long task over 55 ms); two fingers landing together, or a second finger landing 60 ms after the first, place nothing. Not measured on a real phone, and not with tens of thousands of stamps.
 
-   Loose ends done afterwards: a Keep off paths checkbox (on by default) keeps stamps off rivers, roads, walls and corridors, within a quarter of the stamp size of the line (`scatter-paths.ts`, a grid of segments built once per stroke; in a test over 2,267 segments 318 of 1,297 stamps landed within 12 px of a path with it off, 1 of 1,000 with it on); the Scatter card fits a 412 × 860 phone (paired sliders, two-column checkboxes). Picture stamps now draw without a canvas save and restore each (`object-render.ts`), which was the largest cost of a full redraw; at 60,000 stamps, over one run before and two after, a scatter stroke went from 80 to 58-63 ms a move, a paste of all from 2.3 to 1.5-1.6 s of freeze and undo from 0.96 to 0.70-0.88 s; redo showed no clear change (1.16 s before, 1.00 and 1.43 s after) and zoom none. The remaining cost of a paste is the redraw itself, one drawImage per stamp. Not done: a marquee still cannot start on a stamp.
+   **Loose ends: done** (24 October 2026) — a Keep off paths checkbox (on by default) keeps stamps off rivers, roads, walls and corridors, within a quarter of the stamp size of the line (`scatter-paths.ts`, a grid of segments built once per stroke; in a test over 2,267 segments 318 of 1,297 stamps landed within 12 px of a path with it off, 1 of 1,000 with it on); the Scatter card fits a 412 × 860 phone (paired sliders, two-column checkboxes). Picture stamps now draw without a canvas save and restore each (`object-render.ts`), which was the largest cost of a full redraw; at 60,000 stamps, over one run before and two after, a scatter stroke went from 80 to 58-63 ms a move, a paste of all from 2.3 to 1.5-1.6 s of freeze and undo from 0.96 to 0.70-0.88 s; redo showed no clear change (1.16 s before, 1.00 and 1.43 s after) and zoom none. The remaining cost of a paste is the redraw itself, one drawImage per stamp. Left as it is: a marquee still cannot start on a stamp, and the preview has had no test on a real phone.
 
 ## Next: a better world generator
 
