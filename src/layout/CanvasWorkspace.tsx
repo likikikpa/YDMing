@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Editor } from "../editor/Editor";
 import { styleOf } from "../map-styles";
+import { poolAssets, scatterPool } from "../scatter-brush";
 import { imagesWithSprite, spriteAssets } from "../stamp-brush";
 import { cursorStatus } from "../status";
 import { IconButton } from "../ui/IconButton";
@@ -24,6 +25,7 @@ import { NoteLinkButton } from "./NoteLinkField";
 
 export function CanvasWorkspace({ app }: { app: ReadyApp }) {
   const {
+    assetPack,
     brush,
     busy,
     color,
@@ -55,6 +57,10 @@ export function CanvasWorkspace({ app }: { app: ReadyApp }) {
   const images = useMemo(
     () => imagesWithSprite(project.images, brush.sprite),
     [project.images, brush.sprite],
+  );
+  const pool = useMemo(
+    () => scatterPool(brush.scatter, brush.sprite, assetPack),
+    [brush.scatter, brush.sprite, assetPack],
   );
   return (
     <section className="canvas-workspace wood" aria-label="Map workspace">
@@ -135,9 +141,16 @@ export function CanvasWorkspace({ app }: { app: ReadyApp }) {
         map={map}
         tool={tool}
         brush={brush}
+        scatterPool={pool}
         selected={selected}
         setSelected={setSelected}
-        onChange={(m, label) => updateMap(m, label, spriteAssets(brush.sprite))}
+        onChange={(m, label) =>
+          updateMap(
+            m,
+            label,
+            pool.length ? poolAssets(pool) : spriteAssets(brush.sprite),
+          )
+        }
         onOpen={openObject}
         onColor={color}
         onRiverPoints={setRiverCount}

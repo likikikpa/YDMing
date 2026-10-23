@@ -14,6 +14,7 @@ import type { EditorStamps } from "./stamps";
 import type { EditorPinch } from "./pinch";
 import type { EditorSelectTool } from "./select-tool";
 import type { EditorFogTool } from "./fog-tool";
+import type { EditorScatterTool } from "./scatter-tool";
 
 export type EditorPointerMove = ReturnType<typeof createPointerMove>;
 
@@ -25,7 +26,8 @@ export function createPointerMove(
     EditorStamps &
     EditorPinch &
     EditorSelectTool &
-    EditorFogTool,
+    EditorFogTool &
+    EditorScatterTool,
 ) {
   const {
     latest,
@@ -45,6 +47,8 @@ export function createPointerMove(
     pinchMove,
     selectMove,
     fogMove,
+    scatterActive,
+    scatterMove,
   } = deps;
   function pointerMove(e: React.PointerEvent) {
     if (e.pointerType === "touch" && touches.current.has(e.pointerId)) {
@@ -93,6 +97,13 @@ export function createPointerMove(
     }
     if (p.tool === "fog") {
       refresh(m, undefined, undefined, fogMove(m, world));
+      drawOverlay(screen);
+      return;
+    }
+    if (scatterActive()) {
+      // A move that sowed nothing has no area; it must not redraw the map.
+      const area = scatterMove(m, world);
+      if (area) refresh(m, undefined, undefined, area);
       drawOverlay(screen);
       return;
     }

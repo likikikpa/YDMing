@@ -13,6 +13,7 @@ import type { EditorStamps } from "./stamps";
 import type { EditorPinch } from "./pinch";
 import type { EditorSelectTool } from "./select-tool";
 import type { EditorFogTool } from "./fog-tool";
+import type { EditorScatterTool } from "./scatter-tool";
 
 export type EditorPointerDown = ReturnType<typeof createPointerDown>;
 
@@ -24,7 +25,8 @@ export function createPointerDown(
     EditorStamps &
     EditorPinch &
     EditorSelectTool &
-    EditorFogTool,
+    EditorFogTool &
+    EditorScatterTool,
 ) {
   const {
     mapCanvas,
@@ -43,6 +45,8 @@ export function createPointerDown(
     setRiverPoints,
     selectDown,
     fogDown,
+    scatterActive,
+    scatterDown,
     drawOverlay,
     refresh,
     sculptFrame,
@@ -122,6 +126,12 @@ export function createPointerDown(
     }
     if (p.tool === "fog") {
       refresh(m, undefined, undefined, fogDown(m, world));
+      drawOverlay(screen);
+      return;
+    }
+    if (scatterActive()) {
+      const area = scatterDown(m, world);
+      if (area) refresh(m, undefined, undefined, area);
       drawOverlay(screen);
       return;
     }

@@ -1,6 +1,7 @@
 import { kindOf, kindPictures } from "./scatter-kinds";
 import type { ScatterOptions, ScatterPicture } from "./scatter";
-import type { StampSprite } from "./stamp-brush";
+import { spriteAssets } from "./stamp-brush";
+import type { StampAssets, StampSprite } from "./stamp-brush";
 import type { MapKind } from "./types";
 
 /** The scatter brush's controls, as the stamp tool's card sets them. */
@@ -63,4 +64,17 @@ export function scatterOptions(
     turn: s.turn ? allowed : 0,
     tint: s.tint / 100,
   };
+}
+
+/** The credits and pictures of every sprite in the pool, to go with what it places. */
+export function poolAssets(pool: readonly ScatterPicture[]): StampAssets {
+  const credits: NonNullable<StampAssets["credits"]> = [],
+    images: NonNullable<StampAssets["images"]> = {};
+  for (const { sprite } of pool) {
+    const a = spriteAssets(sprite);
+    for (const c of a.credits ?? [])
+      if (!credits.some((k) => k.id === c.id)) credits.push(c);
+    Object.assign(images, a.images);
+  }
+  return { credits, images };
 }

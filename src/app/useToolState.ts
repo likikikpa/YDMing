@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import type { BrushSettings } from "../editor/types";
+import { DEFAULT_SCATTER } from "../scatter-brush";
 import type { Tool } from "../types";
 import type { Panel } from "./constants";
 
@@ -20,6 +21,7 @@ export function useToolState({
     material: "sand",
     stamp: "tree",
     sprite: { src: "/assets/cartography/treePine.png", name: "Pine tree" },
+    scatter: DEFAULT_SCATTER,
     snap: false,
     pressure: true,
     layer: "Objects",

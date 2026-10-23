@@ -7,6 +7,7 @@ import { createPointerDown } from "./pointer-down";
 import { createPointerMove } from "./pointer-move";
 import { createPointerUp } from "./pointer-up";
 import { createRendering } from "./rendering";
+import { createScatterTool } from "./scatter-tool";
 import { createSculpting } from "./sculpting";
 import { createSelectTool } from "./select-tool";
 import { createStamps } from "./stamps";
@@ -32,6 +33,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(
     const pinch = createPinch({ ...core, ...rendering });
     const selectTool = createSelectTool({ ...core, ...overlayTools });
     const fogTool = createFogTool(core);
+    const scatterTool = createScatterTool(core);
     const all = {
       ...core,
       ...overlayTools,
@@ -41,6 +43,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(
       ...pinch,
       ...selectTool,
       ...fogTool,
+      ...scatterTool,
     };
     const { pointerDown } = createPointerDown(all);
     const { pointerMove } = createPointerMove(all);

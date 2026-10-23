@@ -42,6 +42,8 @@ export function useEditorCore(props: EditorProps) {
       /** The fog tool's working copy of the map's fog, and whether it changed. */
       fog?: FogGrid;
       fogged?: boolean;
+      /** The scatter brush's random numbers for this stroke. */
+      rand?: () => number;
     } | null>(null),
     [ready, setReady] = useState(false),
     [renderError, setRenderError] = useState("");

@@ -436,6 +436,18 @@ Object.assign(ru, toolDescriptionsRu, {
   "Mountain range": "Горная цепь",
   "Lock seed": "Закрепить сид",
   "Keep the same seed when generating": "Сохранять сид при генерации",
+  Scatter: "Рассыпать",
+  Pictures: "Картинки",
+  "Selected picture": "Выбранная картинка",
+  "Stamp size": "Размер штампа",
+  Radius: "Радиус",
+  "Size variety": "Разброс размеров",
+  "Colour variety": "Разброс цвета",
+  Flip: "Отражать",
+  Rotate: "Поворачивать",
+  Trees: "Деревья",
+  Rocks: "Камни",
+  Undergrowth: "Подлесок",
 });
 
 Object.assign(ru, campaignRu);

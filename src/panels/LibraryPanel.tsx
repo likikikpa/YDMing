@@ -1,5 +1,6 @@
 import { styleOf } from "../map-styles";
 import { PACK_STAMPS, STAMP_PACKS } from "../packs";
+import { packSprite } from "../scatter-kinds";
 import { assetUrl } from "../search";
 import { Field } from "../ui/Field";
 import { ScenesTab } from "./ScenesTab";
@@ -115,14 +116,7 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
                     // Pick a sprite, then click or drag on the map to place it.
                     setBrush((b) => ({
                       ...b,
-                      sprite: {
-                        src: a.src,
-                        name: a.name,
-                        aspect: a.aspect,
-                        cells: a.cells,
-                        credit: STAMP_PACKS.find((p) => p.key === a.pack)
-                          ?.attribution,
-                      },
+                      sprite: packSprite(a),
                       layer: "Objects",
                       mask: false,
                     }));

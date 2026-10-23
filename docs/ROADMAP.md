@@ -67,13 +67,14 @@ The Terrain paint tool lists all 23 bundled Poly Haven photo textures under the 
 
 ## Next: denser stamps with size variety
 
-Decided in an interview on 23 October 2026: a scatter brush inside the Stamp tool for world and region maps, drawing from a category's whole set of pictures or from a saved custom mix; one density slider; random size, flip, rotation and tint; an optional "follow biomes" toggle; desktop first. Steps: (1) the placement logic, done in `scatter.ts` and not yet used by the app; (2) the brush and its controls; (3) follow biomes; (4) custom mixes; (5) large-count checks.
+Decided in an interview on 23 October 2026: a scatter brush inside the Stamp tool for world maps, drawing from a kind of picture (Mountains, Trees, Rocks, Undergrowth, taken from the open Library collection) or from a saved custom mix; one density slider; random size, flip, rotation and tint; an optional "follow biomes" toggle; desktop first. Steps:
 
-Found while starting: a picture stamp ignores `MapObject.color` when drawn, so random tint needs a new optional field and a change in `drawObject` (step 2). `scatter.ts` already returns the tint value. Rotation is a per-kind choice (rocks yes, trees no) that step 2 must make.
+1. **Placement logic.** Done: `scatter.ts`.
+2. **The brush and its controls.** Done: a Scatter checkbox in the Stamp tool card (world maps only) with Pictures, Radius, Density, Size variety, Colour variety, Flip and Rotate (`scatter-brush.ts`, `scatter-kinds.ts`, `editor/scatter-tool.ts`, `layout/ScatterSettings.tsx`). A stroke is one undo step and redraws only the area it sowed. Picture stamps can carry an optional `tint` (`tint.ts`). A map file may now hold up to 200,000 stamps, up from 10,000.
+3. **Follow biomes.** Not done. Today a Trees stroke over water or tundra places autumn trees, palms and dead trees alike, and puts stamps on the sea.
+4. **Custom mixes.** Not done.
+5. **Large-count checks.** Partly: with about 5,000 stamps a scatter stroke at the default settings took 62 ms a pointer move against 162 ms for the old drag-to-place trail, which redraws the whole map. Not checked: phone, and maps of tens of thousands of stamps. On a phone the tool card is taller than the sheet and scrolls.
 
-- A scatter tool: paint an area, choose a kind and a density, and it fills the area with stamps.
-- Random size, flip, rotation and tint within a range per kind, so a forest is not a grid of equal trees.
-- Mixing several pictures of a kind: the AI_GEN set has about 20 trees, one volcano and one mesa, which repeat visibly.
 - Biome-aware placement: pines on taiga and snow, palms on beach and jungle, none on water. The biomes and the kind of picture each grows are in `biome-decor.ts`.
 - Large counts: copy and paste already doubles a map's stamps. Never spread a list into a call, and look ids up through `idSet` (see Performance in `CLAUDE.md`).
 - Phones: thousands of stamps must stay smooth, so measure before and after.

@@ -1,6 +1,7 @@
 import { colourTools, layerTools, paintTools } from "../app/constants";
 import { BIOMES } from "../generator";
 import { FogSettings } from "./FogSettings";
+import { ScatterSettings } from "./ScatterSettings";
 import { TerrainPaintSettings } from "./TerrainPaintSettings";
 import { MAP_COLORS } from "../types";
 import { Field, HexColorField, Slider } from "../ui/Field";
@@ -15,7 +16,11 @@ export function ToolSettings({ app }: { app: ReadyApp }) {
         tool,
       ) && (
         <Slider
-          label={t("Brush size")}
+          label={t(
+            tool === "stamp" && map.kind === "world" && brush.scatter?.on
+              ? "Stamp size"
+              : "Brush size",
+          )}
           value={brush.size}
           onChange={(v) => setBrush((b) => ({ ...b, size: v }))}
           min={4}
@@ -43,6 +48,7 @@ export function ToolSettings({ app }: { app: ReadyApp }) {
         )
       )}
       <FogSettings app={app} />
+      <ScatterSettings app={app} />
       <TerrainPaintSettings app={app} />
       {tool === "biome" && (
         <Field label={t("Biome")}>

@@ -183,7 +183,11 @@ export function createOverlay(deps: EditorCore) {
       cursor &&
       !["select", "hand", "text", "river", "island", "room"].includes(t)
     ) {
-      const radius = (latest.current.brush.size * view.current.scale) / 2;
+      const scatter = latest.current.brush.scatter,
+        radius =
+          t === "stamp" && scatter?.on && latest.current.map.kind === "world"
+            ? scatter.radius * view.current.scale
+            : (latest.current.brush.size * view.current.scale) / 2;
       c.beginPath();
       c.arc(cursor.x, cursor.y, radius, 0, Math.PI * 2);
       c.strokeStyle = "#fff9df";

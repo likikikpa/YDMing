@@ -1,3 +1,5 @@
+import type { ScatterPicture } from "../scatter";
+import type { ScatterSettings } from "../scatter-brush";
 import type { StampSprite } from "../stamp-brush";
 import type { CellRect } from "../terrain-render";
 import type { MapData, MapObject, Point, StampKind, Tool } from "../types";
@@ -14,6 +16,8 @@ export interface BrushSettings {
   stamp: StampKind;
   /** A bundled sprite or one of My stamps to place with the stamp tool; wins over `stamp`. */
   sprite?: StampSprite;
+  /** The stamp tool's scatter brush. */
+  scatter?: ScatterSettings;
   snap: boolean;
   pressure: boolean;
   layer: string;
@@ -43,6 +47,8 @@ export interface EditorProps {
   map: MapData;
   tool: Tool;
   brush: BrushSettings;
+  /** The pictures the scatter brush draws from while it is on. */
+  scatterPool?: ScatterPicture[];
   selected: string[];
   setSelected: (ids: string[]) => void;
   onChange: (map: MapData, label: string) => void;
