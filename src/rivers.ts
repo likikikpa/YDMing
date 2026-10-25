@@ -296,6 +296,9 @@ interface Branch {
  * tributaries wherever a second large stream joins. Rivers that meet merge
  * instead of running side by side.
  */
+/** Height above the sea at which a river counts as having reached the hills, and the most cells a headwater is lengthened by. */
+const HILLS = 0.2;
+const HEADWATER_CELLS = 30;
 export function buildRiverNetwork(
   map: MapData,
   count: number,
@@ -356,6 +359,17 @@ export function buildRiverNetwork(
           side.push({ at, cell: u });
       cur = ups[0];
       cells.push(cur);
+    }
+    // A real river rises in the hills: keep climbing the thin stream the
+    // catchment threshold cut off, until the ground is high or it runs out.
+    for (let extra = 0; extra < HEADWATER_CELLS; extra++) {
+      const cur = cells[cells.length - 1];
+      if (map.heights[cur] - sea >= HILLS) break;
+      const ups = upstream(map, parent, cur)
+        .filter((u) => map.heights[u] >= sea && !cells.includes(u))
+        .sort((a, b) => acc[b] - acc[a] || a - b);
+      if (!ups.length) break;
+      cells.push(ups[0]);
     }
     return { cells, side };
   };
