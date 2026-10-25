@@ -119,7 +119,7 @@ Started 25 October 2026 on the goal "a map maker like Inkarnate, or better".
 - **Generated names.** Kingdoms and seas in spaced capitals (Cinzel, or the Fell italic in Old ink); range and forest names bend with the feature's shape (`label-lettering.ts`). Kingdom names stay inside the frame.
 - **Found on the way.** Main's CI failed on two generator tests over 5 s: world generation had grown from 1.2 to 2 s a world. A CPU profile led to four fixes (river merging, road search across the sea, label sorting, volcano edges) that bring it to 0.9 s with byte-identical worlds. Roads: 64 of 380 towns and villages had none, because places were linked to hubs across the sea; now 29, each with no neighbour on its land within reach.
 
-Not done: the selection box does not follow a curved label; labels cannot follow a drawn path (only an arc); the preview needs room for the seven font files (it has six files spare), so a pack must leave it.
+Not done: the selection box does not follow a curved label; labels cannot follow a drawn path (only an arc); the preview is full (511 files).
 
 ## Ideas, not decided
 
@@ -140,4 +140,4 @@ Pick from these; none is started.
 
 The preview is a Claude artifact named YDMing, separate from the older Atlasforge one. It is a build made as `CLAUDE.md` describes under Previews: relative base, no service worker, absolute `/assets/` and `/fonts/` paths rewritten, and no image search. Those changes are never committed to the app.
 
-An artifact version holds at most 511 files and 256 MB, and one publish sends at most 255 files. `public/` already holds about 480 files, so the preview ships only the packs the styles need, and new art should be code rather than image files where it can be. The published preview holds 505 of those 511 files, so there is room for six more: further photo tiles or pictures need packs left out of the preview, or art that is code.
+An artifact version holds at most 511 files and 256 MB, and one publish sends at most 255 files. `public/` already holds about 480 files, so the preview ships only the packs the styles need, and new art should be code rather than image files where it can be. The published preview (version 13, 25 October 2026, with the map fonts) holds all 511 files a version may: to fit the fonts, the preview build merges `fonts/map/FONTS.txt` into `fonts/OFL.txt` and inlines the favicon in `index.html`. Any further file needs a pack left out of the preview, or art that is code.
