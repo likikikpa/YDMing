@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { generateMap } from "./generator";
-import {
-  buildRiverNetwork,
-  mergeRivers,
-  riverThrough,
-  riverFromCells,
-} from "./rivers";
+import { buildRiverNetwork, riverThrough, riverFromCells } from "./rivers";
+import { mergeRivers } from "./river-merge";
 import { traceRiver } from "./generator";
 import { random } from "./random";
 import { defaultSettings } from "./types";
