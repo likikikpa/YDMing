@@ -3,6 +3,7 @@ import { cityBuildings, generateCity } from "./city";
 import { worldLakes, worldPeople, worldWater } from "./generation-parts";
 import { clamp, fbm, hash, random } from "./random";
 import { CELL, clampSize } from "./mapsize";
+import { simpleName, townName } from "./names";
 import { tidyShore } from "./shore-tidy";
 import { defaultSettings, makeLayers } from "./types";
 import type {
@@ -17,43 +18,8 @@ import type {
 import srdData from "./data/srd.json";
 export const SRD = srdData as SrdEntry[];
 export { BIOME_NAMES as BIOMES } from "./biomes";
-const syllables = [
-  "Ash",
-  "Elder",
-  "Raven",
-  "Thorn",
-  "Briar",
-  "Mist",
-  "Silver",
-  "Oak",
-  "Hollow",
-  "Ember",
-  "Wind",
-  "Stone",
-  "Gold",
-  "Frost",
-  "Green",
-];
-const suffixes = [
-  "mere",
-  "fall",
-  "haven",
-  "hold",
-  "watch",
-  "wick",
-  "brook",
-  "reach",
-  "ford",
-  "hollow",
-  "crest",
-  "gate",
-];
-export function settlementName(r: () => number) {
-  return (
-    syllables[Math.floor(r() * syllables.length)] +
-    suffixes[Math.floor(r() * suffixes.length)]
-  );
-}
+/** A single joined word, the way owners of buildings and old maps were named. */
+export const settlementName = simpleName;
 // Moisture noise depends only on the seed and grid size, never on edited
 // heights, so it is computed once instead of for every biome lookup.
 const moistureGrids = new Map<string, Float32Array>();
@@ -123,7 +89,7 @@ export function createEmptyMap(
       (kind === "world"
         ? "The Eldermere Reach"
         : kind === "city"
-          ? settlementName(r)
+          ? townName(r, "human", { ground: "plain", size: "city" })
           : "The Hollow Sanctum"),
     kind,
     // Dungeons keep a fixed sheet and size their grid squares to it.
@@ -150,7 +116,11 @@ export function generateMap(
   size?: { cols: number; rows: number },
 ): MapData {
   const r = random(settings.seed);
-  const resolvedName = name || (kind === "city" ? settlementName(r) : undefined);
+  const resolvedName =
+    name ||
+    (kind === "city"
+      ? townName(r, "human", { ground: "plain", size: "city" })
+      : undefined);
   const map = createEmptyMap(kind, settings, resolvedName, id, size);
   if (kind === "world") generateWorld(map, r);
   else if (kind === "city") generateCity(map, r);

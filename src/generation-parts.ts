@@ -1,4 +1,6 @@
-import { settlementName } from "./generator";
+import { dungeonName, kingdomCultures, townName } from "./names";
+import type { Culture } from "./names";
+import { siteAt } from "./settlement-site";
 import { buildBorders, buildRoutes } from "./regions";
 import { buildRiverNetwork } from "./rivers";
 import { hash, noise, random } from "./random";
@@ -60,7 +62,12 @@ export function worldPeople(map: MapData, seed: string) {
   map.paths = map.paths.filter(
     (p) => !p.id.startsWith("route-") && !p.id.startsWith("border-"),
   );
-  const total = s.cities + s.towns + s.villages + s.dungeons;
+  const total = s.cities + s.towns + s.villages + s.dungeons,
+    // Names have their own stream, so they never move a settlement.
+    named = random(seed + "names"),
+    cultures = kingdomCultures(random(seed + "cultures"), s.kingdoms),
+    taken = new Set<string>(),
+    seats: { x: number; y: number; culture: Culture }[] = [];
   for (let n = 0; n < total; n++)
     for (let a = 0; a < 1800; a++) {
       const x = 100 + r() * (map.width - 200),
@@ -80,18 +87,37 @@ export function worldPeople(map: MapData, seed: string) {
             : n < total - s.dungeons
               ? "village"
               : "dungeon";
-        const o: MapObject = {
-          id: `settlement-${seed}-${n}`,
-          kind,
-          x,
-          y,
-          name: settlementName(r),
-          width: kind === "city" ? 30 : 22,
-          height: kind === "city" ? 30 : 22,
-          rotation: 0,
-          layer: "Objects",
-          color: "#473e2b",
-        };
+        // A capital speaks its own kingdom's tongue; the rest, the nearest capital's.
+        const capital = n < Math.min(s.kingdoms, s.cities);
+        let culture: Culture = "human",
+          near = Infinity;
+        if (capital) culture = cultures[n];
+        else
+          for (const seat of seats) {
+            const d = Math.hypot(seat.x - x, seat.y - y);
+            if (d < near) {
+              near = d;
+              culture = seat.culture;
+            }
+          }
+        if (capital) seats.push({ x, y, culture });
+        const size =
+            n < s.cities ? "city" : n < s.cities + s.towns ? "town" : "village",
+          o: MapObject = {
+            id: `settlement-${seed}-${n}`,
+            kind,
+            x,
+            y,
+            name:
+              kind === "dungeon"
+                ? dungeonName(named, culture, taken)
+                : townName(named, culture, siteAt(map, x, y, size), taken),
+            width: kind === "city" ? 30 : 22,
+            height: kind === "city" ? 30 : 22,
+            rotation: 0,
+            layer: "Objects",
+            color: "#473e2b",
+          };
         map.objects.push(o);
         break;
       }
