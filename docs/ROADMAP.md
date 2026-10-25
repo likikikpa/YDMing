@@ -110,6 +110,17 @@ The list below is the detail for each. All seven steps are done.
 - Population: settlements, roads, forests, hills and mountain ranges placed from the terrain with the active style's stamp set, so a generated map is not empty.
 - A scale-aware map: the generator and the scale bar agree on how many miles the map is.
 
+## Done: lettering
+
+Started 25 October 2026 on the goal "a map maker like Inkarnate, or better".
+
+- **Bundled fonts.** Place names were drawn in Georgia, which Linux and Android lack, so they fell back to a plain slab serif. Seven OFL faces ship in `public/fonts/map` (`map-fonts.ts`): Alegreya, Cinzel, IM Fell English and its italic (cut to Latin and Cyrillic, as WOFF2), and Pirata One, Uncial Antiqua and Marck Script (unmodified, since they have Reserved Font Names). Each style has a face for labels without one of their own (Alegreya; IM Fell English Italic in Old ink), and settlement names follow it.
+- **Label styling.** Labels have optional `font`, `curve` (-1 to 1, along a circle) and `spacing` (`curved-text.ts`); Selected object shows Font, Colour, Curve and Letter spacing. A wider face or more spacing widens the box instead of squeezing the letters, and a slider drag is one undo step.
+- **Generated names.** Kingdoms and seas in spaced capitals (Cinzel, or the Fell italic in Old ink); range and forest names bend with the feature's shape (`label-lettering.ts`). Kingdom names stay inside the frame.
+- **Found on the way.** Main's CI failed on two generator tests over 5 s: world generation had grown from 1.2 to 2 s a world. A CPU profile led to four fixes (river merging, road search across the sea, label sorting, volcano edges) that bring it to 0.9 s with byte-identical worlds. Roads: 64 of 380 towns and villages had none, because places were linked to hubs across the sea; now 29, each with no neighbour on its land within reach.
+
+Not done: the selection box does not follow a curved label; labels cannot follow a drawn path (only an arc); the preview needs room for the seven font files (it has six files spare), so a pack must leave it.
+
 ## Ideas, not decided
 
 Pick from these; none is started.
@@ -119,7 +130,7 @@ Pick from these; none is started.
 - **Travel layer.** Distance and travel time between two points, using the map scale and a pace; a route can be saved on the map.
 - **Political layer.** Kingdoms painted as regions with borders and names, filled from the generator's capitals.
 - **Seasons and weather.** A winter or autumn variant of a style that retints the ground and swaps tree stamps; light clouds and fog over the map.
-- **Curved labels.** Region and river names that follow a path.
+- **Labels along a path.** River and road names that follow a drawn line (arcs are done, see Lettering).
 - **Print and tile export.** A large map cut into printable pages, or a battle map of one area at grid scale.
 - **Hex overlay for world maps** with terrain per hex for hex crawls.
 - **Animated water** in the viewer, not in exports.
