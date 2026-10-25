@@ -69,7 +69,7 @@ describe("place-name labels", () => {
     for (const style of ["fantasy", "atlas"]) {
       const { ctx, state } = recorder();
       drawLabel(ctx, label, style);
-      expect(state.font).toBe("13px Georgia, serif");
+      expect(state.font).toBe('13px "YDM Alegreya", Georgia, serif');
       expect(state.fillStyle).toBe("#606348");
     }
   });
@@ -78,7 +78,9 @@ describe("place-name labels", () => {
     const { ctx, calls, state } = recorder();
     drawLabel(ctx, label, "ink");
     expect(calls.map((c) => c.call)).toEqual(["strokeText", "fillText"]);
-    expect(state.font).toBe("italic 13px Georgia, serif");
+    expect(state.font).toBe(
+      '13px "YDM IM Fell English Italic", "YDM Alegreya", Georgia, serif',
+    );
     // The colour of a label is the map-maker's, so ink does not override it.
     expect(state.fillStyle).toBe("#606348");
   });
@@ -89,6 +91,38 @@ describe("place-name labels", () => {
       drawLabel(ctx, label, style);
       expect(calls.map((c) => c.call)).toEqual(["strokeText", "fillText"]);
       expect(calls[0].lineWidth).toBeGreaterThanOrEqual(2);
+    }
+  });
+});
+
+describe("label lettering", () => {
+  it("uses the label's own face, with Alegreya for letters it lacks", () => {
+    const { ctx, state } = recorder();
+    drawLabel(ctx, { ...label, font: "cinzel" }, "ink");
+    expect(state.font).toBe(
+      '13px "YDM Cinzel", "YDM Alegreya", Georgia, serif',
+    );
+  });
+
+  it("draws a face this version does not know in the style's own", () => {
+    const { ctx, state } = recorder();
+    drawLabel(ctx, { ...label, font: "from-a-newer-version" }, "fantasy");
+    expect(state.font).toBe('13px "YDM Alegreya", Georgia, serif');
+  });
+
+  it("draws a curved or spaced label letter by letter, every halo first", () => {
+    for (const change of [{ curve: 0.5 }, { spacing: 0.3 }]) {
+      const { ctx, calls } = recorder();
+      drawLabel(ctx, { ...label, name: "Ash", ...change }, "fantasy");
+      const text = calls.filter((c) => c.call.endsWith("Text"));
+      expect(text.map((c) => `${c.call}:${c.arg}`)).toEqual([
+        "strokeText:A",
+        "strokeText:s",
+        "strokeText:h",
+        "fillText:A",
+        "fillText:s",
+        "fillText:h",
+      ]);
     }
   });
 });

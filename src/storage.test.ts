@@ -215,3 +215,43 @@ it("checks the scatter mixes of an imported project", () => {
   ])
     expect(() => validateProject(withMixes(bad))).toThrow("scatter mix");
 });
+it("keeps a label's face, curve and spacing, and rejects ones out of range", () => {
+  const map = generateMap("world", defaultSettings),
+    withLabel = (style: Record<string, unknown>) => ({
+      version: 1,
+      id: "p",
+      name: "Lettered",
+      maps: [
+        {
+          ...map,
+          objects: [
+            {
+              id: "name",
+              kind: "label",
+              name: "Sea of Ulf",
+              x: 10,
+              y: 10,
+              width: 200,
+              height: 17,
+              rotation: 0,
+              layer: "Labels",
+              color: "#2d5871",
+              ...style,
+            },
+          ],
+        },
+      ],
+      activeMapId: map.id,
+      credits: [],
+      commercial: false,
+      updatedAt: "",
+    });
+  const ok = withLabel({ font: "cinzel", curve: -0.4, spacing: 0.25 });
+  expect(
+    validateProject(JSON.parse(JSON.stringify(ok))).maps[0].objects[0],
+  ).toMatchObject({ font: "cinzel", curve: -0.4, spacing: 0.25 });
+  // A face added in a later version still loads; it is drawn in the style's own.
+  expect(() => validateProject(withLabel({ font: "newer-face" }))).not.toThrow();
+  for (const bad of [{ curve: 2 }, { spacing: -1 }, { font: 7 }])
+    expect(() => validateProject(withLabel(bad))).toThrow("label style");
+});

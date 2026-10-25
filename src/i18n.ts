@@ -468,6 +468,14 @@ Object.assign(ru, toolDescriptionsRu, {
   Trees: "Деревья",
   Rocks: "Камни",
   Undergrowth: "Подлесок",
+  Font: "Шрифт",
+  "Map style": "Стиль карты",
+  Curve: "Изгиб",
+  "Letter spacing": "Разрядка",
+  "Edit label": "Изменить надпись",
+  "Label colour": "Цвет надписи",
+  "Curve label": "Изогнуть надпись",
+  "Space letters": "Разрядка надписи",
 });
 
 Object.assign(ru, campaignRu);

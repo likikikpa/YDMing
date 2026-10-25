@@ -5,6 +5,7 @@ import { ErrorBoundary } from "./ErrorBoundary";
 import "./style.css";
 import "./campaign.css";
 import "./scatter-mix.css";
+import "./label-style.css";
 registerSW({ immediate: true });
 createRoot(document.getElementById("root")!).render(
   <ErrorBoundary>

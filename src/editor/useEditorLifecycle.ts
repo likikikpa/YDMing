@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { imageSources, notLoaded } from "../images";
 import { imageCache, loadImage } from "../render";
 import { preloadSymbols } from "../symbols";
+import { loadMapFonts } from "../map-fonts";
 import { Application, Container } from "pixi.js";
 import type { EditorCore } from "./useEditorCore";
 import type { EditorOverlay } from "./overlay";
@@ -74,9 +75,9 @@ export function useEditorLifecycle(
         observer.observe(host.current!);
         (app as Application & { cleanup?: () => void }).cleanup = () =>
           observer.disconnect();
-        // Symbols must be loaded before the first frame, or the map would flash
-        // with placeholder shapes.
-        await preloadSymbols();
+        // Symbols and lettering must be loaded before the first frame, or the
+        // map would flash with placeholder shapes and fonts.
+        await Promise.all([preloadSymbols(), loadMapFonts()]);
         if (cancelled) return;
         render({ map: latest.current.map });
         setReady(true);

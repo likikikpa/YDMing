@@ -479,7 +479,7 @@ function drawMapLayers(
   if (map.kind === "world" && visible("Labels")) {
     ctx.save();
     ctx.globalAlpha = layer("Labels")?.opacity ?? 1;
-    drawSettlementNames(ctx, map.objects, objectInClip);
+    drawSettlementNames(ctx, map.objects, objectInClip, map.settings.style);
     ctx.restore();
   }
   if (map.kind === "dungeon" && visible("Labels")) {

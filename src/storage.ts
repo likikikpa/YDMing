@@ -147,6 +147,16 @@ export function validateProject(value: unknown): Project {
       )
         throw new Error("The project contains an invalid stamp tint.");
       if (
+        // A face this version does not know draws in the style's own.
+        (o.font !== undefined &&
+          (typeof o.font !== "string" || o.font.length > 40)) ||
+        (o.curve !== undefined &&
+          !(Number.isFinite(o.curve) && Math.abs(o.curve) <= 1)) ||
+        (o.spacing !== undefined &&
+          !(Number.isFinite(o.spacing) && o.spacing >= 0 && o.spacing <= 1))
+      )
+        throw new Error("The project contains an invalid label style.");
+      if (
         o.imageId !== undefined &&
         (typeof o.imageId !== "string" || !p.images?.[o.imageId])
       )

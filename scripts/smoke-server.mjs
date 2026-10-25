@@ -41,6 +41,7 @@ try {
   for (const asset of [
     "/favicon.svg",
     "/fonts/NotoSans-Regular.ttf",
+    "/fonts/map/alegreya.woff2",
     "/assets/cartography/castle.png",
     "/manifest.webmanifest",
     "/sw.js",

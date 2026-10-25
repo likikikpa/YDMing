@@ -22,18 +22,31 @@ export function useProjectStore({
   const [saveState, setSaveState] = useState("Saved locally");
   const [saveError, setSaveError] = useState("");
   const historyRef = useRef(history),
-    indexRef = useRef(historyIndex);
+    indexRef = useRef(historyIndex),
+    lastMerge = useRef({ label: "", at: 0 });
   historyRef.current = history;
   indexRef.current = historyIndex;
   const map = project?.maps.find((m) => m.id === project.activeMapId);
   projectRef.current = project;
-  function commit(next: Project, label: string) {
+  /**
+   * Records a change as an undo step. With `merge`, a change that quickly
+   * follows one of the same label replaces it, so one slider drag is one step.
+   */
+  function commit(next: Project, label: string, merge = false) {
     next = { ...next, updatedAt: new Date().toISOString() };
     setProject(next);
+    const now = Date.now(),
+      joins =
+        merge &&
+        lastMerge.current.label === label &&
+        now - lastMerge.current.at < 1500 &&
+        indexRef.current > 0 &&
+        indexRef.current === historyRef.current.length - 1;
+    lastMerge.current = { label: merge ? label : "", at: now };
     // Refs keep two commits in the same tick consistent, and the cap stops a
     // long session from holding hundreds of full map copies in memory.
     const kept = [
-      ...historyRef.current.slice(0, indexRef.current + 1),
+      ...historyRef.current.slice(0, indexRef.current + (joins ? 0 : 1)),
       { project: next, label },
     ].slice(-HISTORY_LIMIT);
     historyRef.current = kept;
@@ -43,7 +56,12 @@ export function useProjectStore({
     setSaveState("Saving…");
   }
   /** `assets` are the credit and picture of an imported stamp the map may now use. */
-  function updateMap(next: MapData, label: string, assets: StampAssets = {}) {
+  function updateMap(
+    next: MapData,
+    label: string,
+    assets: StampAssets = {},
+    merge = false,
+  ) {
     const p = projectRef.current;
     if (!p) return;
     commit(
@@ -53,13 +71,18 @@ export function useProjectStore({
         assets,
       ),
       label,
+      merge,
     );
   }
-  function mutateMap(change: (m: MapData) => void, label: string) {
+  function mutateMap(
+    change: (m: MapData) => void,
+    label: string,
+    merge = false,
+  ) {
     if (!map) return;
     const next = structuredClone(map);
     change(next);
-    updateMap(next, label);
+    updateMap(next, label, {}, merge);
   }
   function undo() {
     if (historyIndex < 1) return;

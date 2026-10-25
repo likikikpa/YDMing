@@ -21,7 +21,11 @@ export function useObjectActions({
   project: Project | null;
   map: MapData | undefined;
   setProject: (project: Project) => void;
-  mutateMap: (change: (m: MapData) => void, label: string) => void;
+  mutateMap: (
+    change: (m: MapData) => void,
+    label: string,
+    merge?: boolean,
+  ) => void;
   notify: (message: string) => void;
   t: (s: string) => string;
   createMap: (
@@ -54,12 +58,24 @@ export function useObjectActions({
       setSelected([o.id]);
     }
   }
-  function updateSelected(change: Partial<MapObject>, label = "Edit object") {
-    mutateMap((m) => {
-      for (const o of m.objects)
-        if (chosen.has(o.id) && !m.layers.find((l) => l.id === o.layer)?.locked)
-          Object.assign(o, change);
-    }, label);
+  /** With `merge`, quick edits of the same label make one undo step (a slider drag). */
+  function updateSelected(
+    change: Partial<MapObject>,
+    label = "Edit object",
+    merge = false,
+  ) {
+    mutateMap(
+      (m) => {
+        for (const o of m.objects)
+          if (
+            chosen.has(o.id) &&
+            !m.layers.find((l) => l.id === o.layer)?.locked
+          )
+            Object.assign(o, change);
+      },
+      label,
+      merge,
+    );
   }
   function deleteObjects() {
     if (!selected.length) return;

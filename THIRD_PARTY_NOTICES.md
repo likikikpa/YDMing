@@ -66,6 +66,10 @@ Images imported from external libraries remain subject to their own licences. YD
 
 PDF room keys embed Noto Sans Regular under the SIL Open Font License 1.1. The font and its original licence are bundled in `public/fonts/`. Source: https://github.com/notofonts/noto-fonts/tree/main/hinted/ttf/NotoSans.
 
+## Map lettering fonts
+
+Names on the map are lettered in Alegreya, Cinzel, IM Fell English, Pirata One, Uncial Antiqua and Marck Script, each under the SIL Open Font License 1.1. The fonts, their copyright lines and the licence text are bundled in `public/fonts/map/` (`FONTS.txt`). Alegreya, Cinzel and IM Fell English are cut down to Latin and Cyrillic and converted to WOFF2; the three with Reserved Font Names are shipped unmodified. Source: https://github.com/google/fonts/tree/main/ofl.
+
 ## Software
 
 React, PixiJS, Lucide, jsPDF, fflate, idb-keyval, Express, Vite, Workbox, and development dependencies are distributed under their respective package licences. Consult `package-lock.json` and the installed packages for exact versions and licence files.

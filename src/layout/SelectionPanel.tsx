@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReadyApp } from "../app/useAppModel";
+import { LabelStyleFields } from "./LabelStyleFields";
 import { MapLinkField } from "./MapLinkField";
 import { NoteLinkField } from "./NoteLinkField";
 
@@ -61,6 +62,7 @@ export function SelectionPanel({ app }: { app: ReadyApp }) {
           </label>
         ))}
       </div>
+      <LabelStyleFields app={app} />
       <div className="object-actions">
         {(
           [

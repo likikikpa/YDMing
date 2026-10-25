@@ -76,6 +76,12 @@ export interface MapObject extends Point {
   creditId?: string;
   /** A note about this stamp outside the app: an obsidian:// or web link. */
   noteUrl?: string;
+  /** Labels: the lettering face (`map-fonts.ts`); without one, the map style's. */
+  font?: string;
+  /** Labels: bend along an arc, from -1 (sagging half circle) to 1 (arching). */
+  curve?: number;
+  /** Labels: extra room between letters, as a share of the letter height (0 to 1). */
+  spacing?: number;
 }
 export interface MapPath {
   id: string;
