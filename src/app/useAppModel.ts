@@ -136,7 +136,12 @@ export function useAppModel() {
     { setGroup, setRoomDetail, setSelected } = view;
   useEffect(() => {
     if (store.map) {
-      setSettings({ ...defaultSettings, ...store.map.settings });
+      setSettings({
+        ...defaultSettings,
+        ...store.map.settings,
+        // An older map keeps the way its ground was worked out.
+        biomeModel: store.map.settings.biomeModel,
+      });
       setGroup(
         store.map.kind === "world"
           ? "Shape"

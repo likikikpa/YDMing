@@ -172,6 +172,8 @@ export interface GeneratorSettings {
   steppe?: number;
   moorland?: number;
   autumnWoods?: number;
+  /** 2 draws beaches by the slope of the shore; saves from before have none and keep the even ring. */
+  biomeModel?: number;
 }
 export interface TerrainData {
   heights: number[];
@@ -390,6 +392,7 @@ export const defaultSettings: GeneratorSettings = {
   steppe: 40,
   moorland: 30,
   autumnWoods: 30,
+  biomeModel: 2,
 };
 export const makeLayers = (): Layer[] =>
   ["Terrain", "Water", "Paint", "Objects", "Labels", "Grid", "GM-only"].map(

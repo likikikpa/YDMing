@@ -1,7 +1,7 @@
 import { drainage } from "./drainage";
 import { cityBuildings, generateCity } from "./city";
 import { worldLakes, worldPeople, worldWater } from "./generation-parts";
-import { clamp, fbm, hash, random } from "./random";
+import { clamp, fbm, hash, noise, random } from "./random";
 import { CELL, clampSize } from "./mapsize";
 import { placeSpecialBiomes, clearSpecialBiomes } from "./biome-placement";
 import { simpleName, townName } from "./names";
@@ -64,6 +64,30 @@ export function climateAt(map: MapData, x: number, y: number) {
     Math.max(0, upwind - h) * 1.8;
   return { h, temp, moisture };
 }
+const seedHashes = new Map<string, number>();
+/**
+ * How far above the sea a beach reaches at a cell: wide on a gentle shore,
+ * narrow where it climbs, none on a cliff, and ragged along the coast.
+ */
+function beachRise(map: MapData, x: number, y: number) {
+  const { cols, rows, heights } = map,
+    i = y * cols + x,
+    h = heights[i],
+    steep = Math.max(
+      Math.abs(h - heights[x > 0 ? i - 1 : i]),
+      Math.abs(h - heights[x < cols - 1 ? i + 1 : i]),
+      Math.abs(h - heights[y > 0 ? i - cols : i]),
+      Math.abs(h - heights[y < rows - 1 ? i + cols : i]),
+    );
+  let seed = seedHashes.get(map.settings.seed);
+  if (seed === undefined) {
+    seed = hash(map.settings.seed) + 31;
+    seedHashes.set(map.settings.seed, seed);
+  }
+  // Flat ground keeps the old reach (0.025 of height) or more; it falls to nothing on a cliff.
+  const flat = Math.max(0, 1 - steep / 0.04);
+  return 0.025 * flat * (1 + noise(x / 5, y / 5, seed) * 0.5);
+}
 export function biomeAt(map: MapData, x: number, y: number) {
   x = Math.max(0, Math.min(map.cols - 1, x));
   y = Math.max(0, Math.min(map.rows - 1, y));
@@ -72,7 +96,9 @@ export function biomeAt(map: MapData, x: number, y: number) {
     s = map.settings;
   if (map.biomes[i] > 0) return map.biomes[i];
   if (h < s.seaLevel) return 12;
-  if (h < s.seaLevel + 0.025) return 11;
+  if (s.biomeModel === 2) {
+    if (h - s.seaLevel < beachRise(map, x, y)) return 11;
+  } else if (h < s.seaLevel + 0.025) return 11;
   const { temp, moisture } = climateAt(map, x, y);
   if (temp < 0.12 || h > 0.87) return 1;
   if (h > 0.74) return 2;
@@ -217,10 +243,21 @@ function generateWorld(map: MapData, r: () => number) {
         (s.mountains / 100) *
         1.5 *
         Math.max(0, shape);
-      const edge = Math.min(nx, ny, 1 - nx, 1 - ny);
-      map.heights[y * cols + x] = clamp(
-        base + mountains - Math.max(0, 0.065 - edge) * 7,
-      );
+      const edge = Math.min(nx, ny, 1 - nx, 1 - ny),
+        raw = base + mountains - Math.max(0, 0.065 - edge) * 7,
+        // Bays and capes: the height wobbles most where the coast is.
+        near = Math.max(0, 1 - Math.abs(raw - s.seaLevel) / 0.1),
+        wobble =
+          (fbm(nx * 13, ny * 13, seed + 410, 4) - 0.5) * 0.2 +
+          (fbm(nx * 30, ny * 30, seed + 420, 3) - 0.5) * 0.07,
+        // Small islands rise out of the shallows beside the land.
+        shallow = raw < s.seaLevel && raw > s.seaLevel - 0.14 ? 1 : 0,
+        islet =
+          shallow *
+          Math.max(0, fbm(nx * 22, ny * 22, seed + 430, 2) - 0.64) *
+          1.3 *
+          Math.min(1, edge / 0.1);
+      map.heights[y * cols + x] = clamp(raw + near * wobble + islet);
     }
   tidyShore(map);
   // Lakes first, so rivers drain into them; rivers then follow the water.
