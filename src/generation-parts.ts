@@ -2,6 +2,7 @@ import { dungeonName, kingdomCultures, townName } from "./names";
 import { realmWord } from "./names-features";
 import { GENERATED, populateWorld } from "./populate";
 import { featureLabels } from "./region-labels";
+import { letteredWidth, regionLettering } from "./label-lettering";
 import type { Culture } from "./names";
 import { siteAt } from "./settlement-site";
 import { buildBorders, buildRoutes } from "./regions";
@@ -138,20 +139,29 @@ export function worldPeople(map: MapData, seed: string) {
   );
   const capitals = cities.slice(0, s.kingdoms);
   if (capitals.length > 1) map.paths.push(...buildBorders(map, capitals, seed));
-  capitals.forEach((o, n) =>
+  capitals.forEach((o, n) => {
+    const lettering = regionLettering(map.settings.style, "realm"),
+      name = `${o.name.toUpperCase()} ${realmWord(seats[n]?.culture ?? "human", n).toUpperCase()}`;
+    const width = Math.max(
+      260,
+      Math.ceil(letteredWidth({ ...lettering, name }, map.settings.style)),
+    );
+    // Over the capital, but inside the frame: a wide name near the edge
+    // would run off the map.
+    const half = Math.min(width / 2 + 30, map.width / 2);
     map.objects.push({
       id: `region-${n}`,
       kind: "label",
-      x: o.x,
-      y: o.y - 45,
-      name: `${o.name.toUpperCase()} ${realmWord(seats[n]?.culture ?? "human", n).toUpperCase()}`,
-      width: 260,
-      height: 13,
+      x: Math.max(half, Math.min(map.width - half, o.x)),
+      y: Math.max(40, o.y - 45),
+      name,
+      width,
       rotation: -6,
+      ...lettering,
       layer: "Labels",
       color: "#606348",
-    }),
-  );
+    });
+  });
   // Mountain ranges, forests and seas are named in the tongue of the nearest realm.
   for (const label of featureLabels(map, seats, random(seed + "features"), taken))
     map.objects.push(label);

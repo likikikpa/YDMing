@@ -1,6 +1,7 @@
 import { Biome } from "./biomes";
 import { distanceTo } from "./biome-placement";
 import { biomeAt } from "./generator";
+import { featureBend, letteredWidth, regionLettering } from "./label-lettering";
 import { featureName } from "./names-features";
 import { direction, groups, largest } from "./feature-regions";
 import type { Culture } from "./names";
@@ -97,7 +98,13 @@ export function featureLabels(
   for (const o of map.objects)
     if (o.kind === "label")
       taken_.push(
-        boxOf(o.x, o.y, textWidth(o.name, o.height), o.height, o.rotation),
+        boxOf(
+          o.x,
+          o.y,
+          letteredWidth(o, map.settings.style),
+          o.height,
+          o.rotation,
+        ),
       );
     else if (o.id.startsWith("settlement-"))
       taken_.push(
@@ -137,10 +144,19 @@ export function featureLabels(
     let name = featureName(r, culture, feature);
     for (let i = 0; i < 30 && taken.has(name.toLowerCase()); i++)
       name = featureName(r, culture, feature);
-    const height = feature === "sea" ? 17 : 13,
+    const lettering = regionLettering(map.settings.style, feature),
+      { height } = lettering,
       text = feature === "sea" ? name.toUpperCase() : name,
-      width = Math.max(110, textWidth(text, height)),
-      rotation = feature === "sea" ? 0 : direction(map, cells, cx, cy);
+      width = Math.max(
+        110,
+        Math.ceil(letteredWidth({ ...lettering, name: text }, map.settings.style)),
+      ),
+      rotation = feature === "sea" ? 0 : direction(map, cells, cx, cy),
+      // Ranges and forests bend their names along their own shape.
+      curve =
+        feature === "sea"
+          ? 0
+          : featureBend(cells, cols, cx, cy, rotation, width / cellX);
     // Deep water, but near the middle of the sea: the deepest point is often a far corner.
     const score = (c: number) =>
       Math.min(depth[c], 10) * 10 -
@@ -182,8 +198,9 @@ export function featureLabels(
       y: spot.y,
       name: text,
       width,
-      height,
       rotation,
+      ...lettering,
+      ...(curve && { curve }),
       layer: "Labels",
       color:
         feature === "sea"
