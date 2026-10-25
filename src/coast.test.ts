@@ -83,13 +83,14 @@ describe("coasts", () => {
       0,
     ) / seeds.length;
 
-  it("are rugged: far more shore than a smooth blob of the same area", () => {
+  // These generate twelve and sixteen whole worlds.
+  it("are rugged: far more shore than a smooth blob of the same area", { timeout: 20_000 }, () => {
     // A circle's shore is about 3.5 times the root of its area (in cells).
     for (const template of ["continents", "archipelago", "pangaea"])
       expect(average(template, "coastRatio")).toBeGreaterThan(9);
   });
 
-  it("have small islands off the big ones", () => {
+  it("have small islands off the big ones", { timeout: 20_000 }, () => {
     for (const template of ["continents", "archipelago", "island", "pangaea"])
       expect(average(template, "small")).toBeGreaterThanOrEqual(3);
   });

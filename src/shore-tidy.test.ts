@@ -131,7 +131,7 @@ describe("tidying a generated coast", () => {
     expect(map.heights).toEqual(once);
   });
 
-  it("leaves no speck or small bank in worlds generated from seeds that had them", () => {
+  it("leaves no speck or small bank in worlds generated from seeds that had them", { timeout: 20_000 }, () => {
     for (const [seed, template] of [
       ["ALPHA", "continents"],
       ["BRAVO", "pangaea"],

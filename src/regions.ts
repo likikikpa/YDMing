@@ -1,5 +1,5 @@
 import { hash, noise } from "./random";
-import { findRoute } from "./route-search";
+import { findRoute, landmasses, reachable } from "./route-search";
 import { smoothLine } from "./rivers";
 import type { MapData, MapObject, MapPath, Point } from "./types";
 
@@ -80,9 +80,14 @@ export function buildRoutes(
         break;
       }
   }
-  const paths: MapPath[] = [];
+  const paths: MapPath[] = [],
+    land = landmasses(map);
   for (const [a, b] of links) {
-    const route = findRoute(map, cellOf(map, a), cellOf(map, b));
+    const from = cellOf(map, a),
+      to = cellOf(map, b),
+      route = reachable(map, land, from, to)
+        ? findRoute(map, from, to)
+        : null;
     if (!route || route.length < 3) continue;
     const points: Point[] = route.map((c) => ({
       x: ((c % map.cols) * map.width) / map.cols,

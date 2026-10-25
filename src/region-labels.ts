@@ -214,12 +214,16 @@ export function featureLabels(
       Math.hypot((c % cols) - cx, Math.floor(c / cols) - cy);
     // Candidate spots: a land feature from its middle outward, a sea from
     // its deepest water; the first one inside the map and clear of other names wins.
-    const ordered = [...cells].sort((a, b) =>
-      feature === "sea"
-        ? score(b) - score(a)
-        : Math.hypot((a % cols) - cx, Math.floor(a / cols) - cy) -
-          Math.hypot((b % cols) - cx, Math.floor(b / cols) - cy),
-    );
+    // Each cell's place in the order is worked out once, not in every comparison.
+    const key = cells.map((c) =>
+        feature === "sea"
+          ? -score(c)
+          : Math.hypot((c % cols) - cx, Math.floor(c / cols) - cy),
+      ),
+      ordered = cells
+        .map((_, i) => i)
+        .sort((a, b) => key[a] - key[b])
+        .map((i) => cells[i]);
     let spot: { x: number; y: number } | undefined;
     for (const c of ordered.slice(0, 600)) {
       const p = at(c),

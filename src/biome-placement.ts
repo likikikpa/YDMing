@@ -142,12 +142,16 @@ export function placeSpecialBiomes(map: MapData, seed: string) {
     }
     for (const c of cells) {
       if (c.land !== 0) continue;
-      for (const v of chosen)
-        if (Math.hypot(c.x - v.x, c.y - v.y) < reach * (0.7 + jag(c) * 0.6))
+      for (const v of chosen) {
+        // The noise is at most 1, so nothing beyond 1.3 times the reach is
+        // painted; the noise is only worked out for cells nearer than that.
+        const d = Math.hypot(c.x - v.x, c.y - v.y);
+        if (d < reach * 1.3 && d < reach * (0.7 + jag(c) * 0.6))
           if (free(c)) {
             map.biomes[c.i] = Biome.Volcanic;
             break;
           }
+      }
     }
   }
 
