@@ -448,6 +448,7 @@ Object.assign(ru, toolDescriptionsRu, {
   "Follow biomes": "По биомам",
   "Keep off paths": "Не на дорогах и реках",
   Biomes: "Биомы",
+  "Land detail": "Детали земли",
   "Volcanic activity": "Вулканизм",
   Glaciers: "Ледники",
   Blight: "Порча",

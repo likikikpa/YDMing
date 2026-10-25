@@ -1,5 +1,6 @@
 import { dungeonName, kingdomCultures, townName } from "./names";
 import { realmWord } from "./names-features";
+import { GENERATED, populateWorld } from "./populate";
 import { featureLabels } from "./region-labels";
 import type { Culture } from "./names";
 import { siteAt } from "./settlement-site";
@@ -59,7 +60,11 @@ export function worldPeople(map: MapData, seed: string) {
   const r = random(seed + "people"),
     s = map.settings;
   map.objects = map.objects.filter(
-    (o) => !o.id.startsWith("settlement-") && !o.id.startsWith("region-"),
+    (o) =>
+      !o.id.startsWith("settlement-") &&
+      !o.id.startsWith("region-") &&
+      // Stamps from the last run would push the new settlements about.
+      !o.id.startsWith(GENERATED),
   );
   map.paths = map.paths.filter(
     (p) => !p.id.startsWith("route-") && !p.id.startsWith("border-"),
@@ -150,4 +155,5 @@ export function worldPeople(map: MapData, seed: string) {
   // Mountain ranges, forests and seas are named in the tongue of the nearest realm.
   for (const label of featureLabels(map, seats, random(seed + "features"), taken))
     map.objects.push(label);
+  populateWorld(map, seed);
 }

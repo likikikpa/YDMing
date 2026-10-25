@@ -81,6 +81,7 @@ export function WorldFields({ app, title }: { app: ReadyApp; title: string }) {
           {slider("Cities", "cities", 0, 20, "")}
           {slider("Towns", "towns", 0, 15, "")}
           {slider("Villages", "villages", 0, 25, "")}
+          {slider("Land detail", "detail")}
           {more && (
             <>
               {slider("Dungeons", "dungeons", 0, 10, "")}
