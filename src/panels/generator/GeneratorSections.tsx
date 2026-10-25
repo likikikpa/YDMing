@@ -11,7 +11,15 @@ export function GeneratorSections({ app }: { app: ReadyApp }) {
   const { group, map, setGroup, setMore, settings, t } = app;
   const generatorGroups =
     map?.kind === "world"
-      ? ["Shape", "Relief", "Climate", "Water", "Settlements", "Appearance"]
+      ? [
+          "Shape",
+          "Relief",
+          "Climate",
+          "Biomes",
+          "Water",
+          "Settlements",
+          "Appearance",
+        ]
       : map?.kind === "city"
         ? ["Size", "Defence", "Site", "Layout", "Appearance"]
         : ["Party", "Theme", "Layout", "Rooms", "Doors", "Grid", "Appearance"];

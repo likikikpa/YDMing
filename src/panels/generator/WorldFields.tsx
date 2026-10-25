@@ -1,4 +1,6 @@
+import { Fragment } from "react";
 import { presetNames } from "../../app/constants";
+import { SPECIAL_BIOMES } from "../../biome-placement";
 import { generatorFields } from "./generator-fields";
 import { Slider } from "../../ui/Field";
 import { ChevronDown, Shuffle } from "lucide-react";
@@ -44,6 +46,20 @@ export function WorldFields({ app, title }: { app: ReadyApp; title: string }) {
           <button className="more-link" onClick={() => setMore((v) => !v)}>
             {t(more ? "Less" : "More")}
             <ChevronDown size={11} />
+          </button>
+        </>
+      )}
+      {title === "Biomes" && (
+        <>
+          {SPECIAL_BIOMES.map(({ key, label }) => (
+            <Fragment key={key}>{slider(label, key)}</Fragment>
+          ))}
+          <button
+            className="button subtle full"
+            onClick={() => regenerate("biomes", true)}
+          >
+            <Shuffle size={13} />
+            {t("Reroll")} {t("Biomes")}
           </button>
         </>
       )}

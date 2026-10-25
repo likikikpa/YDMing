@@ -3,6 +3,7 @@ import { cityBuildings, generateCity } from "./city";
 import { worldLakes, worldPeople, worldWater } from "./generation-parts";
 import { clamp, fbm, hash, random } from "./random";
 import { CELL, clampSize } from "./mapsize";
+import { placeSpecialBiomes, clearSpecialBiomes } from "./biome-placement";
 import { simpleName, townName } from "./names";
 import { tidyShore } from "./shore-tidy";
 import { defaultSettings, makeLayers } from "./types";
@@ -38,15 +39,13 @@ function moistureNoise(map: MapData) {
   }
   return grid;
 }
-export function biomeAt(map: MapData, x: number, y: number) {
+/** How warm and wet a cell is, before any biome is chosen from it. */
+export function climateAt(map: MapData, x: number, y: number) {
   x = Math.max(0, Math.min(map.cols - 1, x));
   y = Math.max(0, Math.min(map.rows - 1, y));
   const i = y * map.cols + x,
     h = map.heights[i],
     s = map.settings;
-  if (map.biomes[i] > 0) return map.biomes[i];
-  if (h < s.seaLevel) return 12;
-  if (h < s.seaLevel + 0.025) return 11;
   // Only a world map spans latitudes; a city or dungeon sits at one temperate latitude.
   const latitude =
     map.kind === "world"
@@ -63,6 +62,18 @@ export function biomeAt(map: MapData, x: number, y: number) {
     s.rainfall / 100 +
     moistureNoise(map)[i] -
     Math.max(0, upwind - h) * 1.8;
+  return { h, temp, moisture };
+}
+export function biomeAt(map: MapData, x: number, y: number) {
+  x = Math.max(0, Math.min(map.cols - 1, x));
+  y = Math.max(0, Math.min(map.rows - 1, y));
+  const i = y * map.cols + x,
+    h = map.heights[i],
+    s = map.settings;
+  if (map.biomes[i] > 0) return map.biomes[i];
+  if (h < s.seaLevel) return 12;
+  if (h < s.seaLevel + 0.025) return 11;
+  const { temp, moisture } = climateAt(map, x, y);
   if (temp < 0.12 || h > 0.87) return 1;
   if (h > 0.74) return 2;
   if (temp < 0.3) return moisture > 0.55 ? 4 : 3;
@@ -215,6 +226,7 @@ function generateWorld(map: MapData, r: () => number) {
   // Lakes first, so rivers drain into them; rivers then follow the water.
   worldLakes(map, s.seed);
   worldWater(map, s.seed);
+  placeSpecialBiomes(map, s.seed);
   worldPeople(map, s.seed);
 }
 export function traceRiver(map: MapData, start: number): number[] {
@@ -505,6 +517,9 @@ export function rerollGroup(
   out.settings = { ...settings, seed: map.settings.seed };
   if (group === "water") {
     worldWater(out, seed);
+  } else if (group === "biomes") {
+    clearSpecialBiomes(out);
+    placeSpecialBiomes(out, seed);
   } else if (group === "people") {
     worldPeople(out, seed);
   } else if (group === "contents") {

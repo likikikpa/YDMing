@@ -1,4 +1,5 @@
 import { Field, Slider } from "../../ui/Field";
+import { defaultSettings } from "../../types";
 import type { GeneratorSettings } from "../../types";
 import type { ReadyApp } from "../../app/useAppModel";
 
@@ -32,7 +33,7 @@ export function generatorFields(app: ReadyApp) {
   ) => (
     <Slider
       label={t(label)}
-      value={Number(settings[key])}
+      value={Number(settings[key] ?? defaultSettings[key])}
       onChange={(v) => changeSetting(key, v as never)}
       min={min}
       max={max}

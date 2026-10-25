@@ -162,6 +162,16 @@ export interface GeneratorSettings {
   deadEnds: string;
   entrances: number;
   stairs: boolean;
+  /** How much of each special biome a world gets, 0 to 100; saves from before them have none set. */
+  volcanic?: number;
+  blight?: number;
+  reefs?: number;
+  mangroves?: number;
+  badlands?: number;
+  glaciers?: number;
+  steppe?: number;
+  moorland?: number;
+  autumnWoods?: number;
 }
 export interface TerrainData {
   heights: number[];
@@ -371,6 +381,15 @@ export const defaultSettings: GeneratorSettings = {
   deadEnds: "some",
   entrances: 2,
   stairs: true,
+  volcanic: 30,
+  blight: 12,
+  reefs: 45,
+  mangroves: 35,
+  badlands: 30,
+  glaciers: 40,
+  steppe: 40,
+  moorland: 30,
+  autumnWoods: 30,
 };
 export const makeLayers = (): Layer[] =>
   ["Terrain", "Water", "Paint", "Objects", "Labels", "Grid", "GM-only"].map(

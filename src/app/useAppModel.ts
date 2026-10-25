@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { EditorHandle } from "../editor/types";
+import { defaultSettings } from "../types";
 import type { MapData, Project } from "../types";
 import { useBackupReminder } from "./useBackupReminder";
 import { useClipboard } from "./useClipboard";
@@ -135,7 +136,7 @@ export function useAppModel() {
     { setGroup, setRoomDetail, setSelected } = view;
   useEffect(() => {
     if (store.map) {
-      setSettings(store.map.settings);
+      setSettings({ ...defaultSettings, ...store.map.settings });
       setGroup(
         store.map.kind === "world"
           ? "Shape"
