@@ -4,6 +4,7 @@ import { worldLakes, worldPeople, worldWater } from "./generation-parts";
 import { clamp, fbm, hash, noise, random } from "./random";
 import { CELL, clampSize } from "./mapsize";
 import { placeSpecialBiomes, clearSpecialBiomes } from "./biome-placement";
+import { beachRise, landBiome } from "./climate-biomes";
 import { simpleName, townName } from "./names";
 import { tidyShore } from "./shore-tidy";
 import { defaultSettings, makeLayers } from "./types";
@@ -64,30 +65,6 @@ export function climateAt(map: MapData, x: number, y: number) {
     Math.max(0, upwind - h) * 1.8;
   return { h, temp, moisture };
 }
-const seedHashes = new Map<string, number>();
-/**
- * How far above the sea a beach reaches at a cell: wide on a gentle shore,
- * narrow where it climbs, none on a cliff, and ragged along the coast.
- */
-function beachRise(map: MapData, x: number, y: number) {
-  const { cols, rows, heights } = map,
-    i = y * cols + x,
-    h = heights[i],
-    steep = Math.max(
-      Math.abs(h - heights[x > 0 ? i - 1 : i]),
-      Math.abs(h - heights[x < cols - 1 ? i + 1 : i]),
-      Math.abs(h - heights[y > 0 ? i - cols : i]),
-      Math.abs(h - heights[y < rows - 1 ? i + cols : i]),
-    );
-  let seed = seedHashes.get(map.settings.seed);
-  if (seed === undefined) {
-    seed = hash(map.settings.seed) + 31;
-    seedHashes.set(map.settings.seed, seed);
-  }
-  // Flat ground keeps the old reach (0.025 of height) or more; it falls to nothing on a cliff.
-  const flat = Math.max(0, 1 - steep / 0.04);
-  return 0.025 * flat * (1 + noise(x / 5, y / 5, seed) * 0.5);
-}
 export function biomeAt(map: MapData, x: number, y: number) {
   x = Math.max(0, Math.min(map.cols - 1, x));
   y = Math.max(0, Math.min(map.rows - 1, y));
@@ -98,7 +75,10 @@ export function biomeAt(map: MapData, x: number, y: number) {
   if (h < s.seaLevel) return 12;
   if (s.biomeModel === 2) {
     if (h - s.seaLevel < beachRise(map, x, y)) return 11;
-  } else if (h < s.seaLevel + 0.025) return 11;
+    const c = climateAt(map, x, y);
+    return landBiome(map, x, y, c.temp, c.moisture);
+  }
+  if (h < s.seaLevel + 0.025) return 11;
   const { temp, moisture } = climateAt(map, x, y);
   if (temp < 0.12 || h > 0.87) return 1;
   if (h > 0.74) return 2;
