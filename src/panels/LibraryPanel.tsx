@@ -1,4 +1,4 @@
-import { styleOf } from "../map-styles";
+import { mapPacks } from "../map-packs";
 import { PACK_STAMPS, STAMP_PACKS } from "../packs";
 import { packSprite } from "../scatter-kinds";
 import { assetUrl } from "../search";
@@ -43,7 +43,8 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
     webResults,
     webSource,
   } = app;
-  const matching = map ? styleOf(map.settings).stampPack : undefined;
+  // The collections the map's land is filled from come first.
+  const matching = map ? mapPacks(map.settings) : [];
   const option = (p: (typeof STAMP_PACKS)[number]) => (
     <option key={p.key} value={p.key}>
       {p.label}
@@ -72,13 +73,17 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
               value={assetPack}
               onChange={(e) => setAssetPack(e.target.value)}
             >
-              {matching ? (
+              {matching.length ? (
                 <>
-                  <optgroup label={t("Matches the style")}>
-                    {STAMP_PACKS.filter((p) => p.key === matching).map(option)}
+                  <optgroup label={t("Used on this map")}>
+                    {STAMP_PACKS.filter((p) => matching.includes(p.key)).map(
+                      option,
+                    )}
                   </optgroup>
                   <optgroup label={t("Other collections")}>
-                    {STAMP_PACKS.filter((p) => p.key !== matching).map(option)}
+                    {STAMP_PACKS.filter((p) => !matching.includes(p.key)).map(
+                      option,
+                    )}
                   </optgroup>
                 </>
               ) : (

@@ -6,6 +6,7 @@ import "./style.css";
 import "./campaign.css";
 import "./scatter-mix.css";
 import "./label-style.css";
+import "./stamp-packs.css";
 registerSW({ immediate: true });
 createRoot(document.getElementById("root")!).render(
   <ErrorBoundary>

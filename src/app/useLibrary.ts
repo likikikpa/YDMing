@@ -3,7 +3,8 @@ import { set } from "idb-keyval";
 import { fitImage } from "../assets";
 import { spriteFromStamp } from "../stamp-brush";
 import { getWithLegacy } from "../legacy-keys";
-import { MAP_STYLES, resolveStyle, styleOf } from "../map-styles";
+import { styleOf } from "../map-styles";
+import { mapPacks } from "../map-packs";
 import type { BrushSettings } from "../editor/types";
 import { assetUrl, searchImages } from "../search";
 import { uid } from "../types";
@@ -43,14 +44,15 @@ export function useLibrary({
   const [libraryTab, setLibraryTab] = useState("Built-in");
   const [assetSearch, setAssetSearch] = useState("");
   const [assetPack, setAssetPack] = useState("cartography");
-  // The collection that matches the open map's style opens when the style changes.
-  const openStyle = resolveStyle(
-    project?.maps.find((m) => m.id === project.activeMapId)?.settings.style,
-  );
+  // The first collection the open map's land is filled from opens when that
+  // changes (with its style, or its choice of packs).
+  const openSettings = project?.maps.find(
+      (m) => m.id === project.activeMapId,
+    )?.settings,
+    openPack = openSettings ? mapPacks(openSettings)[0] : undefined;
   useEffect(() => {
-    const pack = MAP_STYLES[openStyle].stampPack;
-    if (pack) setAssetPack(pack);
-  }, [openStyle]);
+    if (openPack) setAssetPack(openPack);
+  }, [openPack]);
   const [webQuery, setWebQuery] = useState("");
   const [webSource, setWebSource] = useState("auto");
   const [webResults, setWebResults] = useState<AssetResult[]>([]);

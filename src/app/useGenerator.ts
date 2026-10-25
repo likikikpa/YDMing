@@ -13,6 +13,8 @@ import type {
   Tool,
 } from "../types";
 import type { EditorHandle } from "../editor/types";
+import { mapPacks, packCredits } from "../map-packs";
+import type { StampAssets } from "../stamp-brush";
 import { generateAsync } from "./generate-async";
 import type { ModalName, Panel } from "./constants";
 
@@ -35,7 +37,7 @@ export function useGenerator({
   project: Project | null;
   map: MapData | undefined;
   commit: (next: Project, label: string) => void;
-  updateMap: (next: MapData, label: string) => void;
+  updateMap: (next: MapData, label: string, assets?: StampAssets) => void;
   notify: (message: string) => void;
   lang: string;
   busy: boolean;
@@ -82,6 +84,9 @@ export function useGenerator({
     setBusy(true);
     const nextSettings = {
       ...settings,
+      // The map's choice of stamp packs is its own, so an undone change
+      // never lingers in the generator.
+      stampPacks: map.settings.stampPacks,
       seed: reroll
         ? Math.random().toString(36).slice(2, 10).toUpperCase()
         : settings.seed,
@@ -103,6 +108,8 @@ export function useGenerator({
       updateMap(
         result,
         `${part === "all" ? "Generate map" : `Reroll ${part}`} · ${nextSettings.seed}`,
+        // A collection whose licence asks for a credit adds it with its stamps.
+        { credits: packCredits(mapPacks(result.settings)) },
       );
       setSettings(nextSettings);
       setSelected([]);

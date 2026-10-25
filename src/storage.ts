@@ -91,6 +91,17 @@ export function validateProject(value: unknown): Project {
       !Array.isArray(m.strokes)
     )
       throw new Error("The project contains invalid map data.");
+    const packs = m.settings.stampPacks;
+    // Collection keys this version does not know are kept but place nothing.
+    if (
+      packs !== undefined &&
+      !(
+        Array.isArray(packs) &&
+        packs.length <= 40 &&
+        packs.every((k) => typeof k === "string" && k.length <= 60)
+      )
+    )
+      throw new Error("The project contains an invalid list of stamp packs.");
     if (
       m.terrain !== undefined &&
       (!m.terrain ||

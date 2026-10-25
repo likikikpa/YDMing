@@ -255,3 +255,22 @@ it("keeps a label's face, curve and spacing, and rejects ones out of range", () 
   for (const bad of [{ curve: 2 }, { spacing: -1 }, { font: 7 }])
     expect(() => validateProject(withLabel(bad))).toThrow("label style");
 });
+it("keeps a map's choice of stamp packs, and rejects one that is not a list of names", () => {
+  const map = generateMap("world", defaultSettings),
+    withPacks = (stampPacks: unknown) => ({
+      version: 1,
+      id: "p",
+      name: "Packs",
+      maps: [{ ...map, settings: { ...map.settings, stampPacks } }],
+      activeMapId: map.id,
+      credits: [],
+      commercial: false,
+      updatedAt: "",
+    });
+  expect(
+    validateProject(JSON.parse(JSON.stringify(withPacks(["ai-gen", "later-pack"]))))
+      .maps[0].settings.stampPacks,
+  ).toEqual(["ai-gen", "later-pack"]);
+  for (const bad of ["ai-gen", [3], Array(50).fill("x")])
+    expect(() => validateProject(withPacks(bad))).toThrow("stamp packs");
+});

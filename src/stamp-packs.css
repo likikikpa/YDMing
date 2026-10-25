@@ -1,0 +1,10 @@
+.stamp-pack-choice {
+  display: grid;
+  margin-top: 4px;
+}
+.stamp-pack-choice .checkbox {
+  margin: 4px 0;
+}
+.stamp-pack-field {
+  margin-top: 16px;
+}

@@ -1,6 +1,7 @@
 import { Mountain } from "lucide-react";
 import type { ReadyApp } from "../../app/useAppModel";
 import { MAP_STYLES, PICKER_STYLES, resolveStyle } from "../../map-styles";
+import { StampPackFields } from "./StampPackFields";
 
 export function AppearanceFields({
   app,
@@ -36,6 +37,7 @@ export function AppearanceFields({
               </button>
             ))}
           </div>
+          <StampPackFields app={app} />
         </>
       )}
     </>

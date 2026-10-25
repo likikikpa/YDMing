@@ -161,7 +161,7 @@ export const ru: Record<string, string> = {
   "Painted fantasy": "Живописное фэнтези",
   "Old ink": "Старые чернила",
   Realistic: "Реалистичный",
-  "Matches the style": "Подходит к стилю",
+  "Used on this map": "Используются на карте",
   "Other collections": "Другие наборы",
   "Generate map": "Создать карту",
   Reroll: "Перебросить",
@@ -476,6 +476,8 @@ Object.assign(ru, toolDescriptionsRu, {
   "Label colour": "Цвет надписи",
   "Curve label": "Изогнуть надпись",
   "Space letters": "Разрядка надписи",
+  "Stamp packs": "Наборы штампов",
+  "Change stamp packs": "Сменить наборы штампов",
 });
 
 Object.assign(ru, campaignRu);

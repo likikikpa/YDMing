@@ -121,6 +121,10 @@ Started 25 October 2026 on the goal "a map maker like Inkarnate, or better".
 
 Not done: the selection box does not follow a curved label; labels cannot follow a drawn path (only an arc); the preview is full (511 files).
 
+## Done: choosing stamp packs
+
+Asked for on 25 October 2026: choose which stamp packs a map uses, not only its style. Appearance in the generator lists the collections that have trees, ranges, rocks or undergrowth (Kenney Cartography, Map icons, AI_GEN) as checkboxes, any mix of them, none included. The choice is the map's own (optional `settings.stampPacks`, checked on load; `map-packs.ts`): without one a map follows its style as before, so old saves and new worlds that choose nothing are unchanged (byte-identical in a test of twelve worlds), and Realistic can now have stamps too. Changing it places the generator's land stamps again with the seed they had, so ticking the first collections again gives back the same stamps; a map the generator never filled only keeps the choice for its next generation. Map icons is CC BY, so its credit is added to the world when its stamps are placed. The Library lists the map's collections first and opens the first of them. A change is one undo step, and Generate takes the choice from the map, so an undone change does not linger. A switch costs about 76 ms; the rest of its 400 ms freeze is the full redraw a style switch also has.
+
 ## Ideas, not decided
 
 Pick from these; none is started.

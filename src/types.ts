@@ -182,6 +182,8 @@ export interface GeneratorSettings {
   biomeModel?: number;
   /** How many trees, ranges and stones the generator places as stamps, 0 to 100. */
   detail?: number;
+  /** The Library collections those stamps come from; without it, the style's own (see `map-packs.ts`). */
+  stampPacks?: string[];
 }
 export interface TerrainData {
   heights: number[];

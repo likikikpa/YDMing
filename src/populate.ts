@@ -1,6 +1,6 @@
 import { Biome } from "./biomes";
 import { biomeAt } from "./generator";
-import { styleOf } from "./map-styles";
+import { detailSeed, GENERATED, mapPacks } from "./map-packs";
 import { random } from "./random";
 import { scatterObjects, scatterStroke } from "./scatter";
 import { poolAtMap } from "./scatter-habitat";
@@ -9,8 +9,7 @@ import { pathBlocker } from "./scatter-paths";
 import { defaultSettings } from "./types";
 import type { MapData, MapObject } from "./types";
 
-/** The ids of stamps the generator placed, so a reroll can take them away again. */
-export const GENERATED = "gen-";
+export { GENERATED } from "./map-packs";
 
 /** The most stamps one world is given, whatever its size. */
 const MAX_STAMPS = 4000;
@@ -118,11 +117,11 @@ const LAYERS: Layer[] = [
   },
 ];
 
-/** Whether a world's style has stamps to place: Realistic draws its woods and relief from the ground. */
-export const hasStampSet = (map: MapData) => !!styleOf(map.settings).stampPack;
+/** Whether a world has collections to place stamps from: Realistic has none of its own. */
+export const hasStampSet = (map: MapData) => mapPacks(map.settings).length > 0;
 
 /**
- * Fills the land of a world with stamps from its style's collection:
+ * Fills the land of a world with stamps from its collections (`mapPacks`):
  * clusters of trees in the woods, rock and ranges on the high ground, stones
  * and undergrowth in the dry and open country. What each biome grows is what
  * the scatter brush's Follow biomes allows, and nothing lands on water, on a
@@ -131,13 +130,13 @@ export const hasStampSet = (map: MapData) => !!styleOf(map.settings).stampPack;
  */
 export function populateWorld(map: MapData, seed: string) {
   map.objects = map.objects.filter((o) => !o.id.startsWith(GENERATED));
-  const pack = styleOf(map.settings).stampPack,
+  const packs = mapPacks(map.settings),
     amount =
       Math.max(
         0,
         Math.min(100, map.settings.detail ?? defaultSettings.detail ?? 0),
       ) / 100;
-  if (!pack || amount <= 0) return;
+  if (!packs.length || amount <= 0) return;
   const rand = random(seed + "detail"),
     { cols, rows, heights } = map,
     sea = map.settings.seaLevel,
@@ -153,7 +152,7 @@ export function populateWorld(map: MapData, seed: string) {
   const out: MapObject[] = [];
   let serial = 0;
   for (const layer of LAYERS) {
-    const pool = kindPictures(pack, layer.kind);
+    const pool = packs.flatMap((pack) => kindPictures(pack, layer.kind));
     if (!pool.length) continue;
     const poolAt = poolAtMap(map, pool),
       options = {
@@ -200,4 +199,20 @@ export function populateWorld(map: MapData, seed: string) {
     }
   }
   for (const o of out) map.objects.push(o);
+}
+
+/**
+ * A copy of a map that takes its land stamps from these collections. A world
+ * whose land the generator filled is filled again from them with the seed it
+ * had, so going back to the first collections gives back the same stamps; a
+ * map with none of the generator's stamps only keeps the choice for its next
+ * generation.
+ */
+export function withPacks(map: MapData, packs: string[]): MapData {
+  const next = structuredClone(map),
+    seed = detailSeed(map),
+    filled = map.objects.some((o) => o.id.startsWith(GENERATED));
+  next.settings = { ...next.settings, stampPacks: packs };
+  if (map.kind === "world" && filled) populateWorld(next, seed);
+  return next;
 }
