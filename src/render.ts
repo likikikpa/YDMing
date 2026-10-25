@@ -12,6 +12,7 @@ import type { CellRect, TerrainDetail } from "./terrain-render";
 import { hash } from "./random";
 import { ornaments } from "./ornaments";
 import { drawObject } from "./object-render";
+import { drawSettlementNames } from "./settlement-labels";
 import { path } from "./stamps";
 import type { MapData, MapObject, MapPath, Point, Stroke } from "./types";
 export { drawStamp, stampSvg } from "./stamps";
@@ -478,20 +479,7 @@ function drawMapLayers(
   if (map.kind === "world" && visible("Labels")) {
     ctx.save();
     ctx.globalAlpha = layer("Labels")?.opacity ?? 1;
-    map.objects
-      .filter(
-        (o) =>
-          ["city", "village", "dungeon"].includes(o.kind) && objectInClip(o),
-      )
-      .forEach((o) => {
-        ctx.font = `${o.kind === "city" ? "bold 12" : "10"}px Georgia`;
-        ctx.textAlign = "center";
-        ctx.strokeStyle = "#e8e3cb";
-        ctx.lineWidth = 3;
-        ctx.strokeText(o.name, o.x, o.y + o.height / 2 + 13);
-        ctx.fillStyle = "#434837";
-        ctx.fillText(o.name, o.x, o.y + o.height / 2 + 13);
-      });
+    drawSettlementNames(ctx, map.objects, objectInClip);
     ctx.restore();
   }
   if (map.kind === "dungeon" && visible("Labels")) {
