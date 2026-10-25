@@ -53,10 +53,10 @@ interface Cell {
   land: number;
 }
 
-const FAR = 99;
+export const FAR = 99;
 
 /** Cells to the nearest cell for which `is` holds, found with two passes over the grid. */
-function distanceTo(map: MapData, is: (i: number) => boolean) {
+export function distanceTo(map: MapData, is: (i: number) => boolean) {
   const { cols, rows } = map,
     d = new Uint8Array(cols * rows).fill(FAR);
   for (let i = 0; i < d.length; i++) if (is(i)) d[i] = 0;

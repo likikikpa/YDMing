@@ -119,18 +119,46 @@ export function buildRoutes(
     links.push([rest[best[0]], connected[best[1]]]);
     connected.push(...rest.splice(best[0], 1));
   }
-  for (const place of others) {
-    const nearest = [...cities]
-      .sort(
-        (a, b) =>
-          Math.hypot(a.x - place.x, a.y - place.y) -
-          Math.hypot(b.x - place.x, b.y - place.y),
-      )
+  // Extra links give the cities loops to travel by, not only a tree of roads.
+  const dist = (a: MapObject, b: MapObject) => Math.hypot(a.x - b.x, a.y - b.y),
+    linkedAlready = (a: MapObject, b: MapObject) =>
+      links.some(([p, q]) => (p === a && q === b) || (p === b && q === a));
+  for (const a of cities) {
+    const next = cities
+      .filter((b) => b !== a && !linkedAlready(a, b) && dist(a, b) < 380)
+      .sort((p, q) => dist(a, p) - dist(a, q))[0];
+    if (next) links.push([a, next]);
+  }
+  // Villages and towns join the nearest place already on the roads, so the
+  // network grows outward from the cities and a hamlet is not a day's march
+  // from the nearest road. Lairs and ruins are linked but never become hubs.
+  const hubs: MapObject[] = [...cities],
+    pending = others.filter((o) => o.kind !== "dungeon"),
+    dungeons = others.filter((o) => o.kind === "dungeon");
+  const nearestHub = (o: MapObject) =>
+    Math.min(...hubs.map((h) => dist(o, h)), Infinity);
+  while (pending.length) {
+    pending.sort((p, q) => nearestHub(p) - nearestHub(q));
+    const place = pending.shift()!;
+    // A place on another landmass may not reach its nearest hub; it is then
+    // tried against the next two before it is left off the roads.
+    const tries = [...hubs]
+      .sort((p, q) => dist(place, p) - dist(place, q))
+      .slice(0, 3);
+    for (const hub of tries)
+      if (dist(place, hub) < 330) {
+        links.push([place, hub]);
+        hubs.push(place);
+        break;
+      }
+  }
+  for (const place of dungeons) {
+    const nearest = [...hubs]
+      .sort((p, q) => dist(place, p) - dist(place, q))
       .slice(0, 2);
-    // A place on another landmass may not reach the closest city; try the next.
-    for (const city of nearest)
-      if (Math.hypot(city.x - place.x, city.y - place.y) < 420) {
-        links.push([place, city]);
+    for (const hub of nearest)
+      if (dist(place, hub) < 420) {
+        links.push([place, hub]);
         break;
       }
   }

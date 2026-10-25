@@ -1,4 +1,6 @@
 import { dungeonName, kingdomCultures, townName } from "./names";
+import { realmWord } from "./names-features";
+import { featureLabels } from "./region-labels";
 import type { Culture } from "./names";
 import { siteAt } from "./settlement-site";
 import { buildBorders, buildRoutes } from "./regions";
@@ -137,7 +139,7 @@ export function worldPeople(map: MapData, seed: string) {
       kind: "label",
       x: o.x,
       y: o.y - 45,
-      name: `${o.name.toUpperCase()} ${["REACH", "MARCHES", "DOMINION", "VALE"][n % 4]}`,
+      name: `${o.name.toUpperCase()} ${realmWord(seats[n]?.culture ?? "human", n).toUpperCase()}`,
       width: 260,
       height: 13,
       rotation: -6,
@@ -145,4 +147,7 @@ export function worldPeople(map: MapData, seed: string) {
       color: "#606348",
     }),
   );
+  // Mountain ranges, forests and seas are named in the tongue of the nearest realm.
+  for (const label of featureLabels(map, seats, random(seed + "features"), taken))
+    map.objects.push(label);
 }
