@@ -4,6 +4,7 @@ import { drawLabel } from "./labels";
 import { imageCache, loadImage } from "./render";
 import { drawStamp } from "./stamps";
 import { SYMBOL_SCALE, SYMBOL_SPRITES } from "./symbols";
+import type { SymbolSet } from "./symbol-sets";
 import { tinted } from "./tint";
 import type { MapObject } from "./types";
 
@@ -54,7 +55,7 @@ function drawPicture(
 /**
  * Draws one stamp, label or symbol of the map. `base` is the canvas's
  * transform before the first object of the layer, which lets picture stamps
- * skip save and restore.
+ * skip save and restore. `symbols` are the pictures of the built-in kinds.
  */
 export function drawObject(
   ctx: CanvasRenderingContext2D,
@@ -63,6 +64,7 @@ export function drawObject(
   images?: ImageTable,
   style = "",
   base?: DOMMatrix,
+  symbols: SymbolSet = { sprites: SYMBOL_SPRITES, scale: SYMBOL_SCALE },
 ) {
   const picture = o.kind === "image" ? objectImage(o, images) : undefined;
   if (picture && base) {
@@ -89,13 +91,13 @@ export function drawObject(
       );
     else void loadImage(picture).catch(() => undefined);
   } else {
-    const src = SYMBOL_SPRITES[o.kind as keyof typeof SYMBOL_SPRITES],
+    const src = symbols.sprites[o.kind as keyof typeof symbols.sprites],
       img = src ? imageCache.get(src) : undefined;
     if (img?.complete) {
       // Fit the sprite inside the object's box, keeping its proportions.
       const k =
         Math.min(o.width / img.naturalWidth, o.height / img.naturalHeight) *
-        SYMBOL_SCALE;
+        symbols.scale;
       ctx.drawImage(
         img,
         (-img.naturalWidth * k) / 2,

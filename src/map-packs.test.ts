@@ -72,9 +72,13 @@ describe("stamp packs of a map", () => {
     expect(rest(ink)).toEqual(rest(map));
   });
 
-  it("only keep the choice on a map the generator did not fill", () => {
-    const map = world("packs3", { detail: 0 });
-    expect(stamps(withPacks(map, ["ai-gen"]))).toEqual([]);
+  it("fill a generated world that had none, but only keep the choice on a hand-drawn one", () => {
+    // Realistic places no stamps of its own; ticking a collection adds them.
+    const bare = world("packs3", { style: "realistic" });
+    expect(stamps(bare)).toEqual([]);
+    expect(stamps(withPacks(bare, ["ai-gen"])).length).toBeGreaterThan(50);
+    const drawn = { ...bare, objects: [] };
+    expect(stamps(withPacks(drawn, ["ai-gen"]))).toEqual([]);
   });
 
   it("read the seed back from the stamps, also after a reroll or with a dash", () => {

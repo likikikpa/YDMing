@@ -13,6 +13,7 @@ import { hash } from "./random";
 import { ornaments } from "./ornaments";
 import { drawObject } from "./object-render";
 import { drawSettlementNames } from "./settlement-labels";
+import { symbolSetFor } from "./symbol-sets";
 import { path } from "./stamps";
 import type { MapData, MapObject, MapPath, Point, Stroke } from "./types";
 export { drawStamp, stampSvg } from "./stamps";
@@ -466,13 +467,14 @@ function drawMapLayers(
           map.height,
         );
     }
-    const base = ctx.getTransform();
+    const base = ctx.getTransform(),
+      symbols = symbolSetFor(map);
     map.objects
       .filter((o) => o.layer === l.id)
       .forEach(
         (o, i) =>
           objectInClip(o) &&
-          drawObject(ctx, o, i, options.images, map.settings.style, base),
+          drawObject(ctx, o, i, options.images, map.settings.style, base, symbols),
       );
     ctx.restore();
   }

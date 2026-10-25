@@ -203,15 +203,17 @@ export function populateWorld(map: MapData, seed: string) {
 
 /**
  * A copy of a map that takes its land stamps from these collections. A world
- * whose land the generator filled is filled again from them with the seed it
- * had, so going back to the first collections gives back the same stamps; a
- * map with none of the generator's stamps only keeps the choice for its next
- * generation.
+ * the generator made is filled again from them with the seed it had, so going
+ * back to the first collections gives back the same stamps; a world drawn by
+ * hand only keeps the choice for its next generation.
  */
 export function withPacks(map: MapData, packs: string[]): MapData {
   const next = structuredClone(map),
     seed = detailSeed(map),
-    filled = map.objects.some((o) => o.id.startsWith(GENERATED));
+    // Generated land stamps or settlements: the generator made this world.
+    filled = map.objects.some(
+      (o) => o.id.startsWith(GENERATED) || o.id.startsWith("settlement-"),
+    );
   next.settings = { ...next.settings, stampPacks: packs };
   if (map.kind === "world" && filled) populateWorld(next, seed);
   return next;

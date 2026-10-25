@@ -49,11 +49,35 @@ export const DECOR_SPRITES = {
   mangrove: [file("palm"), file("bush"), file("palmLarge")],
 } as const;
 
+const amanz = (name: string) => `/assets/amanz-lite/${name}.png`;
+
+/**
+ * The Map icons (Amanz) silhouettes for the symbol kinds they have, used on a
+ * world whose chosen stamp packs include them but not Kenney Cartography.
+ */
+export const AMANZ_SYMBOL_SPRITES: Partial<Record<StampKind, string>> = {
+  city: amanz("city"),
+  castle: amanz("tower"),
+  village: amanz("village"),
+  house: amanz("house"),
+  tavern: amanz("hut"),
+  tower: amanz("watchtower"),
+  dungeon: amanz("dungeon"),
+  chest: amanz("chest"),
+  mountain: amanz("mountain-5"),
+  hill: amanz("mountain-1"),
+  tree: amanz("tree-4"),
+  pine: amanz("pine-1"),
+};
+/** These are cut to their drawing, so they need less enlarging than Kenney's. */
+export const AMANZ_SYMBOL_SCALE = 1.15;
+
 /** Every bundled sprite the renderer needs, so the first frame already shows them. */
 export function symbolUrls() {
   return [
     ...new Set([
       ...Object.values(SYMBOL_SPRITES),
+      ...Object.values(AMANZ_SYMBOL_SPRITES),
       ...Object.values(DECOR_SPRITES).flat(),
     ]),
   ];

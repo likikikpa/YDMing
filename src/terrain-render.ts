@@ -23,6 +23,7 @@ import type { Cover, Material } from "./terrain-material";
 export { seaColor, textureColour } from "./terrain-material";
 import { hash, noise } from "./random";
 import { decorRegion, drawDecor } from "./decor";
+import { decorPack } from "./style-decor";
 import { reliefOf, shadeAt } from "./relief";
 import type { Relief } from "./relief";
 import { coastLines } from "./style-coast";
@@ -787,7 +788,7 @@ export function drawLandscape(
     );
     return;
   }
-  const key = String(contours);
+  const key = `${contours}|${decorPack(map.settings)}`;
   if (entry.decorErased !== map.decorErased) {
     // The eraser only ever appends circles, so usually just their area needs
     // repainting; anything else (an undo, say) repaints the whole sheet.

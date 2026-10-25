@@ -135,7 +135,7 @@ export function drawDecor(
   area?: Rect,
 ) {
   const { cols, rows, heights, width, height } = map,
-    set = decorSetFor(map.settings.style),
+    set = decorSetFor(map.settings),
     canopy = set.canopy,
     seed = hash(map.settings.seed),
     towns = set.trimmed || set.canopy ? settlements(map) : [];

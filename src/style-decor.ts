@@ -1,5 +1,7 @@
 import type { Canopy } from "./canopy";
-import { resolveStyle } from "./map-styles";
+import { AMANZ_DECOR } from "./amanz-decor";
+import { mapPacks } from "./map-packs";
+import { MAP_STYLES, resolveStyle } from "./map-styles";
 import { imageCache, loadImage } from "./render";
 import { DECOR_SPRITES } from "./symbols";
 
@@ -144,10 +146,36 @@ const BARE: DecorSet = {
   none: true,
 };
 
-/** The decoration set a map style draws with. */
-export const decorSetFor = (style: string): DecorSet => {
-  const id = resolveStyle(style);
-  return id === "ink" ? inkSet() : id === "realistic" ? BARE : PAINTED;
+/** The decoration sets of the collections a world can choose. */
+const PACK_DECOR: Record<string, () => DecorSet> = {
+  cartography: inkSet,
+  "ai-gen": () => PAINTED,
+  "amanz-lite": () => AMANZ_DECOR,
+};
+
+/** A style's name, or a map's settings with its choice of stamp packs. */
+type DecorOf = string | { style: string; stampPacks?: string[] };
+
+/** Which collection's pictures a map's decoration is drawn from, or none. */
+export function decorPack(of: DecorOf) {
+  // A missing style draws as the default, like an unknown one.
+  const settings = of && typeof of === "object" ? of : { style: of ?? "" };
+  const style = MAP_STYLES[resolveStyle(settings.style)];
+  // Realistic scatters nothing, whatever the stamps are.
+  if (style.id === "realistic") return undefined;
+  if (!settings.stampPacks) return style.stampPack;
+  // A world that chose its stamp packs is decorated from them: its style's
+  // own collection if it is chosen, else the first chosen that has a set.
+  const packs = mapPacks(settings);
+  return style.stampPack && packs.includes(style.stampPack)
+    ? style.stampPack
+    : packs.find((p) => PACK_DECOR[p]);
+}
+
+/** The decoration set a map draws with, from its style and stamp packs. */
+export const decorSetFor = (of: DecorOf): DecorSet => {
+  const pack = decorPack(of);
+  return pack && PACK_DECOR[pack] ? PACK_DECOR[pack]() : BARE;
 };
 
 /**
@@ -169,8 +197,8 @@ const COMMON_KINDS: DecorKind[] = [
  * Loads the pictures a style's common kinds need. Resolves true when some were
  * not loaded yet, which means anything already drawn is missing them.
  */
-export async function preloadDecor(style: string) {
-  const set = decorSetFor(style);
+export async function preloadDecor(of: DecorOf) {
+  const set = decorSetFor(of);
   if (!set.trimmed) return false;
   const missing = [
     ...new Set(COMMON_KINDS.flatMap((kind) => set.pools[kind])),
