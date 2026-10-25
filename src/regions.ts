@@ -19,7 +19,11 @@ export function buildRoutes(
 ): MapPath[] {
   const cities = settlements.filter((o) => o.kind === "city"),
     others = settlements.filter((o) => o.kind !== "city"),
-    links: [MapObject, MapObject][] = [];
+    links: [MapObject, MapObject][] = [],
+    land = landmasses(map),
+    // Whether a road can join two places: a link across the sea gives none.
+    joins = (a: MapObject, b: MapObject) =>
+      reachable(map, land, cellOf(map, a), cellOf(map, b));
   const connected = cities.slice(0, 1);
   const rest = cities.slice(1);
   while (rest.length) {
@@ -27,7 +31,8 @@ export function buildRoutes(
       distance = Infinity;
     rest.forEach((a, i) =>
       connected.forEach((b, j) => {
-        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        // A city across the sea is only linked when no other is left.
+        const d = Math.hypot(a.x - b.x, a.y - b.y) + (joins(a, b) ? 0 : 1e6);
         if (d < distance) {
           distance = d;
           best = [i, j];
@@ -43,45 +48,59 @@ export function buildRoutes(
       links.some(([p, q]) => (p === a && q === b) || (p === b && q === a));
   for (const a of cities) {
     const next = cities
-      .filter((b) => b !== a && !linkedAlready(a, b) && dist(a, b) < 380)
+      .filter(
+        (b) =>
+          b !== a && !linkedAlready(a, b) && dist(a, b) < 380 && joins(a, b),
+      )
       .sort((p, q) => dist(a, p) - dist(a, q))[0];
     if (next) links.push([a, next]);
   }
   // Villages and towns join the nearest place already on the roads, so the
   // network grows outward from the cities and a hamlet is not a day's march
   // from the nearest road. Lairs and ruins are linked but never become hubs.
+  // Only a hub a road can reach counts: one across the sea is passed over.
   const hubs: MapObject[] = [...cities],
     pending = others.filter((o) => o.kind !== "dungeon"),
     dungeons = others.filter((o) => o.kind === "dungeon");
-  const nearestHub = (o: MapObject) =>
-    Math.min(...hubs.map((h) => dist(o, h)), Infinity);
   while (pending.length) {
-    pending.sort((p, q) => nearestHub(p) - nearestHub(q));
-    const place = pending.shift()!;
-    // A place on another landmass may not reach its nearest hub; it is then
-    // tried against the next two before it is left off the roads.
-    const tries = [...hubs]
-      .sort((p, q) => dist(place, p) - dist(place, q))
-      .slice(0, 3);
-    for (const hub of tries)
-      if (dist(place, hub) < 330) {
-        links.push([place, hub]);
-        hubs.push(place);
-        break;
+    let pick = -1,
+      hub: MapObject | undefined,
+      distance = Infinity;
+    pending.forEach((place, i) => {
+      const near = nearestJoined(place, hubs, 330);
+      if (near && dist(place, near) < distance) {
+        pick = i;
+        hub = near;
+        distance = dist(place, near);
       }
+    });
+    // Nothing left can reach the roads (an island with no city, or a place
+    // far from the rest): the first left, a town before a village, starts a
+    // network of its own.
+    if (!hub) {
+      hubs.push(pending.shift()!);
+      continue;
+    }
+    links.push([pending[pick], hub]);
+    hubs.push(...pending.splice(pick, 1));
   }
   for (const place of dungeons) {
-    const nearest = [...hubs]
-      .sort((p, q) => dist(place, p) - dist(place, q))
-      .slice(0, 2);
-    for (const hub of nearest)
-      if (dist(place, hub) < 420) {
-        links.push([place, hub]);
-        break;
-      }
+    const hub = nearestJoined(place, hubs, 420);
+    if (hub) links.push([place, hub]);
   }
-  const paths: MapPath[] = [],
-    land = landmasses(map);
+  function nearestJoined(place: MapObject, from: MapObject[], reach: number) {
+    let best: MapObject | undefined,
+      distance = reach;
+    for (const hub of from) {
+      const d = dist(place, hub);
+      if (d < distance && joins(place, hub)) {
+        best = hub;
+        distance = d;
+      }
+    }
+    return best;
+  }
+  const paths: MapPath[] = [];
   for (const [a, b] of links) {
     const from = cellOf(map, a),
       to = cellOf(map, b),
