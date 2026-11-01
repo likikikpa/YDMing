@@ -86,6 +86,7 @@ export const GLOW_COLOUR: Record<
   fantasy: { lava: [255, 128, 40], coral: [222, 140, 118] },
   ink: { lava: [96, 58, 40], coral: [150, 112, 84] },
   realistic: { lava: [255, 108, 28], coral: [196, 124, 92] },
+  drawn: { lava: [236, 120, 40], coral: [214, 138, 120] },
 };
 
 /**

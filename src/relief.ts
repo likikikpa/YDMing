@@ -40,7 +40,12 @@ const REALISTIC: Relief = {
   reach: 3,
 };
 
-const RELIEFS = { fantasy: FANTASY, ink: INK, realistic: REALISTIC };
+const RELIEFS = {
+  fantasy: FANTASY,
+  ink: INK,
+  realistic: REALISTIC,
+  drawn: FANTASY,
+};
 
 /** The relief a style draws. */
 export const reliefOf = (style: string): Relief => RELIEFS[resolveStyle(style)];

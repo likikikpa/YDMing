@@ -1,0 +1,10 @@
+You are generating ONE sprite-sheet image with your built-in image generation tool for a fantasy map editor's stamp library. Actually generate the picture with the image tool (do not draw it with code), then save it to the exact path given at the end. If you cannot generate an image, say so plainly and stop; never fake one.
+
+ORIGINAL ARTWORK ONLY: draw original objects from general fantasy-cartography conventions. Do not imitate any specific product, brand or artist.
+
+SHEET LAYOUT: one image 1536x1024, 3 columns x 2 rows = 6 separate objects, each centred in its own equal cell with at least 8% empty margin on every side. Nothing touches or overlaps another object or a cell edge.
+BACKGROUND: one flat pure magenta #FF00FF everywhere outside the objects. No gradient, texture, vignette, ground, grass, shadow, glow, haze, frame, text, numbers, labels or watermark. Magenta must NOT appear inside any object. Object edges are hard and clean (slightly anti-aliased), no semi-transparent halo.
+EACH OBJECT: ONE single, complete, uncropped, universal stamp that can be placed on any terrain and combined by hand with others. No ground patch, no base, no island, no path, no fence, no extra props or neighbours, no cast shadow. All six objects in a sheet have the same scale (their relative real-world size may differ as the list says).
+VIEW (very important): "map icon" view. The object stands UPRIGHT, its vertical axis is the image's vertical axis. It is seen mostly from the FRONT, as in an elevation drawing, with only a thin sliver of roof or top visible (a very slight downward tilt). It is NOT isometric, NOT a 45-degree rotated diamond/cube view, NOT top-down, NOT a 3D game render.
+LIGHT: from the top-left on every object, shade on the right/bottom side.
+LEGIBILITY: each object must read clearly when shrunk to 48 px wide: strong silhouette, simplified masses, no hairline strokes, no tiny clutter.

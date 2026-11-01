@@ -1,6 +1,7 @@
 import type { Canopy } from "./canopy";
 import { resolveStyle } from "./map-styles";
 import { imageCache, loadImage } from "./render";
+import { styleSymbolUrls } from "./style-symbols";
 import { DECOR_SPRITES } from "./symbols";
 
 /** What a world map scatters over its land: a kind of symbol per height and biome. */
@@ -136,6 +137,59 @@ const PAINTED: DecorSet = {
   canopy: { clump: 70, open: 0.38 },
 };
 
+const HI = "/assets/hand-inked/";
+const hi = (...names: string[]) => names.map((n) => `${HI}${n}.webp`);
+
+/**
+ * Hand-drawn: the inked stamps of the Hand-inked pack. Kinds the pack has no
+ * picture for yet (palms, cacti, volcanoes) borrow its nearest neighbours.
+ */
+const DRAWN: DecorSet = {
+  pools: {
+    mountain: hi(
+      "peak-rocky",
+      "peak-snow",
+      "range-grey",
+      "range-snow-twin",
+      "peak-rocky",
+      "peak-forested",
+      "hills-brown",
+    ),
+    peak: hi("peak-rocky", "peak-spire"),
+    pine: hi(
+      "tree-spruce-slim",
+      "tree-fir-broad",
+      "tree-pine-tall",
+      "tree-fir-young",
+      "tree-spruce-dark",
+      "tree-pine-bent",
+    ),
+    forest: hi(
+      "tree-oak-big",
+      "tree-birch",
+      "tree-beech-broad",
+      "tree-small",
+      "tree-oak-big",
+      "tree-small",
+    ),
+    jungle: hi("tree-oak-big", "tree-small", "tree-beech-broad"),
+    desert: hi("boulders", "mesa", "tree-dead", "peak-spire"),
+    savanna: hi("tree-small", "tree-beech-broad", "tree-small"),
+    swamp: hi("tree-dead", "tree-small", "tree-dead"),
+    badlands: hi("mesa", "boulders", "peak-spire", "peak-rocky"),
+    glacier: hi("range-snow-twin", "peak-snow", "peak-snow"),
+    steppe: hi("tree-small", "boulders", "hills-green"),
+    moor: hi("boulders", "hills-green", "hills-chain", "tree-pine-bent"),
+    autumn: hi("tree-autumn", "tree-birch", "tree-autumn"),
+    volcanic: hi("peak-rocky", "boulders", "peak-spire"),
+    blight: hi("tree-dead", "tree-dead", "boulders"),
+    mangrove: hi("tree-small", "tree-dead", "tree-beech-broad"),
+  },
+  trimmed: true,
+  scale: perKind(1.25),
+  canopy: { clump: 70, open: 0.38 },
+};
+
 /** Realistic scatters nothing: woods and mountains come from the ground and its relief. */
 const BARE: DecorSet = {
   pools: perKind([]),
@@ -147,7 +201,13 @@ const BARE: DecorSet = {
 /** The decoration set a map style draws with. */
 export const decorSetFor = (style: string): DecorSet => {
   const id = resolveStyle(style);
-  return id === "ink" ? inkSet() : id === "realistic" ? BARE : PAINTED;
+  return id === "ink"
+    ? inkSet()
+    : id === "realistic"
+      ? BARE
+      : id === "drawn"
+        ? DRAWN
+        : PAINTED;
 };
 
 /**
@@ -173,7 +233,10 @@ export async function preloadDecor(style: string) {
   const set = decorSetFor(style);
   if (!set.trimmed) return false;
   const missing = [
-    ...new Set(COMMON_KINDS.flatMap((kind) => set.pools[kind])),
+    ...new Set([
+      ...COMMON_KINDS.flatMap((kind) => set.pools[kind]),
+      ...styleSymbolUrls(style),
+    ]),
   ].filter((url) => !imageCache.get(url)?.complete);
   if (!missing.length) return false;
   const results = await Promise.allSettled(

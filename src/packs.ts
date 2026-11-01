@@ -2,6 +2,7 @@ import aiGen from "./data/ai-gen.json";
 import amanz from "./data/amanz-lite.json";
 import classic from "./data/classic-dungeon.json";
 import gosbell from "./data/gosbell.json";
+import handInked from "./data/hand-inked.json";
 import kenney from "./data/kenney.json";
 import type { Credit } from "./types";
 
@@ -13,6 +14,10 @@ export interface PackStamp {
   src: string;
   /** Width divided by height, for sprites that are not square. */
   aspect?: number;
+  /** What the picture is (Trees, Mountains, Buildings ...), for the Library's filter. */
+  category?: string;
+  /** Words the Library search also matches. */
+  tags?: string[];
   /** Dungeon grid squares the picture is drawn to fill: width, height. */
   cells?: [number, number];
 }
@@ -22,7 +27,18 @@ export const PACK_STAMPS = [
   ...classic,
   ...amanz,
   ...aiGen,
+  ...handInked,
 ] as PackStamp[];
+
+/** Whether a stamp matches a search: its name, category or one of its tags contains every word. */
+export const stampMatches = (s: PackStamp, query: string) => {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  const text = [s.name, s.category ?? "", ...(s.tags ?? [])]
+    .join(" ")
+    .toLowerCase();
+  return words.every((w) => text.includes(w));
+};
 
 const count = (pack: string) =>
   PACK_STAMPS.filter((s) => s.pack === pack).length;
@@ -64,6 +80,11 @@ export const STAMP_PACKS = [
   {
     key: "ai-gen",
     label: `AI_GEN · ${count("ai-gen")}`,
+    credit: "AI generated · no third-party licence",
+  },
+  {
+    key: "hand-inked",
+    label: `Hand-inked · ${count("hand-inked")}`,
     credit: "AI generated · no third-party licence",
   },
 ] as {

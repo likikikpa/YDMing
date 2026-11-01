@@ -69,3 +69,7 @@ PDF room keys embed Noto Sans Regular under the SIL Open Font License 1.1. The f
 ## Software
 
 React, PixiJS, Lucide, jsPDF, fflate, idb-keyval, Express, Vite, Workbox, and development dependencies are distributed under their respective package licences. Consult `package-lock.json` and the installed packages for exact versions and licence files.
+
+## Hand-inked stamps (AI generated)
+
+The 48 pictures in the Library's "Hand-inked" collection (trees, mountains and hills, houses and other buildings, towers and castles, ships) were generated for YDMing in November 2026 with an AI image model (OpenAI image generation, driven through the Codex CLI), from the briefs in `scripts/pack-defs/`. They are original artwork: no third-party pack, and no picture from another map maker, was used as a reference or traced. No third-party licence applies; use of them follows the terms of the tool that generated them. Notes: `public/assets/hand-inked/License.txt`, `docs/ASSET-PIPELINE.md`.

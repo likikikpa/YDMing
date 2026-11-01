@@ -69,7 +69,15 @@ const REALISTIC: Ornaments = {
   scale: { text: "#f4f6f4", line: "#ffffffc0", lineWidth: 0.9 },
 };
 
-const SHEETS = { fantasy: PAINTED, ink: INK, realistic: REALISTIC };
+/** Hand-drawn: the brown ink frame and compass of Old ink, on a sheet that is not aged. */
+const DRAWN: Ornaments = { ...INK, edge: undefined };
+
+const SHEETS = {
+  fantasy: PAINTED,
+  ink: INK,
+  realistic: REALISTIC,
+  drawn: DRAWN,
+};
 
 /** Darkens the sheet towards its corners and edges. */
 function agedEdge(

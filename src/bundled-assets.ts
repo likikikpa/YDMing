@@ -6,6 +6,7 @@ export const BUNDLED_SPRITE_PACKS = [
   "classic-dungeon",
   "amanz-lite",
   "ai-gen",
+  "hand-inked",
 ];
 
 /** Whether an object's image is a bundled sprite path, which projects store instead of a copy. */

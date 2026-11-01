@@ -1,0 +1,481 @@
+{
+  "pack": "hand-inked",
+  "license": "Hand-inked: pictures generated with an AI image model (OpenAI image generation, through the Codex CLI) for the YDMing project in November 2026, from the briefs in scripts/pack-defs/. They are original artwork, not taken from or traced over any third-party pack, and no third-party licence applies; use of them follows the terms of the tool that generated them.\nEach picture is cut from a flat magenta background, trimmed to its drawing and scaled to 512 px.\n",
+  "sheets": {
+    "conifers": {
+      "category": "Trees",
+      "items": [
+        {
+          "key": "tree-spruce-slim",
+          "name": "Slim spruce",
+          "tags": [
+            "conifer",
+            "evergreen",
+            "forest",
+            "taiga"
+          ]
+        },
+        {
+          "key": "tree-fir-broad",
+          "name": "Broad fir",
+          "tags": [
+            "conifer",
+            "evergreen",
+            "forest"
+          ]
+        },
+        {
+          "key": "tree-pine-tall",
+          "name": "Tall pine",
+          "tags": [
+            "conifer",
+            "evergreen",
+            "forest"
+          ]
+        },
+        {
+          "key": "tree-fir-young",
+          "name": "Young fir",
+          "tags": [
+            "conifer",
+            "evergreen",
+            "small"
+          ]
+        },
+        {
+          "key": "tree-spruce-dark",
+          "name": "Dark spruce",
+          "tags": [
+            "conifer",
+            "evergreen",
+            "taiga"
+          ]
+        },
+        {
+          "key": "tree-pine-bent",
+          "name": "Wind-bent pine",
+          "tags": [
+            "conifer",
+            "evergreen",
+            "highland"
+          ]
+        }
+      ]
+    },
+    "mountains": {
+      "category": "Mountains",
+      "items": [
+        {
+          "key": "peak-rocky",
+          "name": "Rocky mountain",
+          "tags": [
+            "mountain",
+            "rock",
+            "brown"
+          ]
+        },
+        {
+          "key": "peak-forested",
+          "name": "Forested mountain",
+          "tags": [
+            "mountain",
+            "forest",
+            "green"
+          ]
+        },
+        {
+          "key": "peak-snow",
+          "name": "Snowy peak",
+          "tags": [
+            "mountain",
+            "snow",
+            "peak"
+          ]
+        },
+        {
+          "key": "range-grey",
+          "name": "Grey massif",
+          "tags": [
+            "mountain",
+            "rock",
+            "grey"
+          ]
+        },
+        {
+          "key": "hills-brown",
+          "name": "Brown hill",
+          "tags": [
+            "hill",
+            "rock",
+            "brown"
+          ]
+        },
+        {
+          "key": "range-snow-twin",
+          "name": "Twin snowy peaks",
+          "tags": [
+            "mountain",
+            "snow",
+            "peak"
+          ]
+        }
+      ]
+    },
+    "broadleaf": {
+      "category": "Trees",
+      "items": [
+        {
+          "key": "tree-oak-big",
+          "name": "Big oak",
+          "tags": [
+            "deciduous",
+            "forest",
+            "oak"
+          ]
+        },
+        {
+          "key": "tree-birch",
+          "name": "Birch",
+          "tags": [
+            "deciduous",
+            "forest",
+            "birch",
+            "white"
+          ]
+        },
+        {
+          "key": "tree-beech-broad",
+          "name": "Broad beech",
+          "tags": [
+            "deciduous",
+            "forest"
+          ]
+        },
+        {
+          "key": "tree-small",
+          "name": "Small tree",
+          "tags": [
+            "deciduous",
+            "small",
+            "forest"
+          ]
+        },
+        {
+          "key": "tree-autumn",
+          "name": "Autumn tree",
+          "tags": [
+            "deciduous",
+            "autumn",
+            "orange"
+          ]
+        },
+        {
+          "key": "tree-dead",
+          "name": "Dead tree",
+          "tags": [
+            "dead",
+            "bare",
+            "blight"
+          ]
+        }
+      ]
+    },
+    "hills-rocks": {
+      "category": "Hills and rocks",
+      "items": [
+        {
+          "key": "hills-green",
+          "name": "Green hill",
+          "tags": [
+            "hill",
+            "grass",
+            "green"
+          ]
+        },
+        {
+          "key": "hills-chain",
+          "name": "Chain of hills",
+          "tags": [
+            "hill",
+            "grass",
+            "green",
+            "range"
+          ]
+        },
+        {
+          "key": "boulders",
+          "name": "Boulders",
+          "tags": [
+            "rock",
+            "grey",
+            "stone"
+          ]
+        },
+        {
+          "key": "peak-spire",
+          "name": "Rock spire",
+          "tags": [
+            "rock",
+            "grey",
+            "pillar"
+          ]
+        },
+        {
+          "key": "mesa",
+          "name": "Mesa",
+          "tags": [
+            "rock",
+            "desert",
+            "badlands",
+            "red"
+          ]
+        },
+        {
+          "key": "standing-stones",
+          "name": "Standing stones",
+          "tags": [
+            "rock",
+            "grey",
+            "stone",
+            "monument"
+          ]
+        }
+      ]
+    },
+    "houses": {
+      "category": "Buildings",
+      "items": [
+        {
+          "key": "cottage-thatch",
+          "name": "Thatched cottage",
+          "tags": [
+            "house",
+            "village",
+            "thatch"
+          ]
+        },
+        {
+          "key": "house-tile",
+          "name": "Tile-roof house",
+          "tags": [
+            "house",
+            "village",
+            "tile"
+          ]
+        },
+        {
+          "key": "townhouse",
+          "name": "Half-timbered townhouse",
+          "tags": [
+            "house",
+            "town",
+            "timber"
+          ]
+        },
+        {
+          "key": "inn",
+          "name": "Inn",
+          "tags": [
+            "tavern",
+            "town",
+            "inn"
+          ]
+        },
+        {
+          "key": "barn",
+          "name": "Barn",
+          "tags": [
+            "farm",
+            "barn",
+            "wood"
+          ]
+        },
+        {
+          "key": "farmhouse",
+          "name": "Farmhouse",
+          "tags": [
+            "farm",
+            "house",
+            "thatch"
+          ]
+        }
+      ]
+    },
+    "buildings": {
+      "category": "Buildings",
+      "items": [
+        {
+          "key": "church",
+          "name": "Village church",
+          "tags": [
+            "religion",
+            "church",
+            "village"
+          ]
+        },
+        {
+          "key": "windmill",
+          "name": "Windmill",
+          "tags": [
+            "farm",
+            "mill"
+          ]
+        },
+        {
+          "key": "cathedral",
+          "name": "Cathedral",
+          "tags": [
+            "religion",
+            "church",
+            "city"
+          ]
+        },
+        {
+          "key": "forge",
+          "name": "Blacksmith forge",
+          "tags": [
+            "workshop",
+            "village",
+            "smith"
+          ]
+        },
+        {
+          "key": "tent",
+          "name": "Large tent",
+          "tags": [
+            "camp",
+            "tent",
+            "military"
+          ]
+        },
+        {
+          "key": "longhouse",
+          "name": "Longhouse",
+          "tags": [
+            "house",
+            "north",
+            "wood"
+          ]
+        }
+      ]
+    },
+    "towers-castles": {
+      "category": "Fortifications",
+      "items": [
+        {
+          "key": "tower-round",
+          "name": "Round tower",
+          "tags": [
+            "tower",
+            "stone",
+            "castle"
+          ]
+        },
+        {
+          "key": "watchtower",
+          "name": "Watchtower",
+          "tags": [
+            "tower",
+            "wood",
+            "fire"
+          ]
+        },
+        {
+          "key": "keep",
+          "name": "Small keep",
+          "tags": [
+            "castle",
+            "keep",
+            "stone"
+          ]
+        },
+        {
+          "key": "castle",
+          "name": "Castle",
+          "tags": [
+            "castle",
+            "stone",
+            "large"
+          ]
+        },
+        {
+          "key": "tower-ruined",
+          "name": "Ruined tower",
+          "tags": [
+            "tower",
+            "ruin",
+            "ivy"
+          ]
+        },
+        {
+          "key": "gatehouse",
+          "name": "Gatehouse",
+          "tags": [
+            "gate",
+            "wall",
+            "castle"
+          ]
+        }
+      ]
+    },
+    "ships": {
+      "category": "Ships",
+      "items": [
+        {
+          "key": "cog",
+          "name": "Cog",
+          "tags": [
+            "ship",
+            "sea",
+            "medieval"
+          ]
+        },
+        {
+          "key": "galleon",
+          "name": "Galleon",
+          "tags": [
+            "ship",
+            "sea",
+            "large"
+          ]
+        },
+        {
+          "key": "longship",
+          "name": "Longship",
+          "tags": [
+            "ship",
+            "sea",
+            "north"
+          ]
+        },
+        {
+          "key": "fishing-boat",
+          "name": "Fishing boat",
+          "tags": [
+            "boat",
+            "sea",
+            "small"
+          ]
+        },
+        {
+          "key": "rowboat",
+          "name": "Rowing boat",
+          "tags": [
+            "boat",
+            "small",
+            "river"
+          ]
+        },
+        {
+          "key": "caravel",
+          "name": "Caravel",
+          "tags": [
+            "ship",
+            "sea",
+            "medieval"
+          ]
+        }
+      ]
+    }
+  }
+}

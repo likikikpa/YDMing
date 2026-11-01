@@ -19,7 +19,7 @@ describe("map styles", () => {
     expect(styleOf({ style: "parchment" }).label).toBe("Old ink");
     expect(styleOf({ style: "parchment" }).stampPack).toBe("cartography");
     expect(PICKER_STYLES).not.toContain("parchment");
-    expect(PICKER_STYLES).toEqual(["fantasy", "ink", "realistic"]);
+    expect(PICKER_STYLES).toEqual(["fantasy", "drawn", "ink", "realistic"]);
   });
 
   it("offers Realistic with no stamp collection, since its ground carries the map", () => {

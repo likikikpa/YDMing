@@ -1,3 +1,4 @@
+import { drawnPalette } from "./style-palette-drawn";
 import { BIOME_KEYS } from "./biomes";
 import { BIOME_GROUNDS } from "./biome-grounds";
 import {
@@ -37,6 +38,7 @@ const PALETTES = {
   fantasy: fantasyPalette,
   ink: inkPalette,
   realistic: realisticPalette,
+  drawn: drawnPalette,
 };
 export const paletteOf = (style: string) => PALETTES[resolveStyle(style)];
 

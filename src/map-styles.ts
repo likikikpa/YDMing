@@ -1,7 +1,7 @@
 import type { MapStyleId } from "./types";
 
 /** The styles that exist. Saved maps may name a retired one: see `RETIRED_STYLES`. */
-export type LiveStyleId = "fantasy" | "ink" | "realistic";
+export type LiveStyleId = "fantasy" | "ink" | "realistic" | "drawn";
 
 /** How a map looks, and which stamp collection goes with that look. */
 export interface MapStyle {
@@ -27,6 +27,13 @@ export const MAP_STYLES: Record<LiveStyleId, MapStyle> = {
     search: "painted",
     stampPack: "ai-gen",
   },
+  // Inked and washed pictures on a calm painted ground: trees, peaks and buildings are drawn stamps.
+  drawn: {
+    id: "drawn",
+    label: "Hand-drawn",
+    search: "painted",
+    stampPack: "hand-inked",
+  },
   // Relief and woods come from the terrain, so it has no stamp collection of its own.
   realistic: { id: "realistic", label: "Realistic", search: "painted" },
 };
@@ -42,7 +49,12 @@ export const RETIRED_STYLES: Partial<Record<MapStyleId, LiveStyleId>> = {
 };
 
 /** The styles the picker offers, in order. */
-export const PICKER_STYLES: LiveStyleId[] = ["fantasy", "ink", "realistic"];
+export const PICKER_STYLES: LiveStyleId[] = [
+  "fantasy",
+  "drawn",
+  "ink",
+  "realistic",
+];
 
 /**
  * The style a map is drawn in: a retired one is replaced by its successor,

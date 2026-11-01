@@ -3,6 +3,7 @@ import type { ImageTable } from "./images";
 import { drawLabel } from "./labels";
 import { imageCache, loadImage } from "./render";
 import { drawStamp } from "./stamps";
+import { STYLE_SYMBOL_SCALE, styleSymbol } from "./style-symbols";
 import { SYMBOL_SCALE, SYMBOL_SPRITES } from "./symbols";
 import { tinted } from "./tint";
 import type { MapObject } from "./types";
@@ -89,13 +90,20 @@ export function drawObject(
       );
     else void loadImage(picture).catch(() => undefined);
   } else {
-    const src = SYMBOL_SPRITES[o.kind as keyof typeof SYMBOL_SPRITES],
+    // The style's own picture when it has one and it has loaded; else the glyph.
+    const own = styleSymbol(style, o.kind, o.id),
+      ownImg = own ? imageCache.get(own) : undefined;
+    if (own && !ownImg) void loadImage(own).catch(() => undefined);
+    const src =
+        ownImg?.complete && own
+          ? own
+          : SYMBOL_SPRITES[o.kind as keyof typeof SYMBOL_SPRITES],
       img = src ? imageCache.get(src) : undefined;
     if (img?.complete) {
       // Fit the sprite inside the object's box, keeping its proportions.
       const k =
         Math.min(o.width / img.naturalWidth, o.height / img.naturalHeight) *
-        SYMBOL_SCALE;
+        (src === own ? STYLE_SYMBOL_SCALE : SYMBOL_SCALE);
       ctx.drawImage(
         img,
         (-img.naturalWidth * k) / 2,

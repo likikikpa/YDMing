@@ -1,5 +1,5 @@
 import { styleOf } from "../map-styles";
-import { PACK_STAMPS, STAMP_PACKS } from "../packs";
+import { PACK_STAMPS, STAMP_PACKS, stampMatches } from "../packs";
 import { packSprite } from "../scatter-kinds";
 import { assetUrl } from "../search";
 import { Field } from "../ui/Field";
@@ -103,9 +103,7 @@ export function LibraryPanel({ app }: { app: ReadyApp }) {
                   Number(/arrow|path|texture|element/i.test(y.name)),
               )
               .filter(
-                (a) =>
-                  a.pack === assetPack &&
-                  a.name.toLowerCase().includes(assetSearch.toLowerCase()),
+                (a) => a.pack === assetPack && stampMatches(a, assetSearch),
               )
               .map((a) => (
                 <button

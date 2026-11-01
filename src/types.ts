@@ -125,7 +125,8 @@ export type MapStyleId =
   | "painted"
   | "fantasy"
   | "ink"
-  | "realistic";
+  | "realistic"
+  | "drawn";
 export interface GeneratorSettings {
   seed: string;
   template: string;

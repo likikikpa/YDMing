@@ -39,6 +39,16 @@ All seven steps are done: Painted fantasy, Old ink and Realistic. Each style own
 6. **Old ink.** Done. Pale paper ground with calmer texture, a heavy ink shore with water lines fading out to sea, a sepia relief wash, woods drawn as thinned clumps of the Kenney tree glyphs, a brown ink frame, compass and scale bar, italic place names, and paper that darkens towards its edges (not on dungeons). Parchment is retired and draws as Old ink. Not done: hatched slopes. A fine line pattern on the ground would need testing for shimmer when the map is shown smaller than its pixels. The Kenney glyphs are still black, not sepia; tinting them would need a tinted copy for the settlement symbols too.
 7. **Realistic.** Done. The Poly Haven tiles that ship, each recoloured to a natural average colour (meadow from the forest floor, woods from leaf litter, sand, dirt, mossy rock, snow), with woods as a ground of their own on world maps; a strong north-west hillshade with cool shadows; a thin surf line and soft foam band in place of contour rings; a pale frame, compass and scale bar; nothing scattered over the land. Not done: desert, savanna and swamp still take the sand and meadow photos, since a ground per biome needs more tiles; the 128 px tiles go soft at high zoom; towns and cities are still Kenney line art.
 
+## Done: Hand-drawn style and the Hand-inked pack
+
+Decided after the owner's review (1 November 2026): the target look is hand-drawn stamps (upright, seen from the front like map icons, not isometric and not top-down), many varied trees and mountains for the scatter brush, and several styles, not one.
+
+- **Hand-inked pack (48 stamps).** Pen-and-wash drawings, generated with an image model and cut out by `scripts/import-sheets.py`: 12 trees, 10 mountains and hills, boulders, 12 buildings, 6 towers and castles, 6 ships. Made flat and quiet on purpose; see `docs/ASSET-PIPELINE.md` for the method and what failed first.
+- **Hand-drawn map style.** A fourth style in the picker: a muted olive ground (`style-palette-drawn.ts`), a fine ink shore, the brown ink frame of Old ink, and the pack as its stamp set. The generator scatters its trees and mountains by biome, and draws villages, cities, castles, towers, temples and taverns as the pack's houses, cathedral, castles, towers and church (`style-symbols.ts`) instead of the Kenney glyphs. Painted fantasy and Old ink are unchanged.
+- **Library.** Stamps carry a category and tags, and the search matches them ("ship", "snow peak").
+
+Not done, in the order they matter: hard-edged biome patches (purple, grey and orange blobs still show polygon edges against the grass); denser, smaller woods like a printed atlas (clumps are sparse); palms, cacti, volcano and snowy conifers for the Hand-drawn style; a further style (dark fantasy) from the same object lists; cliff-edge and ridge pieces; a bridge, a well and a ruin set; clouds and sea creatures as map decoration; tint and recolour of stamps per style.
+
 ## Found in the review
 
 Each was reproduced and traced before any change (see Bugs in `CLAUDE.md`).

@@ -34,15 +34,16 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,json,png,txt,ttf,jpg}"],
         maximumFileSizeToCacheInBytes: 6000000,
-        // The AI_GEN pictures are 5 MB: kept out of the first-load download,
-        // cached for offline use the first time each one is shown.
+        // The AI_GEN and Hand-inked pictures are several MB: kept out of the
+        // first-load download, cached for offline use the first time each one is shown.
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.pathname.startsWith("/assets/ai-gen/"),
+            urlPattern: ({ url }) =>
+              /^\/assets\/(ai-gen|hand-inked)\//.test(url.pathname),
             handler: "CacheFirst",
             options: {
               cacheName: "ai-gen-stamps",
-              expiration: { maxEntries: 100 },
+              expiration: { maxEntries: 200 },
             },
           },
         ],
