@@ -8,7 +8,8 @@ cuts the magenta out (scripts/lib_cutout.py), trims it to its drawing, scales
 it to 512 px on the long side and writes a WebP with a lossless alpha channel
 to public/assets/<pack>/. The Library list goes to src/data/<pack>.json.
 
-Objects are found as groups of nearby pieces, not by grid cell, so one that
+A definition with "mono": true makes every picture neutral grey, for packs
+that must print without colour. Objects are found as groups of nearby pieces, not by grid cell, so one that
 spills over its cell stays whole. Checks, printed as warnings: fewer objects
 than the definition lists, an object touching the sheet edge (cropped), and
 magenta left on an opaque pixel.
@@ -28,6 +29,12 @@ from lib_cutout import cut_out, magenta_score, split_objects  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 LONG_SIDE = 512
+
+
+def greyscale(image: Image.Image) -> Image.Image:
+    """The picture in neutral grey, alpha kept: a pack made for a black and white printer."""
+    grey = image.convert("RGB").convert("L")
+    return Image.merge("RGBA", (grey, grey, grey, image.getchannel("A")))
 
 
 def trim(image: Image.Image) -> Image.Image | None:
@@ -72,6 +79,8 @@ def main() -> None:
             leftover = int(((magenta_score(rgb) > 90) & (alpha > 200)).sum())
             if leftover > 25:
                 warnings.append(f"{item['key']}: {leftover} magenta pixels left in the drawing")
+            if definition.get("mono"):
+                cell = greyscale(cell)
             framed = trim(cell)
             framed.save(out / f"{item['key']}.webp", "WEBP", quality=90, method=6, alpha_quality=100)
             manifest.append(

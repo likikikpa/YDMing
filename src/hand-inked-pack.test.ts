@@ -1,14 +1,18 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { decorSetFor } from "./style-decor";
 import { PACK_STAMPS, stampMatches } from "./packs";
-import { styleSymbolUrls } from "./style-symbols";
 import { kindOf } from "./scatter-kinds";
+import { decorSetFor } from "./style-decor";
+import { styleSymbolUrls } from "./style-symbols";
 
-const pack = PACK_STAMPS.filter((s) => s.pack === "hand-inked");
 const onDisk = (src: string) => existsSync(`public${src}`);
 
-describe("Hand-inked pack", () => {
+describe.each([
+  ["hand-inked", "drawn"],
+  ["pen-ink", "pen"],
+])("%s pack", (key, style) => {
+  const pack = PACK_STAMPS.filter((s) => s.pack === key);
+
   it("lists only pictures that exist, with a category and tags", () => {
     expect(pack.length).toBeGreaterThanOrEqual(40);
     for (const s of pack) {
@@ -22,10 +26,7 @@ describe("Hand-inked pack", () => {
   });
 
   it("records where the pictures come from", () => {
-    const licence = readFileSync(
-      "public/assets/hand-inked/License.txt",
-      "utf8",
-    );
+    const licence = readFileSync(`public/assets/${key}/License.txt`, "utf8");
     expect(licence).toMatch(/generated with an AI image model/);
   });
 
@@ -39,26 +40,46 @@ describe("Hand-inked pack", () => {
     expect(kinds.get("mountains")).toBeGreaterThanOrEqual(8);
     expect(kinds.get("rocks")).toBeGreaterThanOrEqual(1);
     // Buildings and ships are placed by hand, never sown by the brush or the generator.
-    for (const s of pack.filter((p) => p.category !== "Trees"))
+    for (const s of pack)
       if (/Buildings|Fortifications|Ships/.test(s.category!))
         expect(kindOf(s.src), s.id).toBeUndefined();
   });
 
-  it("is what the Hand-drawn style scatters and draws symbols from", () => {
-    const set = decorSetFor("drawn");
+  it(`is what the ${style} style scatters and draws symbols from`, () => {
+    const set = decorSetFor(style);
     const urls = [
       ...Object.values(set.pools).flat(),
-      ...styleSymbolUrls("drawn"),
+      ...styleSymbolUrls(style),
     ];
     expect(urls.length).toBeGreaterThan(20);
     for (const u of urls) {
-      expect(u).toMatch(/^\/assets\/hand-inked\//);
+      expect(u).toMatch(new RegExp(`^/assets/${key}/`));
       expect(onDisk(u), u).toBe(true);
     }
+  });
+
+  it("has the same pictures under the same names as the other inked pack", () => {
+    const names = (k: string) =>
+      PACK_STAMPS.filter((s) => s.pack === k)
+        .map((s) => s.src.slice(s.src.lastIndexOf("/")))
+        .sort();
+    expect(names(key)).toEqual(names("hand-inked"));
+  });
+});
+
+describe("Pen & ink", () => {
+  it("has no colour in its names and tags, and draws its shadows in neutral black", () => {
+    const colours = /\b(red|green|blue|brown|orange|yellow|autumn)\b/i;
+    for (const s of PACK_STAMPS.filter((p) => p.pack === "pen-ink"))
+      expect(`${s.name} ${(s.tags ?? []).join(" ")}`, s.id).not.toMatch(
+        colours,
+      );
+    expect(decorSetFor("pen").shadow).toMatch(/^rgba\(0, 0, 0,/);
   });
 });
 
 describe("Library search", () => {
+  const pack = PACK_STAMPS.filter((s) => s.pack === "hand-inked");
   const find = (q: string) => pack.filter((s) => stampMatches(s, q));
 
   it("matches names, categories and tags, every word", () => {

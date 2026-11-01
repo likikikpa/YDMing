@@ -94,11 +94,12 @@ export function drawPainted(
   sprite: DecorSprite,
   spot: { x: number; y: number },
   size: number,
+  shadow = "rgba(28, 42, 22, 0.28)",
 ) {
   const aspect = sprite.width / sprite.height,
     w = size * Math.sqrt(aspect),
     h = size / Math.sqrt(aspect);
-  ctx.fillStyle = "rgba(28, 42, 22, 0.28)";
+  ctx.fillStyle = shadow;
   ctx.beginPath();
   ctx.ellipse(
     spot.x + w * 0.04,

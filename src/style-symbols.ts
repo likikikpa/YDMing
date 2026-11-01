@@ -1,8 +1,20 @@
 import { resolveStyle } from "./map-styles";
 import type { StampKind } from "./types";
 
-const HI = "/assets/hand-inked/";
-const hi = (...names: string[]) => names.map((n) => `${HI}${n}.webp`);
+/** The symbol pictures of a pack made like Hand-inked (see `style-decor-inked.ts`). */
+const settlements = (pack: string): Partial<Record<StampKind, string[]>> => {
+  const hi = (...names: string[]) =>
+    names.map((n) => `/assets/${pack}/${n}.webp`);
+  return {
+    city: hi("cathedral", "townhouse"),
+    village: hi("cottage-thatch", "house-tile", "farmhouse"),
+    house: hi("cottage-thatch", "house-tile"),
+    tavern: hi("inn"),
+    temple: hi("church"),
+    castle: hi("castle", "keep"),
+    tower: hi("tower-round", "watchtower"),
+  };
+};
 
 /**
  * The pictures a style draws for the built-in map symbols (a village, a
@@ -11,15 +23,8 @@ const hi = (...names: string[]) => names.map((n) => `${HI}${n}.webp`);
  * Kinds missing here keep the glyph.
  */
 const SYMBOLS: Record<string, Partial<Record<StampKind, string[]>>> = {
-  drawn: {
-    city: hi("cathedral", "townhouse"),
-    village: hi("cottage-thatch", "house-tile", "farmhouse"),
-    house: hi("cottage-thatch", "house-tile"),
-    tavern: hi("inn"),
-    temple: hi("church"),
-    castle: hi("castle", "keep"),
-    tower: hi("tower-round", "watchtower"),
-  },
+  drawn: settlements("hand-inked"),
+  pen: settlements("pen-ink"),
 };
 
 /** How large these pictures are drawn compared with the box a symbol stands in. */

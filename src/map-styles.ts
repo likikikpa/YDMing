@@ -1,7 +1,7 @@
 import type { MapStyleId } from "./types";
 
 /** The styles that exist. Saved maps may name a retired one: see `RETIRED_STYLES`. */
-export type LiveStyleId = "fantasy" | "ink" | "realistic" | "drawn";
+export type LiveStyleId = "fantasy" | "ink" | "realistic" | "drawn" | "pen";
 
 /** How a map looks, and which stamp collection goes with that look. */
 export interface MapStyle {
@@ -34,6 +34,13 @@ export const MAP_STYLES: Record<LiveStyleId, MapStyle> = {
     search: "painted",
     stampPack: "hand-inked",
   },
+  // Black ink on white paper, for printing without colour: no tint anywhere on the map.
+  pen: {
+    id: "pen",
+    label: "Pen & ink",
+    search: "parchment",
+    stampPack: "pen-ink",
+  },
   // Relief and woods come from the terrain, so it has no stamp collection of its own.
   realistic: { id: "realistic", label: "Realistic", search: "painted" },
 };
@@ -52,6 +59,7 @@ export const RETIRED_STYLES: Partial<Record<MapStyleId, LiveStyleId>> = {
 export const PICKER_STYLES: LiveStyleId[] = [
   "fantasy",
   "drawn",
+  "pen",
   "ink",
   "realistic",
 ];
@@ -71,3 +79,9 @@ export function resolveStyle(id: string | undefined): LiveStyleId {
 /** The style a map's settings name, with retired styles replaced. */
 export const styleOf = (settings: { style: string }): MapStyle =>
   MAP_STYLES[resolveStyle(settings.style)];
+
+/** Styles drawn as ink on paper: calm ground, italic names, flat deep water. */
+export const isInkStyle = (style: string | undefined) => {
+  const id = resolveStyle(style);
+  return id === "ink" || id === "pen";
+};

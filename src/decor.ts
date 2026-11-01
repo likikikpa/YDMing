@@ -184,7 +184,7 @@ export function drawDecor(
       src = pool[poolIndex(spot.n, kind, pool.length)];
     if (set.trimmed) {
       const sprite = decorSprite(src);
-      if (sprite) drawPainted(ctx, sprite, spot, size * set.scale[kind]);
+      if (sprite) drawPainted(ctx, sprite, spot, size * set.scale[kind], set.shadow);
       else wantSprite(src);
       continue;
     }

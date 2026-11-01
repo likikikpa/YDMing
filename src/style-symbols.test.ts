@@ -9,6 +9,16 @@ describe("style symbols", () => {
       );
   });
 
+  it("gives Pen & ink the same kinds, from its own pack", () => {
+    for (const kind of ["city", "village", "castle", "tower", "temple"])
+      expect(styleSymbol("pen", kind, "a")).toMatch(
+        /^\/assets\/pen-ink\/[\w-]+\.webp$/,
+      );
+    expect(styleSymbolUrls("pen").every((u) => u.includes("/pen-ink/"))).toBe(
+      true,
+    );
+  });
+
   it("keeps the glyph for other styles and for kinds it has no picture for", () => {
     expect(styleSymbol("fantasy", "village", "a")).toBeUndefined();
     expect(styleSymbol("ink", "castle", "a")).toBeUndefined();

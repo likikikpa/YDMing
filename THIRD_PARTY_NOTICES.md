@@ -73,3 +73,7 @@ React, PixiJS, Lucide, jsPDF, fflate, idb-keyval, Express, Vite, Workbox, and de
 ## Hand-inked stamps (AI generated)
 
 The 48 pictures in the Library's "Hand-inked" collection (trees, mountains and hills, houses and other buildings, towers and castles, ships) were generated for YDMing in November 2026 with an AI image model (OpenAI image generation, driven through the Codex CLI), from the briefs in `scripts/pack-defs/`. They are original artwork: no third-party pack, and no picture from another map maker, was used as a reference or traced. No third-party licence applies; use of them follows the terms of the tool that generated them. Notes: `public/assets/hand-inked/License.txt`, `docs/ASSET-PIPELINE.md`.
+
+## Pen-ink stamps (AI generated)
+
+The 48 pictures in the Library's "Pen & ink" collection are the same objects as Hand-inked, drawn in black ink on white for printing without colour. They were generated for YDMing in November 2026 with an AI image model (OpenAI image generation, driven through the Codex CLI), from the briefs in `scripts/pack-defs/`, and converted to neutral grey on import. They are original artwork, not taken from or traced over any third-party pack. No third-party licence applies; use of them follows the terms of the tool that generated them. Notes: `public/assets/pen-ink/License.txt`.

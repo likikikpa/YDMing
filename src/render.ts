@@ -1,3 +1,4 @@
+import { tone } from "./style-tone";
 import { floodFill } from "./flood";
 import { drawFog } from "./fog-render";
 import type { ImageTable } from "./images";
@@ -93,7 +94,7 @@ function drawRivers(
   const water =
       (map.kind !== "dungeon" && shallowWaterPattern(ctx, map)) ||
       seaColor(map.settings.style),
-    bank = "#93aaa1",
+    bank = tone(map.settings.style, "#93aaa1"),
     runs = rivers.flatMap((p) =>
       landRuns(
         map,
@@ -147,22 +148,23 @@ function drawRivers(
 }
 function drawPath(ctx: CanvasRenderingContext2D, p: MapPath, map: MapData) {
   if (p.kind === "corridor") return;
+  const style = map.settings.style;
   ctx.save();
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   if (p.kind === "wall") {
     path(ctx, p.points);
-    ctx.strokeStyle = "#594f3d";
+    ctx.strokeStyle = tone(style, "#594f3d");
     ctx.lineWidth = p.width + 2;
     ctx.stroke();
-    ctx.strokeStyle = "#b4ac91";
+    ctx.strokeStyle = tone(style, "#b4ac91");
     ctx.lineWidth = p.width;
     ctx.stroke();
     p.points
       .filter((_, n) => n % 2 === 0)
       .forEach((v) => {
-        ctx.fillStyle = "#cfc5a7";
-        ctx.strokeStyle = "#665c46";
+        ctx.fillStyle = tone(style, "#cfc5a7");
+        ctx.strokeStyle = tone(style, "#665c46");
         ctx.lineWidth = 1.3;
         ctx.beginPath();
         ctx.arc(v.x, v.y, p.width * 0.9, 0, Math.PI * 2);
@@ -172,12 +174,14 @@ function drawPath(ctx: CanvasRenderingContext2D, p: MapPath, map: MapData) {
   } else {
     if (p.kind === "road" && p.points.length > 2) smoothPath(ctx, p.points);
     else path(ctx, p.points);
-    ctx.strokeStyle =
+    ctx.strokeStyle = tone(
+      style,
       p.kind === "border"
         ? "#8a6c4a99"
         : map.kind === "city"
           ? "#dfd1aa"
-          : "#837d5d";
+          : "#837d5d",
+    );
     ctx.lineWidth = p.width;
     ctx.setLineDash(
       p.kind === "border" ? [6, 4] : map.kind === "world" ? [3, 5] : [],
@@ -432,7 +436,7 @@ function drawMapLayers(
     if (borders.length) {
       // Kingdom borders share one style, so they are stroked in a single pass.
       ctx.save();
-      ctx.strokeStyle = "#8a6c4a99";
+      ctx.strokeStyle = tone(map.settings.style, "#8a6c4a99");
       ctx.lineWidth = borders[0].width;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
@@ -479,7 +483,7 @@ function drawMapLayers(
   if (map.kind === "world" && visible("Labels")) {
     ctx.save();
     ctx.globalAlpha = layer("Labels")?.opacity ?? 1;
-    drawSettlementNames(ctx, map.objects, objectInClip);
+    drawSettlementNames(ctx, map.objects, objectInClip, map.settings.style);
     ctx.restore();
   }
   if (map.kind === "dungeon" && visible("Labels")) {

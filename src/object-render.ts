@@ -1,6 +1,7 @@
 import { objectImage } from "./images";
 import type { ImageTable } from "./images";
 import { drawLabel } from "./labels";
+import { resolveStyle } from "./map-styles";
 import { imageCache, loadImage } from "./render";
 import { drawStamp } from "./stamps";
 import { STYLE_SYMBOL_SCALE, styleSymbol } from "./style-symbols";
@@ -52,6 +53,10 @@ function drawPicture(
   ctx.setTransform(base);
 }
 
+/** A stamp's tint: Pen & ink is for printing without colour, so nothing is tinted there. */
+const tintOf = (style: string, o: MapObject) =>
+  resolveStyle(style) === "pen" ? undefined : o.tint;
+
 /**
  * Draws one stamp, label or symbol of the map. `base` is the canvas's
  * transform before the first object of the layer, which lets picture stamps
@@ -68,7 +73,7 @@ export function drawObject(
   const picture = o.kind === "image" ? objectImage(o, images) : undefined;
   if (picture && base) {
     const img = imageCache.get(picture);
-    if (img?.complete) drawPicture(ctx, o, tinted(img, o.tint), base);
+    if (img?.complete) drawPicture(ctx, o, tinted(img, tintOf(style, o)), base);
     else void loadImage(picture).catch(() => undefined);
     return;
   }
@@ -82,7 +87,7 @@ export function drawObject(
     const img = imageCache.get(picture);
     if (img?.complete)
       ctx.drawImage(
-        tinted(img, o.tint),
+        tinted(img, tintOf(style, o)),
         -o.width / 2,
         -o.height / 2,
         o.width,

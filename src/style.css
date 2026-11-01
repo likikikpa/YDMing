@@ -934,6 +934,10 @@ input[type="range"]::-webkit-slider-thumb {
   background: linear-gradient(135deg, #808e4a 0 56%, #34687f 56%);
   color: #f1ead2;
 }
+.style-sample.pen {
+  background: #ffffff;
+  color: #111111;
+}
 .style-sample.fantasy {
   background: linear-gradient(135deg, #6c9650 0 56%, #38789a 56%);
   color: #f1e2ae;

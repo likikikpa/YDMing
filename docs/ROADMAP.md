@@ -47,7 +47,11 @@ Decided after the owner's review (1 November 2026): the target look is hand-draw
 - **Hand-drawn map style.** A fourth style in the picker: a muted olive ground (`style-palette-drawn.ts`), a fine ink shore, the brown ink frame of Old ink, and the pack as its stamp set. The generator scatters its trees and mountains by biome, and draws villages, cities, castles, towers, temples and taverns as the pack's houses, cathedral, castles, towers and church (`style-symbols.ts`) instead of the Kenney glyphs. Painted fantasy and Old ink are unchanged.
 - **Library.** Stamps carry a category and tags, and the search matches them ("ship", "snow peak").
 
-Not done, in the order they matter: hard-edged biome patches (purple, grey and orange blobs still show polygon edges against the grass); denser, smaller woods like a printed atlas (clumps are sparse); palms, cacti, volcano and snowy conifers for the Hand-drawn style; a further style (dark fantasy) from the same object lists; cliff-edge and ridge pieces; a bridge, a well and a ruin set; clouds and sea creatures as map decoration; tint and recolour of stamps per style.
+## Done: Pen & ink style for printing
+
+Requested by the owner (1 November 2026): no colour printer, so maps should be ink. Pen & ink is a fifth style: white paper, a black shore with water lines fading to grey, light neutral relief, a black frame and compass, black italic names with a white halo, and the Pen-ink pack, the same 48 objects as Hand-inked drawn in black and white with dense hatching. Everything the map draws for itself is grey, and a rendered world measured no pixel with chroma above 3. Painted fantasy and Hand-drawn render pixel-identical to before. Not done: an export option that checks a map for colour you painted yourself; grey speckles in the shallows near some coasts (blocky halftone-like patches in the water pattern, most visible on white); a threshold or line-art export for very small prints.
+
+Not done for any of the inked styles, in the order they matter: hard-edged biome patches (purple, grey and orange blobs still show polygon edges against the grass); denser, smaller woods like a printed atlas (clumps are sparse); palms, cacti, volcano and snowy conifers for the Hand-drawn style; a further style (dark fantasy) from the same object lists; cliff-edge and ridge pieces; a bridge, a well and a ruin set; clouds and sea creatures as map decoration; tint and recolour of stamps per style.
 
 ## Found in the review
 
