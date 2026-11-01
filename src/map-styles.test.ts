@@ -17,15 +17,16 @@ describe("map styles", () => {
   it("draws maps saved in the retired Parchment style as Old ink", () => {
     expect(resolveStyle("parchment")).toBe("ink");
     expect(styleOf({ style: "parchment" }).label).toBe("Old ink");
-    expect(styleOf({ style: "parchment" }).stampPack).toBe("cartography");
+    expect(styleOf({ style: "parchment" }).stampPack).toBe("hand-inked");
     expect(PICKER_STYLES).not.toContain("parchment");
-    expect(PICKER_STYLES).toEqual([
-      "fantasy",
-      "drawn",
-      "pen",
-      "ink",
-      "realistic",
-    ]);
+    expect(PICKER_STYLES).toEqual(["fantasy", "ink", "realistic"]);
+  });
+
+  it("draws maps saved in the short-lived Hand-drawn and Pen & ink styles as Old ink", () => {
+    for (const id of ["drawn", "pen"]) {
+      expect(resolveStyle(id)).toBe("ink");
+      expect(PICKER_STYLES).not.toContain(id);
+    }
   });
 
   it("offers Realistic with no stamp collection, since its ground carries the map", () => {

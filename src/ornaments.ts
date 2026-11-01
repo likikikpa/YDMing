@@ -37,21 +37,6 @@ const INK: Ornaments = {
   edge: [110, 72, 28, 0.34],
 };
 
-/** Black ink on white and nothing else, so the frame and compass print the same without colour. */
-const PEN: Ornaments = {
-  frame: "#000000",
-  outerWidth: 1.6,
-  innerWidth: 0.6,
-  dot: "#000000",
-  dotRadius: 3,
-  compassText: "#000000",
-  compassLine: "#000000",
-  compassLineWidth: 0.9,
-  compassDark: "#000000",
-  compassLight: "#ffffff",
-  scale: { text: "#000000", line: "#000000", lineWidth: 0.9 },
-};
-
 /** Cream and gold with dark teal outlines: legible on a deep sea. */
 const PAINTED: Ornaments = {
   frame: "#f0e6c8c0",
@@ -84,16 +69,7 @@ const REALISTIC: Ornaments = {
   scale: { text: "#f4f6f4", line: "#ffffffc0", lineWidth: 0.9 },
 };
 
-/** Hand-drawn: the brown ink frame and compass of Old ink, on a sheet that is not aged. */
-const DRAWN: Ornaments = { ...INK, edge: undefined };
-
-const SHEETS = {
-  fantasy: PAINTED,
-  ink: INK,
-  realistic: REALISTIC,
-  drawn: DRAWN,
-  pen: PEN,
-};
+const SHEETS = { fantasy: PAINTED, ink: INK, realistic: REALISTIC };
 
 /** Darkens the sheet towards its corners and edges. */
 function agedEdge(

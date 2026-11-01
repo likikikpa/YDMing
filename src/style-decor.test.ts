@@ -10,9 +10,11 @@ import { fantasyPalette, SHALLOW_WATER_COLOUR } from "./style-palettes";
 import { BIOMES } from "./generator";
 
 describe("style decoration sets", () => {
-  it("draws the inked symbols in Old ink and maps saved as Parchment", () => {
-    for (const style of ["ink", "parchment"])
-      expect(decorSetFor(style).trimmed).toBe(false);
+  it("draws the Hand-inked stamps in Old ink and in maps saved as Parchment, Hand-drawn or Pen & ink", () => {
+    for (const style of ["parchment", "drawn", "pen"])
+      expect(decorSetFor(style)).toBe(decorSetFor("ink"));
+    expect(decorSetFor("ink").trimmed).toBe(true);
+    expect(decorSetFor("ink").shadow).toMatch(/^rgba\(62, 42, 22,/);
   });
 
   it("draws Atlas maps, and unknown or missing styles, with the painted set", () => {

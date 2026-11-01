@@ -1,6 +1,6 @@
 # YDMing
 
-A browser map studio with a tavern-inspired walnut, brass, and parchment interface. Built from the attached D&D Map Maker product plan. Artwork is procedural, openly licensed, or (the AI_GEN, Hand-inked and Pen-ink stamp packs only) generated with an AI image model.
+A browser map studio with a tavern-inspired walnut, brass, and parchment interface. Built from the attached D&D Map Maker product plan. Artwork is procedural, openly licensed, or (the AI_GEN and Hand-inked stamp packs only) generated with an AI image model.
 
 ## Host it for other people
 

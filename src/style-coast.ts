@@ -32,30 +32,7 @@ const REALISTIC: CoastLine[] = [
   { offset: -0.018, colour: "#f6faf530", width: 3 },
 ];
 
-/** A fine ink shore with a few thin water lines: the stamps carry the ink, so the coast stays light. */
-const DRAWN: CoastLine[] = [
-  { offset: 0, colour: "#3f2f1fd0", width: 1.4 },
-  { offset: -0.014, colour: "#e8f2ee70", width: 1 },
-  { offset: -0.04, colour: "#e3f6f64a", width: 0.8 },
-];
-
-/** A black shore and water lines in greys that fade out to sea, for a printer with no colour. */
-const PEN: CoastLine[] = [
-  { offset: 0, colour: "#000000f0", width: 1.7 },
-  { offset: -0.012, colour: "#000000a0", width: 0.9 },
-  { offset: -0.026, colour: "#00000080", width: 0.8 },
-  { offset: -0.044, colour: "#00000060", width: 0.75 },
-  { offset: -0.066, colour: "#00000044", width: 0.7 },
-  { offset: -0.092, colour: "#00000030", width: 0.65 },
-];
-
-const COASTS = {
-  fantasy: PAINTED,
-  ink: INK,
-  realistic: REALISTIC,
-  drawn: DRAWN,
-  pen: PEN,
-};
+const COASTS = { fantasy: PAINTED, ink: INK, realistic: REALISTIC };
 
 /** The lines a style draws along its coasts, from the shore outwards. */
 export const coastLines = (style: string): CoastLine[] =>
@@ -63,5 +40,5 @@ export const coastLines = (style: string): CoastLine[] =>
 
 /** How far below the sea level the deepest line of any style is drawn. */
 export const DEEPEST_COAST_LINE = Math.max(
-  ...[INK, PAINTED, REALISTIC, DRAWN, PEN].flatMap((lines) => lines.map((l) => -l.offset)),
+  ...[INK, PAINTED, REALISTIC].flatMap((lines) => lines.map((l) => -l.offset)),
 );

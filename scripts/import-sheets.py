@@ -8,8 +8,8 @@ cuts the magenta out (scripts/lib_cutout.py), trims it to its drawing, scales
 it to 512 px on the long side and writes a WebP with a lossless alpha channel
 to public/assets/<pack>/. The Library list goes to src/data/<pack>.json.
 
-A definition with "mono": true makes every picture neutral grey, for packs
-that must print without colour. Objects are found as groups of nearby pieces, not by grid cell, so one that
+A definition with "duotone" repaints every picture in three tones (see
+`duotone`). Objects are found as groups of nearby pieces, not by grid cell, so one that
 spills over its cell stays whole. Checks, printed as warnings: fewer objects
 than the definition lists, an object touching the sheet edge (cropped), and
 magenta left on an opaque pixel.
@@ -31,10 +31,26 @@ ROOT = Path(__file__).resolve().parent.parent
 LONG_SIDE = 512
 
 
-def greyscale(image: Image.Image) -> Image.Image:
-    """The picture in neutral grey, alpha kept: a pack made for a black and white printer."""
-    grey = image.convert("RGB").convert("L")
-    return Image.merge("RGBA", (grey, grey, grey, image.getchannel("A")))
+def duotone(image: Image.Image, tone: dict) -> Image.Image:
+    """Repaints the picture in three tones: ink, wash and paper, keeping the alpha.
+
+    A generated sheet drifts in hue and strength from one image to the next.
+    Mapping brightness onto the three colours of the style (the same ones the
+    map's ground uses) makes every stamp of a pack sit on the paper alike. The
+    levels stretch the sheet's ink to the dark tone and its cream to the light
+    one, and the gamma keeps the wash a true mid tone.
+    """
+    def rgb(hex_: str) -> np.ndarray:
+        return np.array([int(hex_[i : i + 2], 16) for i in (1, 3, 5)], dtype=float)
+
+    dark, mid, light = rgb(tone["dark"]), rgb(tone["mid"]), rgb(tone["light"])
+    luma = np.asarray(image.convert("RGB").convert("L")).astype(float)
+    t = np.clip((luma - tone["black"]) / (tone["white"] - tone["black"]), 0, 1) ** tone["gamma"]
+    lower = np.clip(t * 2, 0, 1)[..., None]
+    upper = np.clip(t * 2 - 1, 0, 1)[..., None]
+    colour = np.where(t[..., None] < 0.5, dark + (mid - dark) * lower, mid + (light - mid) * upper)
+    out = np.dstack([colour.round().astype(np.uint8), np.asarray(image.getchannel("A"))])
+    return Image.fromarray(out, "RGBA")
 
 
 def trim(image: Image.Image) -> Image.Image | None:
@@ -79,8 +95,8 @@ def main() -> None:
             leftover = int(((magenta_score(rgb) > 90) & (alpha > 200)).sum())
             if leftover > 25:
                 warnings.append(f"{item['key']}: {leftover} magenta pixels left in the drawing")
-            if definition.get("mono"):
-                cell = greyscale(cell)
+            if definition.get("duotone"):
+                cell = duotone(cell, definition["duotone"])
             framed = trim(cell)
             framed.save(out / f"{item['key']}.webp", "WEBP", quality=90, method=6, alpha_quality=100)
             manifest.append(

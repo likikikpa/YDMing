@@ -33,7 +33,7 @@ describe("land detail of a generated world", () => {
     expect(fantasy.length).toBeGreaterThan(50);
     for (const o of fantasy) expect(o.image).toMatch(/^\/assets\/ai-gen\//);
     expect(ink.length).toBeGreaterThan(50);
-    for (const o of ink) expect(o.image).toMatch(/^\/assets\/cartography\//);
+    for (const o of ink) expect(o.image).toMatch(/^\/assets\/hand-inked\//);
     const realistic = world("pop2", { style: "realistic" });
     expect(hasStampSet(realistic)).toBe(false);
     expect(stamps(realistic)).toEqual([]);

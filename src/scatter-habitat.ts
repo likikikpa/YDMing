@@ -2,7 +2,7 @@ import { Biome, MAX_BIOME } from "./biomes";
 import { biomeAt } from "./generator";
 import { clamp } from "./random";
 import { kindOf } from "./scatter-kinds";
-import { decorSetFor } from "./style-decor";
+import { decorSetFor, kenneySet } from "./style-decor";
 import { terrainView } from "./terrain";
 import type { DecorKind } from "./style-decor";
 import type { ScatterPicture } from "./scatter";
@@ -54,8 +54,12 @@ function habitatsOf(src: string): ReadonlySet<DecorKind> | undefined {
   if (!habitats) {
     habitats = new Map();
     // Built on first use: the decoration sets sit in an import cycle with the renderer.
-    for (const style of ["fantasy", "ink", "drawn", "pen"]) {
-      const { pools } = decorSetFor(style);
+    for (const set of [
+      decorSetFor("fantasy"),
+      decorSetFor("ink"),
+      kenneySet(),
+    ]) {
+      const { pools } = set;
       for (const kind of Object.keys(pools) as DecorKind[])
         for (const url of pools[kind]) {
           const set = habitats.get(url) ?? new Set<DecorKind>();

@@ -3,7 +3,6 @@ import amanz from "./data/amanz-lite.json";
 import classic from "./data/classic-dungeon.json";
 import gosbell from "./data/gosbell.json";
 import handInked from "./data/hand-inked.json";
-import penInk from "./data/pen-ink.json";
 import kenney from "./data/kenney.json";
 import type { Credit } from "./types";
 
@@ -29,7 +28,6 @@ export const PACK_STAMPS = [
   ...amanz,
   ...aiGen,
   ...handInked,
-  ...penInk,
 ] as PackStamp[];
 
 /** Whether a stamp matches a search: its name, category or one of its tags contains every word. */
@@ -87,11 +85,6 @@ export const STAMP_PACKS = [
   {
     key: "hand-inked",
     label: `Hand-inked · ${count("hand-inked")}`,
-    credit: "AI generated · no third-party licence",
-  },
-  {
-    key: "pen-ink",
-    label: `Pen & ink · ${count("pen-ink")}`,
     credit: "AI generated · no third-party licence",
   },
 ] as {

@@ -23,8 +23,7 @@ const settlements = (pack: string): Partial<Record<StampKind, string[]>> => {
  * Kinds missing here keep the glyph.
  */
 const SYMBOLS: Record<string, Partial<Record<StampKind, string[]>>> = {
-  drawn: settlements("hand-inked"),
-  pen: settlements("pen-ink"),
+  ink: settlements("hand-inked"),
 };
 
 /** How large these pictures are drawn compared with the box a symbol stands in. */

@@ -21,9 +21,8 @@ const KINDS: DecorKind[] = [
 
 /**
  * The stamp set of a pack made like Hand-inked (same file names, in the folder
- * `public/assets/<pack>/`): Hand-drawn uses the coloured one, Pen & ink the
- * black and white one. Kinds the pack has no picture for yet (palms, cacti,
- * volcanoes) borrow its nearest neighbours.
+ * `public/assets/<pack>/`), which Old ink draws. Kinds the pack has no picture
+ * for yet (palms, cacti, volcanoes) borrow its nearest neighbours.
  */
 export function inkedSet(pack: string, shadow?: string): DecorSet {
   const hi = (...names: string[]) =>
@@ -76,6 +75,6 @@ export function inkedSet(pack: string, shadow?: string): DecorSet {
       number
     >,
     shadow,
-    canopy: { clump: 70, open: 0.38 },
+    canopy: { clump: 70, open: 0.42, every: 2 },
   };
 }

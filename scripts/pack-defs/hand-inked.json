@@ -1,6 +1,6 @@
 {
   "pack": "hand-inked",
-  "license": "Hand-inked: pictures generated with an AI image model (OpenAI image generation, through the Codex CLI) for the YDMing project in November 2026, from the briefs in scripts/pack-defs/. They are original artwork, not taken from or traced over any third-party pack, and no third-party licence applies; use of them follows the terms of the tool that generated them.\nEach picture is cut from a flat magenta background, trimmed to its drawing and scaled to 512 px.\n",
+  "license": "Hand-inked: pictures generated with an AI image model (OpenAI image generation, through the Codex CLI) for the YDMing project in November 2026, from the briefs in scripts/pack-defs/. They are original artwork, not taken from or traced over any third-party pack, and no third-party licence applies; use of them follows the terms of the tool that generated them.\nEach picture is cut from a flat magenta background, repainted in the three sepia tones of the Old ink map style, trimmed to its drawing and scaled to 512 px.\n",
   "sheets": {
     "conifers": {
       "category": "Trees",
@@ -70,8 +70,7 @@
           "name": "Rocky mountain",
           "tags": [
             "mountain",
-            "rock",
-            "brown"
+            "rock"
           ]
         },
         {
@@ -79,8 +78,7 @@
           "name": "Forested mountain",
           "tags": [
             "mountain",
-            "forest",
-            "green"
+            "forest"
           ]
         },
         {
@@ -94,20 +92,18 @@
         },
         {
           "key": "range-grey",
-          "name": "Grey massif",
+          "name": "Rocky massif",
           "tags": [
             "mountain",
-            "rock",
-            "grey"
+            "rock"
           ]
         },
         {
           "key": "hills-brown",
-          "name": "Brown hill",
+          "name": "Small hill",
           "tags": [
             "hill",
-            "rock",
-            "brown"
+            "rock"
           ]
         },
         {
@@ -139,8 +135,7 @@
           "tags": [
             "deciduous",
             "forest",
-            "birch",
-            "white"
+            "birch"
           ]
         },
         {
@@ -162,11 +157,11 @@
         },
         {
           "key": "tree-autumn",
-          "name": "Autumn tree",
+          "name": "Fruit tree",
           "tags": [
             "deciduous",
-            "autumn",
-            "orange"
+            "fruit",
+            "forest"
           ]
         },
         {
@@ -185,11 +180,10 @@
       "items": [
         {
           "key": "hills-green",
-          "name": "Green hill",
+          "name": "Grassy hill",
           "tags": [
             "hill",
-            "grass",
-            "green"
+            "grass"
           ]
         },
         {
@@ -198,7 +192,6 @@
           "tags": [
             "hill",
             "grass",
-            "green",
             "range"
           ]
         },
@@ -207,7 +200,6 @@
           "name": "Boulders",
           "tags": [
             "rock",
-            "grey",
             "stone"
           ]
         },
@@ -216,7 +208,6 @@
           "name": "Rock spire",
           "tags": [
             "rock",
-            "grey",
             "pillar"
           ]
         },
@@ -226,8 +217,7 @@
           "tags": [
             "rock",
             "desert",
-            "badlands",
-            "red"
+            "badlands"
           ]
         },
         {
@@ -235,7 +225,6 @@
           "name": "Standing stones",
           "tags": [
             "rock",
-            "grey",
             "stone",
             "monument"
           ]
@@ -477,5 +466,13 @@
         }
       ]
     }
+  },
+  "duotone": {
+    "dark": "#3b2a1a",
+    "mid": "#b9a67c",
+    "light": "#f1e7c9",
+    "black": 40,
+    "white": 235,
+    "gamma": 1.5
   }
 }

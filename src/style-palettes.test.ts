@@ -10,10 +10,10 @@ import {
 const sum = (rgb: number[]) => rgb[0] + rgb[1] + rgb[2];
 
 describe("Old ink style", () => {
-  it("is registered with the Kenney Cartography collection and offered in the picker", () => {
+  it("is registered with the Hand-inked collection and offered in the picker", () => {
     expect(MAP_STYLES.ink).toMatchObject({
       label: "Old ink",
-      stampPack: "cartography",
+      stampPack: "hand-inked",
     });
     expect(PICKER_STYLES).toContain("ink");
     expect(resolveStyle("ink")).toBe("ink");

@@ -1,5 +1,3 @@
-import { drawnPalette } from "./style-palette-drawn";
-import { penPalette } from "./style-palette-pen";
 import { BIOME_KEYS } from "./biomes";
 import { BIOME_GROUNDS } from "./biome-grounds";
 import {
@@ -13,7 +11,7 @@ import {
   WORLD_TILE,
 } from "./materials";
 import { turnsFor } from "./hex-tiling";
-import { isInkStyle, resolveStyle } from "./map-styles";
+import { resolveStyle } from "./map-styles";
 import { groundPhoto } from "./style-ground";
 import {
   fantasyPalette,
@@ -39,8 +37,6 @@ const PALETTES = {
   fantasy: fantasyPalette,
   ink: inkPalette,
   realistic: realisticPalette,
-  drawn: drawnPalette,
-  pen: penPalette,
 };
 export const paletteOf = (style: string) => PALETTES[resolveStyle(style)];
 
@@ -207,7 +203,7 @@ export function buildMaterial(layer: TextureLayer, style: string): Material {
     style,
     layer.pattern,
     baseColour(layer, style) as Rgb,
-    deep ? (isInkStyle(style) ? 3 : 10) : 0,
+    deep ? (resolveStyle(style) === "ink" ? 3 : 10) : 0,
   );
 }
 

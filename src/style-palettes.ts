@@ -1,5 +1,5 @@
 import { BIOME_NAMES } from "./biomes";
-import { isInkStyle } from "./map-styles";
+import { resolveStyle } from "./map-styles";
 import type { LiveStyleId } from "./map-styles";
 import type { TexturePattern } from "./types";
 
@@ -86,8 +86,6 @@ export const GLOW_COLOUR: Record<
   fantasy: { lava: [255, 128, 40], coral: [222, 140, 118] },
   ink: { lava: [96, 58, 40], coral: [150, 112, 84] },
   realistic: { lava: [255, 108, 28], coral: [196, 124, 92] },
-  drawn: { lava: [236, 120, 40], coral: [214, 138, 120] },
-  pen: { lava: [24, 24, 24], coral: [96, 96, 96] },
 };
 
 /**
@@ -95,7 +93,7 @@ export const GLOW_COLOUR: Record<
  * strength. Old ink keeps the paper calm so the line work reads.
  */
 export const groundContrast = (style: string) =>
-  isInkStyle(style) ? 0.35 : 1;
+  resolveStyle(style) === "ink" ? 0.35 : 1;
 
 /**
  * Painted fantasy: ground colour per biome (the index is the biome id, see

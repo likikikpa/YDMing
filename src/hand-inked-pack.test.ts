@@ -7,10 +7,7 @@ import { styleSymbolUrls } from "./style-symbols";
 
 const onDisk = (src: string) => existsSync(`public${src}`);
 
-describe.each([
-  ["hand-inked", "drawn"],
-  ["pen-ink", "pen"],
-])("%s pack", (key, style) => {
+describe.each([["hand-inked", "ink"]])("%s pack", (key, style) => {
   const pack = PACK_STAMPS.filter((s) => s.pack === key);
 
   it("lists only pictures that exist, with a category and tags", () => {
@@ -23,6 +20,13 @@ describe.each([
       expect(s.aspect).toBeLessThan(5);
     }
     expect(new Set(pack.map((s) => s.id)).size).toBe(pack.length);
+  });
+
+  it("has no colour words in names and tags: the pictures are sepia ink", () => {
+    for (const s of pack)
+      expect(`${s.name} ${(s.tags ?? []).join(" ")}`, s.id).not.toMatch(
+        /\b(red|green|blue|brown|orange|yellow|grey|gray|white|autumn)\b/i,
+      );
   });
 
   it("records where the pictures come from", () => {
@@ -56,25 +60,6 @@ describe.each([
       expect(u).toMatch(new RegExp(`^/assets/${key}/`));
       expect(onDisk(u), u).toBe(true);
     }
-  });
-
-  it("has the same pictures under the same names as the other inked pack", () => {
-    const names = (k: string) =>
-      PACK_STAMPS.filter((s) => s.pack === k)
-        .map((s) => s.src.slice(s.src.lastIndexOf("/")))
-        .sort();
-    expect(names(key)).toEqual(names("hand-inked"));
-  });
-});
-
-describe("Pen & ink", () => {
-  it("has no colour in its names and tags, and draws its shadows in neutral black", () => {
-    const colours = /\b(red|green|blue|brown|orange|yellow|autumn)\b/i;
-    for (const s of PACK_STAMPS.filter((p) => p.pack === "pen-ink"))
-      expect(`${s.name} ${(s.tags ?? []).join(" ")}`, s.id).not.toMatch(
-        colours,
-      );
-    expect(decorSetFor("pen").shadow).toMatch(/^rgba\(0, 0, 0,/);
   });
 });
 

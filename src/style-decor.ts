@@ -51,12 +51,14 @@ const perKind = <T>(value: T): Record<DecorKind, T> => ({
 });
 
 /**
- * Old ink: the hand-inked Kenney symbols, with woods drawn as thinned clumps
- * of them. Built on first use: this file and `symbols.ts` sit in an import
- * cycle through `render.ts`, so `DECOR_SPRITES` may not exist while this loads.
+ * The Kenney line symbols with woods as thinned clumps of them: Old ink drew
+ * these before the Hand-inked stamps, and the Library still offers them, so
+ * the habitat rules still need to know which biome each grows on. Built on
+ * first use: this file and `symbols.ts` sit in an import cycle through
+ * `render.ts`, so `DECOR_SPRITES` may not exist while this loads.
  */
 let ink: DecorSet | undefined;
-const inkSet = (): DecorSet =>
+export const kenneySet = (): DecorSet =>
   (ink ??= {
     pools: DECOR_SPRITES,
     trimmed: false,
@@ -149,21 +151,16 @@ const BARE: DecorSet = {
 };
 
 /** Built on first use: `style-decor-inked.ts` only needs the types of this file. */
-let drawn: DecorSet | undefined;
-let pen: DecorSet | undefined;
+let inked: DecorSet | undefined;
 
 /** The decoration set a map style draws with. */
 export const decorSetFor = (style: string): DecorSet => {
   const id = resolveStyle(style);
   return id === "ink"
-    ? inkSet()
+    ? (inked ??= inkedSet("hand-inked", "rgba(62, 42, 22, 0.24)"))
     : id === "realistic"
       ? BARE
-      : id === "drawn"
-        ? (drawn ??= inkedSet("hand-inked"))
-        : id === "pen"
-          ? (pen ??= inkedSet("pen-ink", "rgba(0, 0, 0, 0.22)"))
-          : PAINTED;
+      : PAINTED;
 };
 
 /**

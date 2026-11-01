@@ -17,14 +17,18 @@ describe("canopy", () => {
     expect(decorSetFor("realistic").canopy).toBeUndefined();
   });
 
-  it("thins Old ink's woods, drawn with small glyphs, and leaves Painted fantasy's full", () => {
+  it("thins Old ink's woods, as the old charts do, and leaves Painted fantasy's full", () => {
     expect(decorSetFor("ink").canopy!.every).toBeGreaterThan(1);
     expect(decorSetFor("fantasy").canopy!.every ?? 1).toBe(1);
   });
 
-  it("draws Old ink with the inked glyphs, not the painted pictures", () => {
-    expect(decorSetFor("ink").trimmed).toBe(false);
-    expect(decorSetFor("ink").pools).toBe(DECOR_SPRITES);
+  it("draws Old ink with the Hand-inked stamps, not the painted pictures or the line glyphs", () => {
+    const set = decorSetFor("ink");
+    expect(set.trimmed).toBe(true);
+    expect(set.pools).not.toBe(DECOR_SPRITES);
+    expect(set.pools).not.toBe(decorSetFor("fantasy").pools);
+    for (const url of Object.values(set.pools).flat())
+      expect(url).toMatch(/^\/assets\/hand-inked\//);
   });
 
   it("grows in taiga, forest, jungle, autumn woods and mangrove and nowhere else", () => {

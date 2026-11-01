@@ -40,22 +40,7 @@ const REALISTIC: Relief = {
   reach: 3,
 };
 
-/** A light neutral grey wash: lit paper stays white, shade is a soft grey that prints as a halftone. */
-const PEN: Relief = {
-  fine: 110,
-  broad: 80,
-  highland: 0.7,
-  tint: [1, 1, 1],
-  reach: 3,
-};
-
-const RELIEFS = {
-  fantasy: FANTASY,
-  ink: INK,
-  realistic: REALISTIC,
-  drawn: FANTASY,
-  pen: PEN,
-};
+const RELIEFS = { fantasy: FANTASY, ink: INK, realistic: REALISTIC };
 
 /** The relief a style draws. */
 export const reliefOf = (style: string): Relief => RELIEFS[resolveStyle(style)];

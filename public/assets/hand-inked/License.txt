@@ -1,2 +1,2 @@
 Hand-inked: pictures generated with an AI image model (OpenAI image generation, through the Codex CLI) for the YDMing project in November 2026, from the briefs in scripts/pack-defs/. They are original artwork, not taken from or traced over any third-party pack, and no third-party licence applies; use of them follows the terms of the tool that generated them.
-Each picture is cut from a flat magenta background, trimmed to its drawing and scaled to 512 px.
+Each picture is cut from a flat magenta background, repainted in the three sepia tones of the Old ink map style, trimmed to its drawing and scaled to 512 px.

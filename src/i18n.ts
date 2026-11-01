@@ -160,8 +160,6 @@ export const ru: Record<string, string> = {
   Style: "Стиль",
   "Painted fantasy": "Живописное фэнтези",
   "Old ink": "Старые чернила",
-  "Hand-drawn": "Нарисованная от руки",
-  "Pen & ink": "Перо и тушь",
   Realistic: "Реалистичный",
   "Matches the style": "Подходит к стилю",
   "Other collections": "Другие наборы",
