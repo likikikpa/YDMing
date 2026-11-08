@@ -64,6 +64,7 @@ export function drawObject(
   images?: ImageTable,
   style = "",
   base?: DOMMatrix,
+  labelFont?: string,
 ) {
   const picture = o.kind === "image" ? objectImage(o, images) : undefined;
   if (picture && base) {
@@ -77,7 +78,7 @@ export function drawObject(
   ctx.rotate((o.rotation * Math.PI) / 180);
   ctx.scale(o.flipX ? -1 : 1, o.flipY ? -1 : 1);
   if (o.kind === "label") {
-    drawLabel(ctx, o, style);
+    drawLabel(ctx, o, style, labelFont);
   } else if (picture) {
     const img = imageCache.get(picture);
     if (img?.complete)

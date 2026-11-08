@@ -22,6 +22,8 @@ export interface BrushSettings {
   pressure: boolean;
   layer: string;
   mask?: boolean;
+  /** The font of a label the Text tool places: a font id, or the map's when unset. */
+  font?: string;
   /** What the fog tool does; reveal when unset. */
   fog?: "reveal" | "hide" | "room";
 }

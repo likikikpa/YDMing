@@ -46,6 +46,15 @@ export default defineConfig({
               expiration: { maxEntries: 300 },
             },
           },
+          // The bundled map fonts (WOFF2) load the first time a map uses one.
+          {
+            urlPattern: ({ url }) => /^\/fonts\/.*\.woff2$/.test(url.pathname),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "map-fonts",
+              expiration: { maxEntries: 30 },
+            },
+          },
         ],
       },
     }),

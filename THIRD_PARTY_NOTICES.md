@@ -73,3 +73,7 @@ React, PixiJS, Lucide, jsPDF, fflate, idb-keyval, Express, Vite, Workbox, and de
 ## Hand-inked stamps (AI generated)
 
 The 48 pictures in the Library's "Hand-inked" collection (trees, mountains and hills, houses and other buildings, towers and castles, ships) were generated for YDMing in November 2026 with an AI image model (OpenAI image generation, driven through the Codex CLI), from the briefs in `scripts/pack-defs/`, and repainted in the three sepia tones of the Old ink map style on import. They are original artwork: no third-party pack, and no picture from another map maker, was used as a reference or traced. No third-party licence applies; use of them follows the terms of the tool that generated them. Notes: `public/assets/hand-inked/License.txt`, `docs/ASSET-PIPELINE.md`.
+
+## Map fonts (SIL Open Font License 1.1)
+
+The fonts in `public/fonts/` (Cormorant SC, EB Garamond, Alegreya, Philosopher, Forum, Kurale, Marck Script, Ruslan Display, Cinzel, Uncial Antiqua and Pirata One) come from the Google Fonts repository (https://github.com/google/fonts) and are licensed under the SIL Open Font License, Version 1.1. They are converted to WOFF2; those whose licence declares a Reserved Font Name are only converted, the others are also reduced to Latin and Cyrillic letters. The licence texts and sources are in `public/fonts/LICENSES.txt`; `scripts/import-fonts.py` fetches and converts them again. Fonts a user adds to a world are theirs and are not part of YDMing.

@@ -26,7 +26,7 @@ The launcher installs dependencies when missing, builds the app, starts a local 
 
 Use `.\Start-YDMing.ps1 -SkipBuild` for a faster launch after a successful build, `-NoBrowser` to leave the browser closed, or `-Port 5174` if another application occupies port 5173. Browser saves are tied to the browser and port, so keep the same port for existing maps. The script works in Windows PowerShell 5.1 and PowerShell 7 and can be called by its full path from another directory. It uses `npm.cmd` and does not change your PowerShell execution policy.
 
-Maps are saved in your browser. Use **Save project** and **Open project** to transfer them between browsers or computers. The executable and desktop packaging have been removed.
+Maps are saved in your browser. Use **Save project** and **Open project** to transfer them between browsers or computers. Map text can be set in one of the bundled open-licence fonts (most cover Cyrillic) or in a font file you add (TTF, OTF, WOFF or WOFF2); added fonts are saved inside the world. The executable and desktop packaging have been removed.
 
 ## Run
 

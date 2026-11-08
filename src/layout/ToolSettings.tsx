@@ -5,6 +5,7 @@ import { ScatterSettings } from "./ScatterSettings";
 import { TerrainPaintSettings } from "./TerrainPaintSettings";
 import { MAP_COLORS } from "../types";
 import { Field, HexColorField, Slider } from "../ui/Field";
+import { FontPicker } from "../ui/FontPicker";
 import type { ReadyApp } from "../app/useAppModel";
 
 export function ToolSettings({ app }: { app: ReadyApp }) {
@@ -107,6 +108,15 @@ export function ToolSettings({ app }: { app: ReadyApp }) {
             <span>HEX</span>
           </div>
         </>
+      )}
+      {tool === "text" && (
+        <FontPicker
+          app={app}
+          label={t("Font")}
+          empty={t("Same as map")}
+          value={brush.font}
+          onChange={(font) => setBrush((b) => ({ ...b, font }))}
+        />
       )}
       {layerTools.includes(tool) && (
         <Field label={t("Active layer")}>

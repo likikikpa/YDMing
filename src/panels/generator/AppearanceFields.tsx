@@ -1,6 +1,7 @@
 import { Mountain } from "lucide-react";
 import type { ReadyApp } from "../../app/useAppModel";
 import { MAP_STYLES, PICKER_STYLES, resolveStyle } from "../../map-styles";
+import { FontPicker } from "../../ui/FontPicker";
 
 export function AppearanceFields({
   app,
@@ -36,6 +37,19 @@ export function AppearanceFields({
               </button>
             ))}
           </div>
+          <FontPicker
+            app={app}
+            label={t("Label font")}
+            empty={t("Default")}
+            value={settings.labelFont}
+            onChange={(font) => {
+              changeSetting("labelFont", font);
+              mutateMap((m) => {
+                if (font) m.settings.labelFont = font;
+                else delete m.settings.labelFont;
+              }, "Change label font");
+            }}
+          />
         </>
       )}
     </>

@@ -1,4 +1,5 @@
 import { SRD } from "../generator";
+import { DraftTextarea } from "../ui/DraftInput";
 import { Field } from "../ui/Field";
 import { BookOpen, ChevronRight, Trash2 } from "lucide-react";
 import type { ReadyApp } from "../app/useAppModel";
@@ -41,15 +42,17 @@ export function RoomsPanel({ app }: { app: ReadyApp }) {
             {t("Room")} {currentRoom.number}
           </div>
           <Field label={t("Description")}>
-            <textarea
+            <DraftTextarea
+              key={currentRoom.id}
               rows={4}
               value={currentRoom.description}
-              onChange={(e) =>
+              onCommit={(description) =>
                 mutateMap(
                   (m) =>
                     (m.rooms.find((r) => r.id === currentRoom.id)!.description =
-                      e.target.value),
+                      description),
                   "Edit room description",
+                  `type:room:${currentRoom.id}`,
                 )
               }
             />

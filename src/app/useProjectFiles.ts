@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { download, slug } from "../export";
+import { pruneFonts } from "../fonts";
 import { migrateImages, pruneImages } from "../images";
 import { validateProject } from "../storage";
 import type { Project } from "../types";
@@ -27,7 +28,7 @@ export function useProjectFiles({
   function saveProjectFile() {
     if (!project) return;
     download(
-      new Blob([JSON.stringify(pruneImages(project))], {
+      new Blob([JSON.stringify(pruneFonts(pruneImages(project)))], {
         type: "application/json",
       }),
       `${slug(project.name)}.ydming`,

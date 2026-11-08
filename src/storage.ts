@@ -1,6 +1,7 @@
 import { validFog } from "./fog";
 import { isBundledSprite } from "./bundled-assets";
 import { getWithLegacy } from "./legacy-keys";
+import { pruneFonts, validFontId, validFonts } from "./fonts";
 import { migrateImages, pruneImages } from "./images";
 import { MAX_BIOME } from "./biomes";
 import { MAX_MIXES, validMix } from "./scatter-mixes";
@@ -34,7 +35,7 @@ function mapGrids(project: Project, convert: (v: ArrayLike<number>) => ArrayLike
  * every stamp moved into the world's image table.
  */
 export const packProject = (project: Project) =>
-  mapGrids(pruneImages(project), (v) => Float32Array.from(v));
+  mapGrids(pruneFonts(pruneImages(project)), (v) => Float32Array.from(v));
 export const unpackProject = (project: Project) =>
   migrateImages(mapGrids(project, (v) => Array.from(v)));
 /** The single project saved before worlds existed; `worlds.ts` moves it into the world list. */
@@ -140,7 +141,11 @@ export function validateProject(value: unknown): Project {
       )
     )
       throw new Error("Note links must be obsidian:// or web links.");
+    if (m.settings.labelFont !== undefined && !validFontId(m.settings.labelFont))
+      throw new Error("The project contains an invalid font name.");
     for (const o of m.objects) {
+      if (o.font !== undefined && !validFontId(o.font))
+        throw new Error("The project contains an invalid font name.");
       if (
         o.tint !== undefined &&
         !(Number.isFinite(o.tint) && o.tint >= -1 && o.tint <= 1)
@@ -175,6 +180,8 @@ export function validateProject(value: unknown): Project {
       ))
   )
     throw new Error("The project contains an invalid image.");
+  if (p.fonts !== undefined && !validFonts(p.fonts))
+    throw new Error("The project contains an invalid font.");
   if (
     p.scatterMixes !== undefined &&
     (!Array.isArray(p.scatterMixes) ||

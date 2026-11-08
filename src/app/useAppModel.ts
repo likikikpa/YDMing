@@ -11,6 +11,7 @@ import { useMapLinks } from "./useMapLinks";
 import { useObjectActions } from "./useObjectActions";
 import { usePackImport } from "./usePackImport";
 import { useProjectFiles } from "./useProjectFiles";
+import { useFonts } from "./useFonts";
 import { useProjectStore } from "./useProjectStore";
 import { useScatterMixes } from "./useScatterMixes";
 import { useScenes } from "./useScenes";
@@ -125,6 +126,13 @@ export function useAppModel() {
     notify,
     t: view.t,
   });
+  const fonts = useFonts({
+    project: store.project,
+    projectRef: store.projectRef,
+    commit: store.commit,
+    notify,
+    t: view.t,
+  });
   const scatterMixes = useScatterMixes({
     project: store.project,
     commit: store.commit,
@@ -190,6 +198,7 @@ export function useAppModel() {
     ...packs,
     ...scenes,
     ...scatterMixes,
+    ...fonts,
     ...worlds,
     ...links,
     ...clipboard,

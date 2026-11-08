@@ -31,6 +31,8 @@ import type { FitSettings } from "../assets";
 import type { Tool } from "../types";
 
 export const HISTORY_LIMIT = 100;
+/** Edits of one field closer together than this (ms) are one undo step. */
+export const HISTORY_MERGE_MS = 1500;
 export type Panel =
   | "generate"
   | "layers"

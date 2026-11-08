@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Editor } from "../editor/Editor";
+import { DraftInput } from "../ui/DraftInput";
 import { styleOf } from "../map-styles";
 import { poolAssets, scatterPool } from "../scatter-brush";
 import { imagesWithSprite, spriteAssets } from "../stamp-brush";
@@ -98,18 +99,18 @@ export function CanvasWorkspace({ app }: { app: ReadyApp }) {
             {map.noteUrl && <NoteLinkButton url={map.noteUrl} t={t} />}
           </span>
           <h1>
-            <input
+            <DraftInput
+              key={map.id}
               aria-label={t("Map name")}
               value={map.name}
-              onChange={(e) => {
-                const value = e.target.value;
+              onCommit={(value) =>
                 setProject({
                   ...project,
                   maps: project.maps.map((m) =>
                     m.id === map.id ? { ...m, name: value } : m,
                   ),
-                });
-              }}
+                })
+              }
             />
           </h1>
         </div>

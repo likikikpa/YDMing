@@ -1,4 +1,6 @@
+import { DraftInput, DraftTextarea } from "../ui/DraftInput";
 import { Field } from "../ui/Field";
+import { FontPicker } from "../ui/FontPicker";
 import { IconButton } from "../ui/IconButton";
 import {
   AlignStartHorizontal,
@@ -39,12 +41,22 @@ export function SelectionPanel({ app }: { app: ReadyApp }) {
           <X size={13} />
         </button>
       </div>
-      <input
+      <DraftInput
+        key={selection[0].id}
         className="object-name"
         aria-label={t("Name")}
         value={selection[0].name}
-        onChange={(e) => updateSelected({ name: e.target.value })}
+        onCommit={(name) => updateSelected({ name }, "Edit object", true)}
       />
+      {selection[0].kind === "label" && (
+        <FontPicker
+          app={app}
+          label={t("Font")}
+          empty={t("Same as map")}
+          value={selection[0].font}
+          onChange={(font) => updateSelected({ font }, "Change font")}
+        />
+      )}
       <div className="transform-fields">
         {(["x", "y", "width", "height", "rotation"] as const).map((key, i) => (
           <label key={key}>
@@ -55,7 +67,11 @@ export function SelectionPanel({ app }: { app: ReadyApp }) {
               value={Math.round(selection[0][key])}
               min={key === "width" || key === "height" ? 4 : undefined}
               onChange={(e) =>
-                updateSelected({ [key]: Number(e.target.value) })
+                updateSelected(
+                  { [key]: Number(e.target.value) },
+                  "Edit object",
+                  true,
+                )
               }
             />
           </label>
@@ -94,16 +110,22 @@ export function SelectionPanel({ app }: { app: ReadyApp }) {
       {map.kind === "city" && (
         <>
           <Field label={t("Owner")}>
-            <input
+            <DraftInput
+              key={selection[0].id}
               value={selection[0].owner || ""}
-              onChange={(e) => updateSelected({ owner: e.target.value })}
+              onCommit={(owner) =>
+                updateSelected({ owner }, "Edit object", true)
+              }
             />
           </Field>
           <Field label={t("Notes for the GM")}>
-            <textarea
+            <DraftTextarea
+              key={selection[0].id}
               rows={2}
               value={selection[0].notes || ""}
-              onChange={(e) => updateSelected({ notes: e.target.value })}
+              onCommit={(notes) =>
+                updateSelected({ notes }, "Edit object", true)
+              }
             />
           </Field>
         </>

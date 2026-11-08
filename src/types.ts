@@ -74,6 +74,8 @@ export interface MapObject extends Point {
   /** The picture's key in `Project.images`: imported images are stored once per world. */
   imageId?: string;
   creditId?: string;
+  /** A label's font: the id of a bundled font (`BUNDLED_FONTS`) or of one in `Project.fonts`; the map's `labelFont` when unset. */
+  font?: string;
   /** A note about this stamp outside the app: an obsidian:// or web link. */
   noteUrl?: string;
 }
@@ -171,6 +173,8 @@ export interface GeneratorSettings {
   mangroves?: number;
   badlands?: number;
   glaciers?: number;
+  /** The font of the map's names and labels: a bundled font's id or one in `Project.fonts`; unset draws them in the default. */
+  labelFont?: string;
   steppe?: number;
   moorland?: number;
   autumnWoods?: number;
@@ -297,6 +301,8 @@ export interface Project {
   textures?: TextureLayer[];
   /** Imported pictures (data URLs) by id; stamps refer to them with `imageId`. */
   images?: Record<string, string>;
+  /** Fonts the user added, by id; a label or a map's `labelFont` names one. */
+  fonts?: Record<string, { name: string; data: string }>;
   /** Saved scatter brushes: weighted pictures the Stamp tool's scatter mode draws from. */
   scatterMixes?: ScatterMix[];
   commercial: boolean;

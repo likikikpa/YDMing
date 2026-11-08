@@ -13,6 +13,7 @@ import { createSelectTool } from "./select-tool";
 import { createStamps } from "./stamps";
 import type { EditorHandle, EditorProps } from "./types";
 import { useDecorSprites } from "./useDecorSprites";
+import { useFontsLoaded } from "./useFontsLoaded";
 import { useGroundPhotos } from "./useGroundPhotos";
 import { useEditorCore } from "./useEditorCore";
 import { useEditorHandle } from "./useEditorHandle";
@@ -52,6 +53,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(
     useEditorHandle(ref, all);
     useEditorLifecycle(all);
     useDecorSprites(all);
+    useFontsLoaded(all);
     useGroundPhotos(all);
     const { host, detail, overlay, drag, renderError } = core;
     const { drawOverlay } = overlayTools;

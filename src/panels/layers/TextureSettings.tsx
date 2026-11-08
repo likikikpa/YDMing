@@ -1,5 +1,6 @@
 import { BUILTIN_MATERIALS, PATTERNS } from "../../materials";
 import { textureColour } from "../../terrain-render";
+import { DraftInput } from "../../ui/DraftInput";
 import type { TextureLayer, TextureTiling } from "../../types";
 import { Field, Slider } from "../../ui/Field";
 import { ImagePlus, Trash2, X } from "lucide-react";
@@ -25,11 +26,10 @@ export function TextureSettings({ app }: { app: ReadyApp }) {
   return (
     <div className="layer-settings texture-settings">
       <Field label={t("Name")}>
-        <input
+        <DraftInput
+          key={l.id}
           value={l.name}
-          onChange={(e) =>
-            edit((n) => (n.name = e.target.value), "Rename texture")
-          }
+          onCommit={(name) => edit((n) => (n.name = name), "Rename texture")}
         />
       </Field>
       <Field label={t("Pattern")}>

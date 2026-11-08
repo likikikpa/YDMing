@@ -1,4 +1,5 @@
 import { resolveStyle } from "./map-styles";
+import { fontStackFor } from "./font-loader";
 import type { MapObject } from "./types";
 
 /** Draws a label centred on the origin of the transformed context. */
@@ -6,10 +7,12 @@ export function drawLabel(
   ctx: CanvasRenderingContext2D,
   o: MapObject,
   style: string,
+  /** The map's label font, for a label with none of its own. */
+  labelFont?: string,
 ) {
   const ink = resolveStyle(style) === "ink";
   // Old charts letter their names in italic.
-  ctx.font = `${ink ? "italic " : ""}${o.height}px Georgia, serif`;
+  ctx.font = `${ink ? "italic " : ""}${o.height}px ${fontStackFor(o.font ?? labelFont)}`;
   ctx.textAlign = "center";
   // A light halo keeps names readable over dark water and busy ground.
   ctx.lineJoin = "round";

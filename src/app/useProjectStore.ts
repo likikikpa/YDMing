@@ -3,7 +3,10 @@ import { loadStartWorld, newWorld, saveWorld } from "../worlds";
 import { withStampAssets } from "../stamp-brush";
 import type { StampAssets } from "../stamp-brush";
 import type { MapData, Project } from "../types";
-import { HISTORY_LIMIT } from "./constants";
+import { HISTORY_LIMIT, HISTORY_MERGE_MS } from "./constants";
+import { pushEntry } from "./history-merge";
+import type { HistoryEntry } from "./history-merge";
+import { editedCopy } from "../map-edit";
 
 /** The open world (a `Project`), its undo history, and saving it in the browser. */
 export function useProjectStore({
@@ -15,9 +18,7 @@ export function useProjectStore({
 }) {
   const [project, setProject] = useState<Project | null>(null);
   const projectRef = useRef<Project | null>(null);
-  const [history, setHistory] = useState<{ project: Project; label: string }[]>(
-    [],
-  );
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [saveState, setSaveState] = useState("Saved locally");
   const [saveError, setSaveError] = useState("");
@@ -27,15 +28,22 @@ export function useProjectStore({
   indexRef.current = historyIndex;
   const map = project?.maps.find((m) => m.id === project.activeMapId);
   projectRef.current = project;
-  function commit(next: Project, label: string) {
+  function commit(next: Project, label: string, key?: string) {
     next = { ...next, updatedAt: new Date().toISOString() };
     setProject(next);
+    // Like the history refs below: a second edit in the same tick (adding a
+    // font, then using it) must build on this project, not on the last render's.
+    projectRef.current = next;
     // Refs keep two commits in the same tick consistent, and the cap stops a
     // long session from holding hundreds of full map copies in memory.
-    const kept = [
-      ...historyRef.current.slice(0, indexRef.current + 1),
-      { project: next, label },
-    ].slice(-HISTORY_LIMIT);
+    const kept = pushEntry(
+      historyRef.current,
+      indexRef.current,
+      { project: next, label, key },
+      Date.now(),
+      HISTORY_LIMIT,
+      HISTORY_MERGE_MS,
+    );
     historyRef.current = kept;
     indexRef.current = kept.length - 1;
     setHistory(kept);
@@ -43,7 +51,12 @@ export function useProjectStore({
     setSaveState("Saving…");
   }
   /** `assets` are the credit and picture of an imported stamp the map may now use. */
-  function updateMap(next: MapData, label: string, assets: StampAssets = {}) {
+  function updateMap(
+    next: MapData,
+    label: string,
+    assets: StampAssets = {},
+    key?: string,
+  ) {
     const p = projectRef.current;
     if (!p) return;
     commit(
@@ -53,13 +66,17 @@ export function useProjectStore({
         assets,
       ),
       label,
+      key,
     );
   }
-  function mutateMap(change: (m: MapData) => void, label: string) {
+  /** `key` merges edits close together into one undo step: see `pushEntry`. */
+  function mutateMap(
+    change: (m: MapData) => void,
+    label: string,
+    key?: string,
+  ) {
     if (!map) return;
-    const next = structuredClone(map);
-    change(next);
-    updateMap(next, label);
+    updateMap(editedCopy(map, change), label, {}, key);
   }
   function undo() {
     if (historyIndex < 1) return;

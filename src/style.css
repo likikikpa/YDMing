@@ -2685,3 +2685,13 @@ img.layer-thumbnail {
   background: #d3b072;
   border-color: #e0bd79;
 }
+
+.font-picker {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.font-picker select {
+  flex: 1;
+  min-width: 0;
+}

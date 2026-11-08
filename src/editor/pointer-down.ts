@@ -221,6 +221,7 @@ export function createPointerDown(
           rotation: 0,
           layer: "Labels",
           color: p.brush.color,
+          ...(p.brush.font && { font: p.brush.font }),
         };
         m.objects.push(o);
         p.setSelected([o.id]);

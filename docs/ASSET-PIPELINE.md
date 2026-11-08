@@ -38,3 +38,7 @@ The scatter brush and the generator sort a picture into a kind by its file name 
 - No palms, cacti, volcano, swamp plants, snowy conifers or bushes: Old ink borrows the nearest picture for those biomes (see `DRAWN` in `src/style-decor.ts`).
 - No dungeon, city-plan or interior pieces; dungeons and tiny symbols (wells, chests) still use the Kenney glyphs.
 - Sheets were generated once; individual stamps were not retouched by hand.
+
+## Fonts
+
+The bundled map fonts are made by `scripts/import-fonts.py` (needs `pip install fonttools brotli`): it fetches each font from the Google Fonts repository, converts it to WOFF2, reduces it to Latin and Cyrillic unless its licence declares a Reserved Font Name, and writes `public/fonts/LICENSES.txt` from the licence files. Running it twice gives identical files. A new font goes in `FONTS` there and in `BUNDLED_FONTS` in `src/fonts.ts`; a test checks that every listed font has its file and its licence.

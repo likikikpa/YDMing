@@ -472,14 +472,22 @@ function drawMapLayers(
       .forEach(
         (o, i) =>
           objectInClip(o) &&
-          drawObject(ctx, o, i, options.images, map.settings.style, base),
+          drawObject(
+            ctx,
+            o,
+            i,
+            options.images,
+            map.settings.style,
+            base,
+            map.settings.labelFont,
+          ),
       );
     ctx.restore();
   }
   if (map.kind === "world" && visible("Labels")) {
     ctx.save();
     ctx.globalAlpha = layer("Labels")?.opacity ?? 1;
-    drawSettlementNames(ctx, map.objects, objectInClip);
+    drawSettlementNames(ctx, map.objects, objectInClip, map.settings.labelFont);
     ctx.restore();
   }
   if (map.kind === "dungeon" && visible("Labels")) {
